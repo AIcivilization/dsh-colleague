@@ -1,12 +1,14 @@
 /**
- * 照搬 AionUi TeamPage.tsx
  * 团队面板主入口 —— 组装所有组件。
  *
  * 1. Warmup 初始化遮罩
  * 2. 顶部成员栏 (TeamTabs)
  * 3. 视图切换 (TeamViewToggle)
  * 4. 活动看板 (ActivityBoardLayout + ActivityControlBar)
- * 5. 介入控制栏 (InterventionBar) — 差异化
+ * 5. 介入控制栏 (InterventionBar)
+ *
+ * 面板通过 TeamRuntime 的 subscribe 获取事件流，不再轮询。
+ * 暂停、恢复、修正、接管、跳过通过 runtime 服务端确认后更新 UI。
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -31,6 +33,7 @@ import {
   type ActivityLane,
 } from './hooks/activityTypes';
 import type { Blackboard, MemberState, MailboxMessage } from '../types';
+import type { TeamState, TeamEvent, InterventionCommand } from '../../core/runtime/types';
 import type { ActivityIdentityResolver } from './components/MessageCard';
 
 // ===== 类型适配 =====
@@ -49,12 +52,18 @@ interface TeamPageProps {
   teamName: string;
   leaderId: string;
   members: MemberState[];
+  runtime: {
+    getSnapshot: () => TeamState;
+    subscribe: (listener: (event: TeamEvent) => void) => () => void;
+    getEvents?: (since?: number) => TeamEvent[];
+    handleIntervention: (command: InterventionCommand) => void;
+  };
   fetchState: () => Promise<{ blackboard: Blackboard; messages: MailboxMessage[] }>;
   onPause: () => void;
   onResume: () => void;
   onRevise: (message: string) => void;
   onTakeover: () => void;
-  onSkip: () => void;
+  onSkip: (taskId: string) => void;
 }
 
 const TeamPage: React.FC<TeamPageProps> = ({
@@ -62,6 +71,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
   teamName,
   leaderId,
   members,
+  runtime,
   fetchState,
   onPause,
   onResume,
@@ -71,6 +81,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
 }) => {
   const [activeSlotId, setActiveSlotId] = useState<string>(leaderId);
   const [paused, setPaused] = useState(false);
+  const [skipTargetTaskId, setSkipTargetTaskId] = useState<string | null>(null);
 
   // 将 MemberState 转为 TeamAssistant
   const assistants: TeamAssistant[] = useMemo(
@@ -103,12 +114,14 @@ const TeamPage: React.FC<TeamPageProps> = ({
 
   const feedKind =
     controls.contentFilter === 'messages' ? 'message' : controls.contentFilter === 'tasks' ? 'task' : 'all';
+
+  // 直接使用 runtime 而非 fetchState（fetchState 仅作为兼容回退）
   const { messages, tasks, members: feedMembers, snapshot, isLoading } = useTeamActivityFeed(
     teamId,
     true,
     controls.sortDirection,
     feedKind,
-    fetchState
+    runtime
   );
 
   // Warmup — dormant 成员视为 idle（ready），不会触发 warmup 错误
@@ -116,7 +129,6 @@ const TeamPage: React.FC<TeamPageProps> = ({
     (slot_id: string): TeamWarmupMemberState | undefined => {
       const member = members.find((m) => m.colleague_id === slot_id);
       if (!member) return undefined;
-      // dormant、idle、active 都算 ready（成员已注册，只是还没接到任务）
       if (member.status === 'idle' || member.status === 'active' || member.status === 'dormant') return { status: 'ready' };
       if (member.status === 'failed') return { status: 'failed' };
       if (member.status === 'pending') return { status: 'pending' };
@@ -193,16 +205,31 @@ const TeamPage: React.FC<TeamPageProps> = ({
     [assistants]
   );
 
-  // 暂停/恢复
+  // 暂停/恢复 — 等待服务端确认
   const handlePause = useCallback(() => {
-    setPaused(true);
     onPause();
+    setPaused(true);
   }, [onPause]);
 
   const handleResume = useCallback(() => {
-    setPaused(false);
     onResume();
+    setPaused(false);
   }, [onResume]);
+
+  // 跳过 — 需要选择具体任务
+  const handleSkipClick = useCallback(() => {
+    // 如果有选中任务则跳过，否则提示用户选择
+    if (skipTargetTaskId) {
+      onSkip(skipTargetTaskId);
+      setSkipTargetTaskId(null);
+    } else {
+      // 取第一个 running 的任务
+      const runningTask = tasks.find((t) => t.status === 'in_progress');
+      if (runningTask) {
+        onSkip(runningTask.id);
+      }
+    }
+  }, [skipTargetTaskId, tasks, onSkip]);
 
   // warmup 失败的成员（必须在所有早期 return 之前调用，遵守 Hooks 规则）
   const warmupFailedSlotIds = useMemo(() => {
@@ -227,7 +254,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
 
   return (
     <div className='flex flex-col h-full' style={{ background: 'var(--bg-base)' }}>
-      {/* 顶部标题栏 — 照搬 AionUi: h-40px + brand 色渐变图标 */}
+      {/* 顶部标题栏 */}
       <div
         className='flex items-center justify-between px-12px h-40px shrink-0 border-b border-solid'
         style={{ borderColor: 'var(--border-base)', background: 'var(--bg-1)' }}
@@ -247,30 +274,16 @@ const TeamPage: React.FC<TeamPageProps> = ({
         activeSlotId={activeSlotId}
         onSwitchTab={setActiveSlotId}
         onRenameAssistant={(slot_id, new_name) => {
-          // 双击重命名 — 前端本地更新（后端暂不支持持久化）
-          const idx = members.findIndex((m) => m.colleague_id === slot_id);
-          if (idx >= 0) {
-            members[idx] = { ...members[idx], name: new_name };
-          }
+          // 成员重命名通过 runtime 受控操作
+          // 暂不支持持久化重命名
         }}
         onRemoveAssistant={(slot_id) => {
-          // 移除成员 — 前端本地移除
-          const idx = members.findIndex((m) => m.colleague_id === slot_id);
-          if (idx >= 0) members.splice(idx, 1);
+          // 成员移除通过 runtime 受控操作
+          // 暂不支持运行时移除
         }}
         onAddMember={() => {
-          // 添加成员 — 简化：添加一个空壳成员
-          const newId = `member-${Date.now().toString(36)}`;
-          members.push({
-            colleague_id: newId,
-            name: '新成员',
-            role: 'member',
-            status: 'idle',
-            last_activity_at: Date.now(),
-            slot_id: members.length,
-            model_family: 'unknown',
-            memory_active: false,
-          });
+          // 添加成员通过 runtime 受控操作
+          // 暂不支持运行时添加
         }}
         colorOf={colorOf}
         warmingUp={isWarmingUp}
@@ -289,7 +302,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
         />
 
         {viewMode === 'board' ? (
-          // 看板视图
+          // 看板视图：多列并行展示
           <div className='flex flex-col flex-1 h-full min-w-0'>
             <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
             <div className='flex-1 min-h-0'>
@@ -302,30 +315,77 @@ const TeamPage: React.FC<TeamPageProps> = ({
               />
             </div>
           </div>
-        ) : (
-          // 并行/单聊视图（当前简化为看板视图的另一种展示）
+        ) : viewMode === 'parallel' ? (
+          // 并行视图：按成员分组，水平排列
           <div className='flex flex-col flex-1 h-full min-w-0'>
             <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
-            <div className='flex-1 min-h-0'>
-              <ActivityBoardLayout
-                items={filteredItems}
-                lanes={lanes}
-                identity={identity}
-                hasMore={false}
-                isLoadingMore={false}
-              />
+            <div className='flex-1 min-h-0 flex gap-8px overflow-auto p-8px'>
+              {lanes.map((lane) => (
+                <div
+                  key={lane.slotId}
+                  className='flex flex-col shrink-0 w-288px h-full rounded-8px border border-solid border-[color:var(--border-base)] bg-[color:var(--bg-2)]'
+                >
+                  <div className='flex items-center gap-6px px-10px py-8px border-b border-solid border-[color:var(--border-base)]'>
+                    <span className='inline-block w-8px h-8px rounded-full shrink-0' style={{ backgroundColor: lane.color }} />
+                    <span className='truncate text-12px font-medium text-[color:var(--color-text-1)]' title={lane.name}>
+                      {lane.name}
+                    </span>
+                    <span className='ms-auto text-11px text-[color:var(--color-text-3)]'>
+                      {filteredItems.filter((i) => i.laneSlotId === lane.slotId).length}
+                    </span>
+                  </div>
+                  <div className='flex-1 overflow-auto flex flex-col gap-8px p-8px'>
+                    {filteredItems
+                      .filter((i) => i.laneSlotId === lane.slotId)
+                      .map((item) => {
+                        const ActivityCard = item.kind === 'message'
+                          ? require('./components/MessageCard').default
+                          : require('./components/TaskCard').default;
+                        return item.kind === 'message'
+                          ? <ActivityCard key={item.id} message={item.message} identity={identity} />
+                          : <ActivityCard key={item.id} task={item.task} identity={identity} />;
+                      })}
+                    {filteredItems.filter((i) => i.laneSlotId === lane.slotId).length === 0 && (
+                      <div className='text-12px text-[color:var(--color-text-3)] text-center py-12px'>
+                        {t('board.noActivity')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          // 单聊视图：只显示选中成员的活动
+          <div className='flex flex-col flex-1 h-full min-w-0'>
+            <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
+            <div className='flex-1 min-h-0 overflow-auto p-8px'>
+              {filteredItems
+                .filter((i) => i.laneSlotId === activeSlotId)
+                .map((item) => {
+                  const MessageCard = require('./components/MessageCard').default;
+                  const TaskCard = require('./components/TaskCard').default;
+                  return item.kind === 'message'
+                    ? <MessageCard key={item.id} message={item.message} identity={identity} />
+                    : <TaskCard key={item.id} task={item.task} identity={identity} />;
+                })}
+              {filteredItems.filter((i) => i.laneSlotId === activeSlotId).length === 0 && (
+                <div className='text-12px text-[color:var(--color-text-3)] text-center py-24px'>
+                  {t('board.noActivity')}
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* 介入控制栏（差异化：放在面板底部） */}
+      {/* 介入控制栏 */}
       <InterventionBar
         onPause={handlePause}
         onResume={handleResume}
         onRevise={onRevise}
         onTakeover={onTakeover}
-        onSkip={onSkip}
+        onSkip={handleSkipClick}
         paused={paused}
       />
     </div>

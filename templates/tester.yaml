@@ -4,13 +4,13 @@
 name: "测试员"
 description: "负责编写测试用例、执行测试、验证功能正确性"
 skill: "testing"
-model_family: "deepseek"
+model: "deepseek"
 
 team:
-  role: "member"
+  role: "tester"
 
-subagent_provider: "acp"
-acp_command: "claude"
+# DSH subagent provider 配置
+provider: "dsh"
 
 agent_prompt: |
   你是团队的测试员（Tester）。你的职责是：

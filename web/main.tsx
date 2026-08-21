@@ -5,7 +5,7 @@
  * 面板注册为 DSH Web 嵌入组件。
  */
 
-import React, { useState, useEffect, useCallback, useRef, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import TeamPage from './team-panel';
@@ -18,6 +18,7 @@ import { teamStateToBlackboard, eventsToMessages, type MemberState, type Blackbo
 export function registerPanel(mount: HTMLElement, runtime: {
   getSnapshot: () => TeamState;
   subscribe: (listener: (event: TeamEvent) => void) => () => void;
+  getEvents?: (since?: number) => TeamEvent[];
   handleIntervention: (command: InterventionCommand) => void;
 }) {
   const root = createRoot(mount);
@@ -34,6 +35,7 @@ export function registerPanel(mount: HTMLElement, runtime: {
 function useTeamEvents(runtime: {
   getSnapshot: () => TeamState;
   subscribe: (listener: (event: TeamEvent) => void) => () => void;
+  getEvents?: (since?: number) => TeamEvent[];
 }): { state: TeamState; events: TeamEvent[] } {
   const [state, setState] = useState<TeamState>(() => runtime.getSnapshot());
   const [events, setEvents] = useState<TeamEvent[]>([]);
@@ -42,6 +44,13 @@ function useTeamEvents(runtime: {
   useEffect(() => {
     // 初始快照
     setState(runtime.getSnapshot());
+
+    // 获取历史事件
+    if (runtime.getEvents) {
+      const history = runtime.getEvents();
+      eventsRef.current = history.slice(-200);
+      setEvents([...eventsRef.current]);
+    }
 
     // 订阅事件流
     const unsubscribe = runtime.subscribe((event) => {
@@ -65,6 +74,7 @@ function App({ runtime }: {
   runtime: {
     getSnapshot: () => TeamState;
     subscribe: (listener: (event: TeamEvent) => void) => () => void;
+    getEvents?: (since?: number) => TeamEvent[];
     handleIntervention: (command: InterventionCommand) => void;
   };
 }) {
@@ -87,6 +97,7 @@ function App({ runtime }: {
   }, [runtime]);
 
   const handleSkip = useCallback((taskId: string) => {
+    if (!taskId) return;
     runtime.handleIntervention({ type: 'skip', taskId });
   }, [runtime]);
 
@@ -118,14 +129,14 @@ function App({ runtime }: {
     created_at: e.timestamp,
   }));
 
-  // 获取最新状态
+  // 构建 fetchState 兼容旧 hook 接口（内部从快照读取，不再发 HTTP 请求）
   const fetchState = useCallback(async () => {
     const blackboard = teamStateToBlackboard(state);
     return {
       blackboard,
       messages,
     };
-  }, [state, members, messages]);
+  }, [state, messages]);
 
   return (
     <div className='h-screen w-screen overflow-hidden'>
@@ -134,12 +145,13 @@ function App({ runtime }: {
         teamName={state.name}
         leaderId={leaderId}
         members={members}
+        runtime={runtime}
         fetchState={fetchState}
         onPause={handlePause}
         onResume={handleResume}
         onRevise={handleRevise}
         onTakeover={handleTakeover}
-        onSkip={() => handleSkip('')}
+        onSkip={handleSkip}
       />
     </div>
   );

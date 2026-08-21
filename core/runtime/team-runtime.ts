@@ -4,27 +4,30 @@
  * 采用"追加事件 + 状态投影"模型管理团队状态。
  * 所有状态变更通过 appendEvent 完成，状态由事件投影得出。
  * 状态迁移通过 reducer 校验，非法迁移被拒绝并记录审计事件。
+ *
+ * 集成 WorkspaceLock（串行写入）和 MemoryService（记忆注入）。
+ * 支持事件持久化和重启恢复。
  */
 
 import type { Context } from '@deepseek-ai/cordis';
-import {
-  randomUUID,
-} from 'node:crypto';
+import { randomUUID } from 'node:crypto';
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type {
   TeamConfig,
   TeamState,
   TeamStatus,
   TeamEvent,
-  TeamEventType,
-  Task,
   TaskStatus,
+  Task,
   TaskResult,
   QualityResult,
   MemberConfig,
   InterventionCommand,
-  LeaderAction,
   Issue,
 } from './types';
+import { WorkspaceLock } from './workspace-lock';
+import { MemoryService } from '../../memory/store';
 
 // ===== 状态迁移规则 =====
 
@@ -64,40 +67,69 @@ export class TeamRuntime {
   private events: TeamEvent[] = [];
   private state: TeamState;
   private listeners: ((event: TeamEvent) => void)[] = [];
-  private workspaceLock: string | null = null;
   private disposed = false;
 
-  // subagent provider 绑定（由 DSH 注入）
+  /** 工作区锁 */
+  private workspaceLock: WorkspaceLock;
+
+  /** 记忆服务 */
+  private memory: MemoryService;
+
+  /** 持久化路径 */
+  private persistencePath: string | null = null;
+
+  /** subagent provider 绑定（由 DSH 注入） */
   private subagentProvider: unknown = null;
 
   constructor(ctx: Context, config: TeamConfig) {
     this.ctx = ctx;
     this.config = config;
 
-    // 初始化状态投影
-    this.state = {
-      id: config.teamId,
-      name: config.teamName,
-      status: 'idle',
-      members: [...config.members],
-      tasks: [],
-      events: [],
-      workspace: config.workspace,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
+    // 初始化工作区锁
+    this.workspaceLock = new WorkspaceLock(config.workspace);
 
-    // 记录初始事件
-    this.appendEvent('team_created', { members: config.members });
-    for (const member of config.members) {
-      this.appendEvent('member_added', { memberId: member.id, member });
+    // 初始化记忆服务
+    const memoryDir = config.memoryEnabled
+      ? resolve(config.workspace, '.colleague', 'memory')
+      : undefined;
+    this.memory = new MemoryService(memoryDir);
+
+    // 设置持久化路径
+    if (config.memoryEnabled) {
+      this.persistencePath = resolve(config.workspace, '.colleague', 'events.jsonl');
+    }
+
+    // 尝试从持久化恢复
+    const restored = this.load();
+
+    if (restored) {
+      // 从事件重放状态
+      this.state = this.replayEvents(restored);
+    } else {
+      // 全新初始化
+      this.state = {
+        id: config.teamId,
+        name: config.teamName,
+        status: 'idle',
+        members: [...config.members],
+        tasks: [],
+        events: [],
+        workspace: config.workspace,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      this.appendEvent('team_created', { members: config.members });
+      for (const member of config.members) {
+        this.appendEvent('member_added', { memberId: member.id, member });
+      }
     }
   }
 
   // ===== 事件追加 =====
 
   private appendEvent(
-    type: TeamEventType,
+    type: TeamEvent['type'],
     data: Record<string, unknown> = {},
     taskId?: string,
     memberId?: string,
@@ -128,6 +160,13 @@ export class TeamRuntime {
     }
 
     this.state.updatedAt = Date.now();
+
+    // 持久化
+    this.persist(event);
+
+    // 记忆记录
+    this.recordToMemory(event);
+
     return event;
   }
 
@@ -143,9 +182,13 @@ export class TeamRuntime {
         this.state.status = event.data.status as TeamStatus;
         break;
 
-      case 'member_added':
-        // 成员已在构造函数中添加
+      case 'member_added': {
+        const member = event.data.member as MemberConfig;
+        if (!this.state.members.find((m) => m.id === member.id)) {
+          this.state.members.push(member);
+        }
         break;
+      }
 
       case 'member_removed': {
         const memberId = event.data.memberId as string;
@@ -157,7 +200,9 @@ export class TeamRuntime {
 
       case 'task_created': {
         const task = event.data.task as Task;
-        this.state.tasks.push(task);
+        if (!this.state.tasks.find((t) => t.id === task.id)) {
+          this.state.tasks.push(task);
+        }
         break;
       }
 
@@ -198,7 +243,6 @@ export class TeamRuntime {
       }
 
       case 'artifact_added': {
-        // 产出物记录在任务结果中
         const taskId = event.taskId!;
         const artifacts = event.data.artifacts as string[];
         const task = this.state.tasks.find((t) => t.id === taskId);
@@ -209,15 +253,9 @@ export class TeamRuntime {
       }
 
       case 'message_sent':
-        // 消息存储在事件流中，UI 从事件投影读取
-        break;
-
       case 'user_intervention':
-        // 用户介入记录在事件流中
-        break;
-
       case 'error':
-        // 错误记录在事件流中
+        // 这些事件只记录在事件流中，UI 从事件投影读取
         break;
     }
   }
@@ -246,6 +284,16 @@ export class TeamRuntime {
   getEvents(since?: number): TeamEvent[] {
     if (since === undefined) return [...this.events];
     return this.events.filter((e) => e.timestamp > since);
+  }
+
+  /** 获取记忆服务 */
+  getMemory(): MemoryService {
+    return this.memory;
+  }
+
+  /** 获取工作区锁 */
+  getWorkspaceLock(): WorkspaceLock {
+    return this.workspaceLock;
   }
 
   // ===== 团队状态迁移 =====
@@ -293,9 +341,12 @@ export class TeamRuntime {
   private transitionTeam(to: TeamStatus): void {
     const from = this.state.status;
     if (!canTransition(from, to)) {
-      throw new Error(
-        `Invalid team status transition: ${from} → ${to}`,
-      );
+      this.appendEvent('error', {
+        message: `Invalid team status transition: ${from} → ${to}`,
+        from,
+        to,
+      });
+      throw new Error(`Invalid team status transition: ${from} → ${to}`);
     }
     this.state.status = to;
     this.appendEvent('team_status_changed', { from, to, status: to });
@@ -368,6 +419,12 @@ export class TeamRuntime {
 
     const from = task.status;
     if (!canTransitionTask(from, to)) {
+      this.appendEvent('error', {
+        message: `Invalid task status transition: ${from} → ${to} for task ${taskId}`,
+        taskId,
+        from,
+        to,
+      });
       throw new Error(
         `Invalid task status transition: ${from} → ${to} for task ${taskId}`,
       );
@@ -383,6 +440,21 @@ export class TeamRuntime {
           );
         }
       }
+    }
+
+    // 检查工作区锁（写任务需要获取锁）
+    if (to === 'running' && (task.role === 'coder' || task.role === 'docs')) {
+      if (!this.workspaceLock.acquire(taskId)) {
+        // 进入 blocked 状态
+        this.appendEvent('task_status_changed', { from, to: 'blocked', status: 'blocked', reason: 'workspace locked' }, taskId);
+        return;
+      }
+    }
+
+    // 释放工作区锁
+    if ((to === 'passed' || to === 'failed' || to === 'cancelled') &&
+        (task.role === 'coder' || task.role === 'docs')) {
+      this.workspaceLock.release(taskId);
     }
 
     this.appendEvent(
@@ -430,29 +502,6 @@ export class TeamRuntime {
     }
   }
 
-  // ===== 工作区锁 =====
-
-  /** 获取工作区写锁 */
-  acquireWorkspaceLock(taskId: string): boolean {
-    if (this.workspaceLock !== null) {
-      return false;
-    }
-    this.workspaceLock = taskId;
-    return true;
-  }
-
-  /** 释放工作区写锁 */
-  releaseWorkspaceLock(taskId: string): void {
-    if (this.workspaceLock === taskId) {
-      this.workspaceLock = null;
-    }
-  }
-
-  /** 检查工作区是否被锁定 */
-  isWorkspaceLocked(): boolean {
-    return this.workspaceLock !== null;
-  }
-
   // ===== 用户介入 =====
 
   handleIntervention(command: InterventionCommand): void {
@@ -466,6 +515,8 @@ export class TeamRuntime {
       case 'skip':
         if (command.taskId) {
           this.transitionTask(command.taskId, 'cancelled');
+        } else {
+          throw new Error('Skip intervention requires a taskId');
         }
         break;
       case 'takeover':
@@ -484,6 +535,26 @@ export class TeamRuntime {
     }
   }
 
+  // ===== 成员管理（受控操作） =====
+
+  addMember(member: MemberConfig): void {
+    if (this.state.members.find((m) => m.id === member.id)) {
+      throw new Error(`Member with id "${member.id}" already exists`);
+    }
+    this.appendEvent('member_added', { memberId: member.id, member });
+  }
+
+  removeMember(memberId: string): void {
+    const member = this.state.members.find((m) => m.id === memberId);
+    if (!member) {
+      throw new Error(`Member not found: ${memberId}`);
+    }
+    if (member.role === 'leader') {
+      throw new Error('Cannot remove leader member');
+    }
+    this.appendEvent('member_removed', { memberId });
+  }
+
   // ===== Subagent 绑定 =====
 
   /** 绑定 DSH subagent provider（由插件入口注入） */
@@ -496,12 +567,130 @@ export class TeamRuntime {
     return this.subagentProvider;
   }
 
+  // ===== 记忆注入 =====
+
+  /** 为任务检索相关记忆 */
+  getMemoryForTask(taskId: string): string {
+    const result = this.memory.searchByTask(taskId);
+    if (result.entries.length === 0) return '';
+    return result.entries
+      .map((e) => `[${e.metadata.source}] ${e.content}`)
+      .join('\n\n');
+  }
+
+  /** 记录事件到记忆 */
+  private recordToMemory(event: TeamEvent): void {
+    if (!this.config.memoryEnabled) return;
+
+    try {
+      const content = JSON.stringify(event.data);
+      switch (event.type) {
+        case 'quality_recorded':
+          this.memory.recordQuality({
+            content,
+            metadata: { taskId: event.taskId, createdAt: event.timestamp },
+          });
+          break;
+        case 'team_status_changed':
+          this.memory.recordDecision({
+            content,
+            metadata: { createdAt: event.timestamp },
+          });
+          break;
+        case 'task_completed':
+        case 'task_failed':
+        case 'task_blocked':
+          this.memory.recordEvent({
+            content,
+            metadata: { taskId: event.taskId, createdAt: event.timestamp },
+          });
+          break;
+      }
+    } catch {
+      // 记忆记录失败不阻断主流程
+    }
+  }
+
+  // ===== 持久化 =====
+
+  private persist(event: TeamEvent): void {
+    if (!this.persistencePath) return;
+    try {
+      const dir = resolve(this.persistencePath, '..');
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      // 追加写入
+      const line = JSON.stringify(event) + '\n';
+      // 读取现有内容追加
+      let existing = '';
+      if (existsSync(this.persistencePath)) {
+        existing = readFileSync(this.persistencePath, 'utf-8');
+      }
+      writeFileSync(this.persistencePath, existing + line, 'utf-8');
+    } catch {
+      // 持久化失败不阻断主流程
+    }
+  }
+
+  private load(): TeamEvent[] | null {
+    if (!this.persistencePath) return null;
+    if (!existsSync(this.persistencePath)) return null;
+    try {
+      const text = readFileSync(this.persistencePath, 'utf-8');
+      const lines = text.split('\n').filter((l) => l.trim());
+      const events: TeamEvent[] = [];
+      for (const line of lines) {
+        try {
+          events.push(JSON.parse(line) as TeamEvent);
+        } catch {
+          // 跳过损坏行
+        }
+      }
+      // 验证团队 ID 匹配
+      if (events.length > 0 && events[0].teamId !== this.config.teamId) {
+        return null;
+      }
+      return events;
+    } catch {
+      return null;
+    }
+  }
+
+  /** 从事件重放状态 */
+  private replayEvents(events: TeamEvent[]): TeamState {
+    // 从第一个事件提取初始状态
+    const state: TeamState = {
+      id: this.config.teamId,
+      name: this.config.teamName,
+      status: 'idle',
+      members: [],
+      tasks: [],
+      events: [...events],
+      workspace: this.config.workspace,
+      createdAt: events[0]?.timestamp ?? Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    this.events = [...events];
+
+    // 重放每个事件
+    const oldState = this.state;
+    this.state = state;
+    for (const event of events) {
+      this.project(event);
+    }
+    this.state = state;
+
+    return state;
+  }
+
   // ===== 清理 =====
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
     this.listeners = [];
-    this.workspaceLock = null;
+    this.workspaceLock = null as unknown as WorkspaceLock;
   }
 }

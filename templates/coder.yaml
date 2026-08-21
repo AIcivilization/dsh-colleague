@@ -4,16 +4,13 @@
 name: "码农"
 description: "负责编写代码、实现功能、修复 bug 的核心开发同事"
 skill: "coding"
-model_family: "deepseek"
+model: "deepseek"
 
 team:
-  role: "member"
+  role: "coder"
 
-# ACP 配置
-subagent_provider: "acp"
-acp_command: "claude"
-# acp_command: "codex"
-# acp_command: "gemini"
+# DSH subagent provider 配置
+provider: "dsh"
 
 # 码农的工作 prompt
 agent_prompt: |

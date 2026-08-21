@@ -1,73 +1,73 @@
 # 团队配置：前端项目组
-# 定义团队成员名单和 Leader
+# 定义团队成员名单、角色、provider 和工作区
 
 team:
   name: "前端项目组"
   description: "负责前端开发的全栈团队"
-  
+
 # 团队成员配置
+# role 必须是 leader / coder / reviewer / tester / docs 之一
+# provider 指定 DSH 已注册的 subagent provider 名称
 members:
   - id: "leader-01"
     template: "./templates/orchestrator.yaml"
     name: "组长"
-    model_family: "deepseek"
-    acp_command: "claude"
     role: "leader"
-    slot_id: 0                # 身份色 slot（固定不变）
-    
+    provider: "dsh"
+    model: "deepseek"
+    slot_id: 0
+
   - id: "coder-01"
     template: "./templates/coder.yaml"
     name: "码农"
-    model_family: "deepseek"
-    acp_command: "claude"
-    role: "member"
+    role: "coder"
+    provider: "dsh"
+    model: "deepseek"
     slot_id: 1
-    
+
   - id: "reviewer-01"
     template: "./templates/reviewer.yaml"
     name: "审核员"
-    model_family: "deepseek"
-    acp_command: "claude"
-    role: "member"
+    role: "reviewer"
+    provider: "dsh"
+    model: "deepseek"
     slot_id: 2
-    
+
   - id: "tester-01"
     template: "./templates/tester.yaml"
     name: "测试员"
-    model_family: "deepseek"
-    acp_command: "claude"
-    role: "member"
+    role: "tester"
+    provider: "dsh"
+    model: "deepseek"
     slot_id: 3
-    
+
   - id: "docs-01"
     template: "./templates/doc-writer.yaml"
     name: "文档员"
-    model_family: "deepseek"
-    acp_command: "claude"
-    role: "member"
+    role: "docs"
+    provider: "dsh"
+    model: "deepseek"
     slot_id: 4
 
-# 共享工作区（所有同事读写同一个文件夹）
+# 工作区配置
 workspace:
   path: "./workspace/"
-  
+
+# 并发配置
+concurrency:
+  max_writers: 1  # 首版串行写入
+
 # 记忆配置
 memory:
   enabled: true
-  individual_memory: true      # 每个同事有个人记忆
-  team_memory: true            # 团队共享记忆
-  skill_memory: true           # 可复用 skill 沉淀
-  
-# Warmup 配置
-warmup:
-  leader_first: true           # Leader 先亮就撤遮罩
-  timeout: 30000               # 30 秒超时
-  
+  persistence: true  # 持久化团队事件、架构决定、已验证命令和质量结论
+
 # 介入控制
 intervention:
   enabled: true
   actions:
-    - pause                    # 暂停
-    - revise                   # 修正
-    - takeover                 # 接管
-    - skip                     # 跳过
+    - pause
+    - resume
+    - revise
+    - takeover
+    - skip

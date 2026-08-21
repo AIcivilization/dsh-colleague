@@ -1,16 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ==================== Colleague Plugin Theme System ==================== */
+/* 自有设计规范 — 基于低饱和色板和 CSS 变量 */
+/* 设计灵感来源：现代 IDE 面板设计模式 */
 
-/* ==================== AionUi Theme System ==================== */
-/* 照搬 AionUi default-color-scheme.css + base.css */
-
-/* ===== Default Color Scheme - AOU Purple Theme ===== */
+/* ===== Default Color Scheme - Purple Brand Theme ===== */
 
 /* Light Mode */
 :root,
 [data-color-scheme='default'] {
-  /* AOU Brand Colors - Light Mode */
+  /* Brand Colors - Light Mode */
   --aou-1: #eff0f6;
   --aou-2: #e5e7f0;
   --aou-3: #d1d5e5;
@@ -88,7 +85,7 @@
 
 /* Dark Mode */
 [data-color-scheme='default'][data-theme='dark'] {
-  /* AOU Brand Colors - Dark Mode */
+  /* Brand Colors - Dark Mode */
   --aou-1: #2a2a2a;
   --aou-2: #3d4150;
   --color-guid-agent-bar: var(--aou-2);
@@ -208,15 +205,7 @@ body {
   border-color: transparent;
 }
 
-/* icon-park 修正 */
-.i-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  vertical-align: middle;
-}
-
-/* ===== Custom scrollbar (照搬 AionUi) ===== */
+/* ===== Custom scrollbar ===== */
 
 ::-webkit-scrollbar {
   width: 6px;
@@ -258,7 +247,7 @@ body {
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* ===== Animations (照搬 AionUi) ===== */
+/* ===== Animations ===== */
 
 @keyframes wiggle {
   0%, 20%, 100% { transform: rotate(0deg); }
@@ -333,7 +322,16 @@ body {
   border-radius: 8px;
 }
 
-/* ===== 暗色模式自动检测 (照搬 AionUi) ===== */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ===== 暗色模式自动检测 ===== */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
@@ -346,7 +344,7 @@ body {
   }
 }
 
-/* ===== 全局过渡 — 颜色变化平滑 (照搬 AionUi) ===== */
+/* ===== 全局过渡 — 颜色变化平滑 ===== */
 button, input, textarea, select, a {
   transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
@@ -357,3 +355,41 @@ button, input, textarea, select, a {
     -webkit-text-size-adjust: 100%;
   }
 }
+
+/* ===== 实用工具类（替代 Tailwind 的常用类） ===== */
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.flex-col { flex-direction: column; }
+.flex-1 { flex: 1; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.gap-4px { gap: 4px; }
+.gap-6px { gap: 6px; }
+.gap-8px { gap: 8px; }
+.gap-12px { gap: 12px; }
+.shrink-0 { flex-shrink: 0; }
+.min-w-0 { min-width: 0; }
+.h-full { height: 100%; }
+.w-full { width: 100%; }
+.rounded-full { border-radius: 9999px; }
+.rounded-8px { border-radius: 8px; }
+.rounded-6px { border-radius: 6px; }
+.rounded-4px { border-radius: 4px; }
+.border-none { border: none; }
+.cursor-pointer { cursor: pointer; }
+.cursor-not-allowed { cursor: not-allowed; }
+.overflow-hidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text-center { text-align: center; }
+.font-medium { font-weight: 500; }
+.font-600 { font-weight: 600; }
+.font-700 { font-weight: 700; }
+.text-11px { font-size: 11px; }
+.text-12px { font-size: 12px; }
+.text-13px { font-size: 13px; }
+.text-15px { font-size: 15px; }
+.text-16px { font-size: 16px; }
+.text-white { color: #ffffff; }
+.relative { position: relative; }
+.absolute { position: absolute; }

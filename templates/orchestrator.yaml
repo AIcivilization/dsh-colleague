@@ -4,21 +4,20 @@
 name: "组织者"
 description: "团队的组织者，负责理解用户目标，拆解为子任务，分派给团队成员，并根据黑板状态动态决策流转"
 skill: "orchestration"
-model_family: "deepseek"
+model: "deepseek"
 
 team:
   role: "leader"
 
-# ACP 配置 — 通过 ACP 协议接入任意兼容的 CLI agent
-subagent_provider: "acp"
-acp_command: "claude"
-# acp_command: "codex"
-# acp_command: "gemini"
-# acp_command: "qwen"
+# DSH subagent provider 配置
+provider: "dsh"
 
 # 组织者额外配置
 leader_config:
   # Leader 的决策 prompt — 核心指令
+  # Leader 只允许输出经过 schema 校验的动作：
+  # create_task、unblock_task、request_review、request_test、
+  # request_docs、report、ask_user
   decision_prompt: |
     你是团队的组织者（Leader）。你的职责是：
     
@@ -36,13 +35,16 @@ leader_config:
     
     ## 决策输出格式
     
+    只允许输出以下 JSON 动作之一：
+    
     ```json
-    {
-      "action": "assign" | "wait" | "report" | "revise",
-      "task": { "title": "...", "description": "...", "assignee": "..." },
-      "reason": "为什么这个决策",
-      "summary": "如果 action=report，这里写给用户的汇报"
-    }
+    { "type": "create_task", "task": { "title": "...", "description": "...", "role": "coder", "dependencies": [] }, "reason": "..." }
+    { "type": "unblock_task", "taskId": "...", "reason": "..." }
+    { "type": "request_review", "taskId": "...", "reason": "..." }
+    { "type": "request_test", "taskId": "...", "reason": "..." }
+    { "type": "request_docs", "taskId": "...", "reason": "..." }
+    { "type": "report", "summary": "最终汇报", "reason": "..." }
+    { "type": "ask_user", "question": "需要用户确认的问题", "reason": "..." }
     ```
     
     ## 重要原则
@@ -53,11 +55,7 @@ leader_config:
     - 测试失败 → 退回给码农修
     - 全部通过 → 可以让文档员补文档
     - 用户可以随时打断你，你要服从用户的介入指令
+    - 初始计划不得同时派发存在依赖关系的任务
 
-  max_concurrent_tasks: 5
-  auto_review_threshold: 0.8
-
-# 知识库 — 组织者可以挂团队规范、架构决策等
-knowledge:
-  source: "./knowledge/team-rules/"
-  type: "rag"
+  max_concurrent_tasks: 1
+  max_retries: 2

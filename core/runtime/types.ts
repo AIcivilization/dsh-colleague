@@ -47,8 +47,8 @@ export interface MemberConfig {
   model?: string;
   /** 权限模式 */
   permission?: 'reject' | 'allow' | 'ask';
-  /** 技能 prompt 文件路径 */
-  skillPromptPath?: string;
+  /** 技能 prompt 内容（从模板文件加载） */
+  skillPrompt?: string;
   /** 模板文件路径 */
   templatePath?: string;
   /** 身份色 slot（固定不变） */

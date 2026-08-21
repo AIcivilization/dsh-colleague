@@ -1,11 +1,15 @@
 /**
- * 照搬 AionUi useTeamActivityFeed.ts
- * 分页活动流 —— 从后端获取统一的 message + task 流。
+ * 活动流 hook — 纯事件驱动，不再轮询
+ *
+ * 从 TeamRuntime 的 subscribe 获取事件流，
+ * 通过事件投影计算 messages 和 tasks。
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MailboxMessage, Task, Blackboard, MemberState } from '../../types';
 import type { ActivitySortDirection } from './activityTypes';
+import type { TeamState, TeamEvent } from '../../../core/runtime/types';
+import { teamStateToBlackboard, eventsToMessages } from '../../types';
 
 export type ActivityFeedDirection = ActivitySortDirection;
 export type ActivityFeedKind = 'all' | 'message' | 'task';
@@ -23,102 +27,98 @@ export type TeamActivityFeed = {
 };
 
 /**
- * 从后端 API 获取活动流数据。
- * 后端 /api/team/state 返回 { blackboard, messages } 结构。
+ * 纯事件驱动的活动流 hook。
+ * 从 runtime subscribe 获取事件，投影出 blackboard 和 messages。
  */
 export function useTeamActivityFeed(
   teamId: string,
   active: boolean,
   direction: ActivityFeedDirection,
   kind: ActivityFeedKind,
-  fetchState: () => Promise<{ blackboard: Blackboard; messages: MailboxMessage[] }>
+  runtime: {
+    getSnapshot: () => TeamState;
+    subscribe: (listener: (event: TeamEvent) => void) => () => void;
+    getEvents?: (since?: number) => TeamEvent[];
+  },
 ): TeamActivityFeed {
-  const [messages, setMessages] = useState<MailboxMessage[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [members, setMembers] = useState<MemberState[]>([]);
-  const [snapshot, setSnapshot] = useState<Blackboard | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
+  const [state, setState] = useState<TeamState | null>(null);
+  const [events, setEvents] = useState<TeamEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const eventsRef = useRef<TeamEvent[]>([]);
 
-  const loadingRef = useRef(false);
-  const epochRef = useRef(0);
-  // 用 ref 稳定化 fetchState，避免 useEffect 依赖链无限循环
-  const fetchStateRef = useRef(fetchState);
-  fetchStateRef.current = fetchState;
+  // 稳定化 runtime 引用
+  const runtimeRef = useRef(runtime);
+  runtimeRef.current = runtime;
 
-  const fetchPage = useCallback(async (reset: boolean) => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    const myEpoch = epochRef.current;
-    if (reset) setIsLoading(true);
-    else setIsLoadingMore(true);
-    try {
-      const data = await fetchStateRef.current();
-      if (myEpoch !== epochRef.current) {
-        loadingRef.current = false;
-        return;
-      }
-      // 只在实际变化时才 setState，避免 500ms 轮询触发无限更新警告
-      const newMessages = data.messages;
-      const newTasks = data.blackboard.tasks;
-      const newMembers = Object.values(data.blackboard.member_states);
-      setSnapshot(prev => {
-        if (prev === data.blackboard) return prev;
-        // 浅比较：如果 tasks 长度和 member_states 长度相同，可能没变
-        if (prev && prev.tasks.length === newTasks.length && 
-            Object.keys(prev.member_states).length === Object.keys(data.blackboard.member_states).length &&
-            prev.updated_at === data.blackboard.updated_at) return prev;
-        return data.blackboard;
-      });
-      setMessages(prev => prev.length === newMessages.length ? prev : newMessages);
-      setTasks(prev => prev.length === newTasks.length ? prev : newTasks);
-      setMembers(prev => prev.length === newMembers.length ? prev : newMembers);
-      setHasMore(prev => prev === false ? prev : false);
-      setError((prev: unknown) => prev === null ? prev : null);
-    } catch (e) {
-      if (myEpoch === epochRef.current) setError(e);
-    } finally {
-      // 始终重置 loadingRef，避免 epoch 不匹配时锁死
-      loadingRef.current = false;
-      if (myEpoch === epochRef.current) {
-        if (reset) setIsLoading(prev => prev ? false : prev);
-        else setIsLoadingMore(prev => prev ? false : prev);
-      }
-    }
-  }, []);  // 空依赖 — fetchState 通过 ref 访问
-
-  const resetAndReload = useCallback(() => {
-    epochRef.current += 1;
-    void fetchPage(true);
-  }, [fetchPage]);
-
-  // Reset + first page on activation and whenever team/direction/kind changes.
   useEffect(() => {
     if (!active) return;
-    resetAndReload();
-    // 轮询刷新（每 500ms）
-    const interval = setInterval(() => {
-      void fetchPage(false);
-    }, 500);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, teamId, direction, kind]);
 
-  const loadMore = useCallback(() => {
-    void fetchPage(false);
-  }, [fetchPage]);
+    // 初始快照
+    try {
+      const snapshot = runtimeRef.current.getSnapshot();
+      setState(snapshot);
+      // 获取历史事件（最近 200 条）
+      const history = runtimeRef.current.getEvents
+        ? runtimeRef.current.getEvents()
+        : [];
+      eventsRef.current = history.slice(-200);
+      setEvents([...eventsRef.current]);
+      setIsLoading(false);
+      setError(null);
+    } catch (e) {
+      setError(e);
+      setIsLoading(false);
+    }
+
+    // 订阅事件流（替代 500ms 轮询）
+    const unsubscribe = runtimeRef.current.subscribe((event) => {
+      eventsRef.current = [...eventsRef.current, event].slice(-200);
+      setEvents([...eventsRef.current]);
+      // 每次事件后刷新状态快照
+      try {
+        setState(runtimeRef.current.getSnapshot());
+        setError(null);
+      } catch (e) {
+        setError(e);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, teamId]);
+
+  // 从 state 投影 blackboard 和 messages
+  const blackboard = useMemo(() => {
+    if (!state) return null;
+    return teamStateToBlackboard(state);
+  }, [state]);
+
+  const messages = useMemo(() => {
+    return eventsToMessages(events);
+  }, [events]);
+
+  const tasks = useMemo(() => {
+    if (!blackboard) return [];
+    return blackboard.tasks;
+  }, [blackboard]);
+
+  const members = useMemo(() => {
+    if (!blackboard) return [];
+    return Object.values(blackboard.member_states);
+  }, [blackboard]);
 
   return {
     messages,
     tasks,
     members,
-    snapshot,
+    snapshot: blackboard,
     isLoading: active ? isLoading : false,
-    isLoadingMore,
-    hasMore,
-    loadMore,
+    isLoadingMore: false,
+    hasMore: false,
+    loadMore: () => {},
     error,
   };
 }
