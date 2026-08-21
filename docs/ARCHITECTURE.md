@@ -139,7 +139,128 @@ pending → approved（审核通过）
         → test_failed（测试失败）
 ```
 
-## 4. Leader 计划器
+## 4. 编排循环（OrchestrationLoop）
+
+### 4.0 恢复说明
+
+编排循环是插件的"心脏"——它把 Leader 计划器、TeamRuntime 状态机、质量门禁和工作区锁串联为自动运行的闭环。
+
+最初的架构文档（commit `1243a53`）包含 `leaderDecisionLoop` 伪代码设计，但在 commit `82472b3`（"清除旧架构残留"）中被连同旧黑板/mailbox 概念一起删除。此后插件有所有零件但缺少发动机。
+
+当前实现（`core/orchestrator/orchestration-loop.ts`）基于原始伪代码设计，但重写为使用 DSH 原生 `SubagentRuntime` API。
+
+### 4.1 循环流程
+
+```
+用户目标
+    │
+    ▼
+┌──────────────────────────────────────────────────┐
+│  OrchestrationLoop                                │
+│                                                   │
+│  while (status !== completed/failed/cancelled): │
+│    1. 构建 Leader prompt（团队状态 + 目标 + 记忆）  │
+│    2. ctx.subagents.start() → Leader 输出          │
+│    3. LeaderPlanner.parseLeaderOutput() → action  │
+│    4. 执行 action:                                │
+│       create_task → TeamRuntime.createTask()       │
+│         → ctx.subagents.start(coder) → 结果       │
+│         → TeamRuntime.transitionTask(passed)       │
+│       request_review → ctx.subagents.start(reviewer)│
+│         → TeamRuntime.recordQuality(approved/changes)│
+│       request_test → ctx.subagents.start(tester)   │
+│         → TeamRuntime.recordQuality(passed/failed) │
+│       request_docs → ctx.subagents.start(docs)     │
+│         → TeamRuntime.transitionTask(passed)       │
+│       unblock_task → TeamRuntime.transitionTask(ready)│
+│       report → TeamRuntime.complete() → 退出循环   │
+│       ask_user → 暂停，等待 answerUser()           │
+│    5. 循环回到第 1 步                              │
+└──────────────────────────────────────────────────┘
+    │
+    ▼
+┌──────────────────────────────────────────────────┐
+│  TeamRuntime（被动状态机）                         │
+│  - 状态管理、事件投影、持久化                       │
+│  - 质量门禁、工作区锁                               │
+│  - 记忆服务                                         │
+└──────────────────────────────────────────────────┘
+```
+
+### 4.2 编排循环 API
+
+```typescript
+class OrchestrationLoop {
+  // 绑定 DSH SubagentRuntime（由 index.ts 在 ctx.inject 时绑定）
+  bindSubagentRuntime(rt: SubagentRuntimeLike): void;
+
+  // 启动循环（接收用户目标）
+  async start(goal: string): Promise<void>;
+
+  // 暂停/恢复/取消
+  pause(): void;
+  resume(): void;
+  cancel(): void;
+
+  // 回答 Leader 的问题（ask_user 后调用）
+  answerUser(response: string): void;
+
+  // 订阅循环事件
+  subscribe(listener: (event: LoopEvent) => void): () => void;
+}
+```
+
+### 4.3 事件类型
+
+| 事件 | 触发时机 |
+|------|----------|
+| `loop_started` | 循环启动 |
+| `leader_called` | 调用 Leader subagent 前 |
+| `leader_output_received` | Leader 返回输出后 |
+| `leader_action_validated` | LeaderPlanner 校验通过 |
+| `task_dispatched` | 任务派发给 subagent |
+| `task_completed` | subagent 返回结果 |
+| `task_failed` | subagent 执行失败 |
+| `quality_recorded` | 审核或测试结论记录 |
+| `user_question` | Leader 向用户提问 |
+| `loop_paused` | 循环暂停 |
+| `loop_resumed` | 循环恢复 |
+| `loop_completed` | 循环完成 |
+| `loop_failed` | 循环失败 |
+| `loop_cancelled` | 循环取消 |
+
+### 4.4 插件入口集成
+
+```typescript
+// index.ts
+export function apply(ctx: Context, config: ColleaguePluginConfig) {
+  const runtime = new TeamRuntime(ctx, teamConfig);
+  const planner = new LeaderPlanner(config.maxConcurrentWriters);
+  const loop = new OrchestrationLoop(runtime, planner);
+
+  // 注册为 DSH 服务（注意：传值，不传工厂函数）
+  ctx.provide('colleague-team', runtime);
+  ctx.provide('colleague-loop', loop);
+
+  // 绑定 SubagentRuntime
+  ctx.inject(['dsh-subagent'], (ctx) => {
+    loop.bindSubagentRuntime(ctx.subagents);
+  });
+
+  // 注册 Web 面板
+  ctx.inject(['dsh-web'], (ctx) => {
+    import('./web/main').then(({ registerPanel }) => {
+      ctx['dsh-web'].mountPanel('colleague-team', (mount) => {
+        return registerPanel(mount, runtime);
+      });
+    });
+  });
+
+  ctx.effect(() => () => { loop.dispose(); runtime.dispose(); });
+}
+```
+
+## 5. Leader 计划器
 
 ### 4.1 Leader Action Schema
 
