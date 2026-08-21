@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi ActivityBoardLayout.tsx
+ * Colleague Plugin ActivityBoardLayout.tsx
  * Board layout: one column per lane (members + fallback).
  */
 

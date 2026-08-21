@@ -20,7 +20,8 @@
     "cordis.yml",
     "templates",
     "skills",
-    "config"
+    "config",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc --noEmit false && tsdown",
@@ -30,7 +31,7 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "check": "npm run type-check && npm run test && npm run build"
+    "check": "npm run type-check && npm run test && npm run test:integration && npm run test:e2e && npm run build"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1",

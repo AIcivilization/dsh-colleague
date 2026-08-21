@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi TeamTabs.tsx
+ * Colleague Plugin TeamTabs.tsx
  * Tab bar for team mode showing assistant tabs with status badges.
  * Supports scroll overflow with fade indicators.
  */
@@ -316,7 +316,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
             }}
           />
         )}
-        {/* 固定在最右的「添加成员」— 照搬 AionUi */}
+        {/* 固定在最右的「添加成员」— Colleague Plugin */}
         {onAddMember ? (
           <div className='flex items-center shrink-0 ps-8px pe-12px'>
             <button

@@ -163,16 +163,20 @@ describe('TeamRuntime 状态机', () => {
       );
     });
 
-    it('passed 是终态不可再迁移', () => {
+    it('passed 只能迁移到 failed（审核退回），不可迁移到其他状态', () => {
       runtime.startPlanning();
       runtime.startRunning();
       const task = runtime.createTask('任务', '描述', 'coder');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
       runtime.transitionTask(task.id, 'passed');
+      // passed → running 不合法
       expect(() => runtime.transitionTask(task.id, 'running')).toThrow(
         'Invalid task status transition: passed → running',
       );
+      // passed → failed 合法（审核退回）
+      runtime.transitionTask(task.id, 'failed');
+      expect(runtime.getSnapshot().tasks.find((t) => t.id === task.id)?.status).toBe('failed');
     });
 
     it('cancelled 是终态不可再迁移', () => {

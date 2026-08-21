@@ -1,7 +1,7 @@
 /**
- * 照搬 AionUi AgentStatusBadge.tsx
+ * Colleague Plugin AgentStatusBadge.tsx
  * Agent 状态徽章——头像右下角叠加点或内联圆点
- * 使用 AionUi CSS 变量，不使用 Tailwind 原生色
+ * 使用 Colleague Plugin CSS 变量，不使用 Tailwind 原生色
  */
 
 import React from 'react';
@@ -15,7 +15,7 @@ type Props = {
   overlay?: boolean;
 };
 
-// 照搬 AionUi：使用 CSS 变量而非 Tailwind 原生色
+// 使用 Colleague Plugin：使用 CSS 变量而非 Tailwind 原生色
 const STATUS_CONFIG: Record<TeammateStatus, { bg: string; border?: string }> = {
   pending: { bg: 'var(--bg-6)' },
   idle: { bg: 'var(--bg-6)' },

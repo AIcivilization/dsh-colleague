@@ -43,19 +43,19 @@ type TranslationKey = string;
 type Translations = Record<TranslationKey, { zh: string; en: string }>;
 
 const translations: Translations = {
-  // ===== CLI 发现界面 =====
+  // ===== 团队面板标题 =====
   'cli.title': { zh: '同事团队面板', en: 'Colleague Team Panel' },
-  'cli.subtitle': { zh: '发现 {count} 个 CLI，选择一个作为团队引擎。', en: '{count} CLI(s) found. Select one as the team engine.' },
+  'cli.subtitle': { zh: '团队已加载 {count} 个成员，通过 DSH Subagent 执行任务。', en: 'Team loaded with {count} member(s). Tasks run via DSH Subagent.' },
   'cli.goalLabel': { zh: '团队目标（可选）', en: 'Team goal (optional)' },
   'cli.goalPlaceholder': { zh: '例如：做一个带表单验证和错误提示的登录页', en: 'e.g., Build a login page with form validation and error display' },
-  'cli.start': { zh: '使用 {name} 启动团队', en: 'Start team with {name}' },
+  'cli.start': { zh: '启动团队', en: 'Start team' },
   'cli.creating': { zh: '正在创建团队…', en: 'Creating team...' },
-  'cli.allColleagues': { zh: '所有同事将使用此 CLI 执行任务', en: 'All colleagues will use this CLI to execute tasks' },
-  'cli.scanning': { zh: '正在扫描已安装的 CLI…', en: 'Scanning installed CLIs...' },
-  'cli.noneFound': { zh: '未找到 ACP 兼容的 CLI', en: 'No ACP-compatible CLI found' },
-  'cli.install': { zh: '请安装以下之一：', en: 'Install one of:' },
-  'cli.cannotConnect': { zh: '无法连接后端。请运行：npm run server', en: 'Cannot connect to backend. Run: npm run server' },
-  'cli.selectFirst': { zh: '请先选择一个 CLI', en: 'Please select a CLI' },
+  'cli.allColleagues': { zh: '所有同事将通过 DSH Subagent 执行任务', en: 'All colleagues will execute tasks via DSH Subagent' },
+  'cli.scanning': { zh: '正在加载团队成员…', en: 'Loading team members...' },
+  'cli.noneFound': { zh: '团队配置中没有可用成员', en: 'No available members in team config' },
+  'cli.install': { zh: '请在 config/team.yaml 中配置成员。', en: 'Please configure members in config/team.yaml.' },
+  'cli.cannotConnect': { zh: '无法连接团队运行时。请检查插件是否已加载。', en: 'Cannot connect to team runtime. Check if the plugin is loaded.' },
+  'cli.selectFirst': { zh: '请先启动团队', en: 'Please start the team first' },
 
   // ===== 团队面板 =====
   'team.view': { zh: '视图', en: 'View' },

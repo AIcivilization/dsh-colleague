@@ -1,7 +1,7 @@
 /**
- * 照搬 AionUi ActivityControlBar.tsx
+ * Colleague Plugin ActivityControlBar.tsx
  * 控制条：排序方向、内容过滤、成员选择、系统消息/已完成任务开关
- * 使用 AionUi 胶囊式分段控件，不用原生 select
+ * 使用 Colleague Plugin 胶囊式分段控件，不用原生 select
  */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
@@ -25,7 +25,7 @@ type Props = {
   members: ActivityMemberOption[];
 };
 
-// 照搬 AionUi 下拉筛选控件
+// Colleague Plugin 下拉筛选控件
 const MemberFilterDropdown: React.FC<{
   members: ActivityMemberOption[];
   selected: string[];
@@ -120,7 +120,7 @@ const MemberFilterDropdown: React.FC<{
   );
 };
 
-// 照搬 AionUi toggle switch
+// Colleague Plugin toggle switch
 const ToggleSwitch: React.FC<{
   checked: boolean;
   onChange: (checked: boolean) => void;
@@ -154,7 +154,7 @@ const ActivityControlBar: React.FC<Props> = ({ value, onChange, members }) => {
       style={{ borderColor: 'var(--border-base)', background: 'var(--bg-2)' }}
       data-testid='activity-control-bar'
     >
-      {/* Sort direction — 照搬 AionUi 分段控件 */}
+      {/* Sort direction — Colleague Plugin 分段控件 */}
       <div className='flex items-center gap-2px p-2px rounded-8px' style={{ background: 'var(--bg-1)' }}>
         <button
           type='button'
@@ -192,14 +192,14 @@ const ActivityControlBar: React.FC<Props> = ({ value, onChange, members }) => {
         ))}
       </div>
 
-      {/* Member filter — 照搬 AionUi 下拉菜单，不用原生 select */}
+      {/* Member filter — Colleague Plugin 下拉菜单，不用原生 select */}
       <MemberFilterDropdown
         members={members}
         selected={value.selectedMembers}
         onChange={(selected) => patch({ selectedMembers: selected })}
       />
 
-      {/* 系统消息 toggle — 照搬 AionUi toggle switch */}
+      {/* 系统消息 toggle — Colleague Plugin toggle switch */}
       <ToggleSwitch
         checked={value.showSystemMessages}
         onChange={(checked) => patch({ showSystemMessages: checked })}

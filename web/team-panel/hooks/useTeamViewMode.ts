@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi useTeamViewMode.ts
+ * Colleague Plugin useTeamViewMode.ts
  * 视图模式：parallel / single / board，按团队记忆。
  */
 

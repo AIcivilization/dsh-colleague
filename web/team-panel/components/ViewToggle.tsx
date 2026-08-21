@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi TeamViewToggle.tsx
+ * Colleague Plugin TeamViewToggle.tsx
  * 并行 / 单聊 / 看板视图切换 —— 放在标题行右侧的分段控件。
  */
 

@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi useTeamMemberColors.ts + TeamIdentityContext
+ * Colleague Plugin useTeamMemberColors.ts + TeamIdentityContext
  * 成员身份色映射，localStorage 持久化。
  */
 

@@ -1,5 +1,5 @@
 /**
- * 团队成员身份色 —— 照搬 AionUi teamMemberColors.ts
+ * 团队成员身份色 —— Colleague Plugin teamMemberColors.ts
  *
  * 用途：多成员并行、且同一助手可被拉多次（多个独立成员实例）时，用一套低饱和色帮用户
  * 一眼区分「某个胶囊 / 某条消息气泡 / 某列对话」属于哪个成员实例。

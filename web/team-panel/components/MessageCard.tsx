@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi MessageCard.tsx
+ * Colleague Plugin MessageCard.tsx
  * 消息卡片：from→to、广播标签、已读/未读、附件、内容展开/折叠
  */
 

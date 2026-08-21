@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi TaskCard.tsx
+ * Colleague Plugin TaskCard.tsx
  * 任务卡片：状态标签、负责人、依赖关系、描述展开/折叠
  */
 
@@ -16,7 +16,7 @@ type Props = {
   identity: ActivityIdentityResolver;
 };
 
-// 照搬 AionUi：使用 CSS 变量语义色，不用 Tailwind 原生色
+// 使用 Colleague Plugin：使用 CSS 变量语义色，不用 Tailwind 原生色
 const STATUS_COLOR: Record<string, string> = {
   pending: 'var(--bg-6)',
   in_progress: 'var(--primary)',

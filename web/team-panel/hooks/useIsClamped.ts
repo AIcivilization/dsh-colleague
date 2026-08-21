@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi useIsClamped.ts
+ * Colleague Plugin useIsClamped.ts
  * 检测元素是否被 CSS line-clamp 截断。
  */
 

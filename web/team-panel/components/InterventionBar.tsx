@@ -1,8 +1,8 @@
 /**
- * InterventionBar — 介入控制栏（差异化新增，但使用 AionUi 设计风格）
+ * InterventionBar — 介入控制栏（差异化新增，但使用 Colleague Plugin 设计风格）
  *
- * 这是 AionUi 没有的部分，放在面板底部。
- * 使用 AionUi 的 CSS 变量和 Tailwind 工具类风格。
+ * 这是 Colleague Plugin 没有的部分，放在面板底部。
+ * 使用 Colleague Plugin 的 CSS 变量和 Tailwind 工具类风格。
  */
 
 import React, { useState } from 'react';
@@ -63,7 +63,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
     }
   };
 
-  // 照搬 AionUi 按钮类名
+  // Colleague Plugin 按钮类名
   const btnBase = 'flex items-center gap-6px h-32px px-12px rounded-8px text-13px font-500 border-none cursor-pointer';
 
   return (

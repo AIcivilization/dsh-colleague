@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi activityTypes.ts
+ * Colleague Plugin activityTypes.ts
  * Activity 类型定义 + lane 路由逻辑
  */
 

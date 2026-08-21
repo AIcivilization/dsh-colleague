@@ -46,7 +46,7 @@ const TASK_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   ready: ['running', 'blocked', 'cancelled'],
   running: ['blocked', 'passed', 'failed', 'cancelled'],
   blocked: ['ready', 'cancelled'],
-  passed: [],
+  passed: ['failed'],
   failed: ['ready', 'cancelled'],
   cancelled: [],
 };
@@ -487,18 +487,23 @@ export class TeamRuntime {
 
     // 根据质量结论迁移任务状态
     if (quality.status === 'approved' || quality.status === 'test_passed') {
-      this.transitionTask(taskId, 'passed');
+      // 如果已经在 passed 状态，不需要再迁移
+      if (task.status !== 'passed') {
+        this.transitionTask(taskId, 'passed');
+      }
     } else if (
       quality.status === 'changes_requested' ||
       quality.status === 'test_failed'
     ) {
-      // 创建修复任务
-      this.transitionTask(taskId, 'failed', {
-        status: 'failed',
-        summary: quality.summary,
-        artifacts: [],
-        issues: quality.issues,
-      });
+      // 如果已经在 failed 状态，不需要再迁移
+      if (task.status !== 'failed') {
+        this.transitionTask(taskId, 'failed', {
+          status: 'failed',
+          summary: quality.summary,
+          artifacts: [],
+          issues: quality.issues,
+        });
+      }
     }
   }
 

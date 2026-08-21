@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi useTeamActivityControls.ts
+ * Colleague Plugin useTeamActivityControls.ts
  * 活动控制状态：排序方向、内容过滤、成员选择、系统消息/已完成任务开关
  * 状态持久化到 localStorage，按 teamId 隔离。
  */

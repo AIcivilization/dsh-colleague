@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi activityTime.ts
+ * Colleague Plugin activityTime.ts
  * 格式化活动卡片时间戳。
  */
 

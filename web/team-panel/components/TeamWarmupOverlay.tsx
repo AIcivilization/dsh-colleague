@@ -1,5 +1,5 @@
 /**
- * 照搬 AionUi TeamWarmupOverlay.tsx
+ * Colleague Plugin TeamWarmupOverlay.tsx
  * 团队 warmup 遮罩 —— 磨砂玻璃覆盖对话区，从列抬头下方开始。
  */
 
