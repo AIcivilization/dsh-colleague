@@ -18,6 +18,8 @@ import TeamWarmupOverlay, { type TeamWarmupPhase, type TeamWarmupMemberState } f
 import ActivityBoardLayout from './components/ActivityBoardLayout';
 import ActivityControlBar, { type ActivityControlsState } from './components/ActivityControlBar';
 import InterventionBar from './components/InterventionBar';
+import MessageCard from './components/MessageCard';
+import TaskCard from './components/TaskCard';
 import { t } from './i18n';
 import { useTeamActivityFeed } from './hooks/useTeamActivityFeed';
 import { useTeamActivityControls } from './hooks/useTeamActivityControls';
@@ -338,12 +340,9 @@ const TeamPage: React.FC<TeamPageProps> = ({
                     {filteredItems
                       .filter((i) => i.laneSlotId === lane.slotId)
                       .map((item) => {
-                        const ActivityCard = item.kind === 'message'
-                          ? require('./components/MessageCard').default
-                          : require('./components/TaskCard').default;
                         return item.kind === 'message'
-                          ? <ActivityCard key={item.id} message={item.message} identity={identity} />
-                          : <ActivityCard key={item.id} task={item.task} identity={identity} />;
+                          ? <MessageCard key={item.id} message={item.message} identity={identity} />
+                          : <TaskCard key={item.id} task={item.task} identity={identity} />;
                       })}
                     {filteredItems.filter((i) => i.laneSlotId === lane.slotId).length === 0 && (
                       <div className='text-12px text-[color:var(--color-text-3)] text-center py-12px'>
@@ -363,8 +362,6 @@ const TeamPage: React.FC<TeamPageProps> = ({
               {filteredItems
                 .filter((i) => i.laneSlotId === activeSlotId)
                 .map((item) => {
-                  const MessageCard = require('./components/MessageCard').default;
-                  const TaskCard = require('./components/TaskCard').default;
                   return item.kind === 'message'
                     ? <MessageCard key={item.id} message={item.message} identity={identity} />
                     : <TaskCard key={item.id} task={item.task} identity={identity} />;
