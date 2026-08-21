@@ -1,0 +1,359 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==================== AionUi Theme System ==================== */
+/* 照搬 AionUi default-color-scheme.css + base.css */
+
+/* ===== Default Color Scheme - AOU Purple Theme ===== */
+
+/* Light Mode */
+:root,
+[data-color-scheme='default'] {
+  /* AOU Brand Colors - Light Mode */
+  --aou-1: #eff0f6;
+  --aou-2: #e5e7f0;
+  --aou-3: #d1d5e5;
+  --aou-4: #b5bcd6;
+  --aou-5: #97a0c5;
+  --aou-6: #7583b2;
+  --aou-7: #596590;
+  --aou-8: #3f4868;
+  --aou-9: #262c41;
+  --aou-10: #0d101c;
+
+  /* Background Colors - Light Mode */
+  --bg-base: #ffffff;
+  --bg-0: #ffffff;
+  --bg-1: #f9fafb;
+  --bg-2: #f2f3f5;
+  --bg-3: #e5e6eb;
+  --bg-4: #c9cdd4;
+  --bg-5: #adb4c1;
+  --bg-6: #86909c;
+  --bg-8: #4e5969;
+  --bg-9: #1d2129;
+  --bg-10: #0c0e12;
+
+  /* Interactive State Colors - Light Mode */
+  --bg-hover: #f3f4f6;
+  --bg-active: #e5e6eb;
+
+  /* Text Colors - Light Mode */
+  --text-primary: #000000;
+  --color-text-1: #000000;
+  --text-secondary: #454d5f;
+  --text-disabled: #c9cdd4;
+  --color-text-2: #454d5f;
+  --color-text-3: #86909c;
+  --color-text-4: #c9cdd4;
+
+  /* Semantic Colors - Light Mode */
+  --primary: #165dff;
+  --success: #00b42a;
+  --warning: #ff7d00;
+  --danger: #f53f3f;
+  --info: #165dff;
+
+  /* Border Colors - Light Mode */
+  --border-base: #e5e6eb;
+  --border-light: #f2f3f5;
+
+  /* Brand Colors - Light Mode */
+  --brand: #7583b2;
+  --brand-light: #eff0f6;
+  --brand-hover: #b5bcd6;
+
+  /* Message & UI Component Colors - Light Mode */
+  --message-user-bg: #e9efff;
+  --message-tips-bg: #f0f4ff;
+  --workspace-btn-bg: #eff0f1;
+  --thought-gradient: linear-gradient(90deg, #f0f3ff 0%, #f2f2f2 100%);
+
+  /* Special Colors - Light Mode */
+  --fill: #f7f8fa;
+  --inverse: #ffffff;
+  --fill-2: #f2f3f5;
+  --fill-3: #e5e6eb;
+
+  /* Custom Colors - Light Mode */
+  --dialog-fill-0: #ffffff;
+  --text-0: #000000;
+  --text-white: #ffffff;
+  --fill-0: #ffffff;
+  --fill-white-to-black: #ffffff;
+  --border-special: var(--bg-3);
+  --color-guid-agent-bar: #eaecf7;
+}
+
+/* Dark Mode */
+[data-color-scheme='default'][data-theme='dark'] {
+  /* AOU Brand Colors - Dark Mode */
+  --aou-1: #2a2a2a;
+  --aou-2: #3d4150;
+  --color-guid-agent-bar: var(--aou-2);
+  --aou-3: #525a77;
+  --aou-4: #6a749b;
+  --aou-5: #838fba;
+  --aou-6: #a1aacb;
+  --aou-7: #b5bcd6;
+  --aou-8: #d1d5e5;
+  --aou-9: #e5e7f0;
+  --aou-10: #eff0f6;
+
+  /* Background Colors - Dark Mode */
+  --bg-base: #0e0e0e;
+  --bg-0: #0e0e0e;
+  --bg-1: #1a1a1a;
+  --bg-2: #262626;
+  --bg-3: #333333;
+  --bg-4: #404040;
+  --bg-5: #4d4d4d;
+  --bg-6: #5a5a5a;
+  --bg-8: #737373;
+  --bg-9: #a6a6a6;
+  --bg-10: #d9d9d9;
+
+  /* Interactive State Colors - Dark Mode */
+  --bg-hover: #1f1f1f;
+  --bg-active: #2d2d2d;
+
+  /* Text Colors - Dark Mode */
+  --text-primary: #ffffff;
+  --color-text-1: #ffffff;
+  --text-secondary: #ced3da;
+  --text-disabled: #737373;
+  --color-text-2: #ced3da;
+  --color-text-3: #5a5a5a;
+  --color-text-4: #737373;
+
+  /* Semantic Colors - Dark Mode */
+  --primary: #4d9fff;
+  --success: #23c343;
+  --warning: #ff9a2e;
+  --danger: #f76560;
+  --info: #4d9fff;
+
+  /* Border Colors - Dark Mode */
+  --border-base: #333333;
+  --border-light: #262626;
+
+  /* Brand Colors - Dark Mode */
+  --brand: #a1aacb;
+  --brand-light: #3d4150;
+  --brand-hover: #6a749b;
+
+  /* Message & UI Component Colors - Dark Mode */
+  --message-user-bg: #1e2a3a;
+  --message-tips-bg: #1a2333;
+  --workspace-btn-bg: #1f1f1f;
+  --thought-gradient: linear-gradient(135deg, #464767 0%, #323232 100%);
+
+  /* Special Colors - Dark Mode */
+  --fill: #1a1a1a;
+  --inverse: #ffffff;
+  --fill-2: #262626;
+  --fill-3: #333333;
+
+  /* Custom Colors - Dark Mode */
+  --dialog-fill-0: #333333;
+  --text-0: #ffffff;
+  --text-white: #ffffff;
+  --fill-0: rgba(255, 255, 255, 0.08);
+  --fill-white-to-black: #000000;
+  --border-special: #60677e;
+}
+
+/* ===== Base styles - theme-independent ===== */
+
+:root {
+  --app-min-width: 360px;
+  --titlebar-height: 36px;
+}
+
+html,
+body,
+#root,
+.layout,
+.layout-content {
+  min-width: var(--app-min-width);
+  min-height: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
+
+* {
+  box-sizing: border-box;
+  color: inherit;
+}
+
+*,
+::before,
+::after {
+  border-width: 0;
+  border-style: solid;
+  border-color: transparent;
+}
+
+/* icon-park 修正 */
+.i-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+/* ===== Custom scrollbar (照搬 AionUi) ===== */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== Animations (照搬 AionUi) ===== */
+
+@keyframes wiggle {
+  0%, 20%, 100% { transform: rotate(0deg); }
+  4% { transform: rotate(8deg); }
+  8% { transform: rotate(-8deg); }
+  12% { transform: rotate(6deg); }
+  16% { transform: rotate(-4deg); }
+}
+
+.animate-wiggle {
+  animation: wiggle 3s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading {
+  animation: loading 1s linear infinite;
+}
+
+@keyframes bg-animate {
+  0% { background-color: var(--bg-2); }
+  100% { background-color: var(--bg-3); }
+}
+
+.bg-animate {
+  animation: bg-animate 1s alternate infinite;
+}
+
+/* 团队 warmup 进度条：无确定进度时来回扫动 */
+@keyframes team-warmup-sweep {
+  0% {
+    width: 20%;
+    margin-inline-start: 0;
+  }
+  50% {
+    width: 60%;
+    margin-inline-start: 40%;
+  }
+  100% {
+    width: 20%;
+    margin-inline-start: 0;
+  }
+}
+
+.team-warmup-sweep {
+  animation: team-warmup-sweep 1.4s ease-in-out infinite;
+}
+
+/* 团队 warmup 头像「唤醒中」：pending 成员轻柔呼吸 */
+@keyframes team-warmup-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+
+.team-warmup-breathe {
+  animation: team-warmup-breathe 1.6s ease-in-out infinite;
+}
+
+/* Activity card highlight pulse */
+@keyframes activity-card-pulse {
+  0% { box-shadow: 0 0 0 0 var(--brand, #7583b2); }
+  100% { box-shadow: 0 0 0 4px transparent; }
+}
+
+.activity-card-highlight {
+  animation: activity-card-pulse 1.4s ease-out;
+  outline: 2px solid var(--brand, #7583b2);
+  outline-offset: 1px;
+  border-radius: 8px;
+}
+
+/* ===== 暗色模式自动检测 (照搬 AionUi) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+  }
+}
+
+/* ===== 全局过渡 — 颜色变化平滑 (照搬 AionUi) ===== */
+button, input, textarea, select, a {
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+/* ===== Mobile base ===== */
+@media (max-width: 767px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+}

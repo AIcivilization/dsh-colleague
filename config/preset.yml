@@ -1,0 +1,59 @@
+# dsh preset 配置：同事插件
+# 在 dsh 的 agent-preset 目录下放置此文件
+# 参考 dsh 的 standard/agent.cordis.yml 和 preset.yml 结构
+
+# ===== preset.yml =====
+# 同事插件 preset — 定义插件的基础配置
+
+id: colleague
+name: '同事插件'
+description: '有记忆、有角色的长期 AI 团队 — 基于 dsh 的多 agent 协作插件'
+version: '1.0.0'
+author: 'colleague-plugin'
+
+# 依赖的 dsh 包
+dependencies:
+  - '@deepseek-ai/dsh-subagent-acp'    # ACP 协议支持
+  - '@deepseek-ai/dsh-subagent-codex'  # Codex 直连（可选）
+  - '@deepseek-ai/dsh-subagent-claude-code'  # Claude Code 直连（可选）
+
+# 启用的 agent
+agents:
+  - id: colleague-leader
+    name: '同事-组织者'
+    preset: './templates/orchestrator.yaml'
+    
+  - id: colleague-coder
+    name: '同事-码农'
+    preset: './templates/coder.yaml'
+    
+  - id: colleague-reviewer
+    name: '同事-审核员'
+    preset: './templates/reviewer.yaml'
+    
+  - id: colleague-tester
+    name: '同事-测试员'
+    preset: './templates/tester.yaml'
+    
+  - id: colleague-docs
+    name: '同事-文档员'
+    preset: './templates/doc-writer.yaml'
+
+# WebUI 模式（第 5 模式：团队面板）
+webui:
+  enabled: true
+  entry: './web/team-panel/index.tsx'
+  port: 3210
+
+# Agent 自动发现
+discovery:
+  enabled: true
+  module: './core/discovery/agent-discovery.ts'
+  scan_on_startup: true
+
+# 记忆系统
+memory:
+  enabled: true
+  module: './memory/types.ts'
+  levels: ['L0', 'L1', 'L2', 'L3']
+  auto_distill: true

@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["node"],
+
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    "outDir": "./dist",
+    "rootDir": ".",
+
+    "paths": {
+      "@core/*": ["./core/*"],
+      "@web/*": ["./web/*"],
+      "@templates/*": ["./templates/*"],
+      "@skills/*": ["./skills/*"],
+      "@config/*": ["./config/*"]
+    }
+  },
+  "include": [
+    "index.ts",
+    "core/**/*",
+    "web/**/*",
+    "memory/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "server",
+    "docs"
+  ]
+}
