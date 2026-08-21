@@ -233,22 +233,27 @@ export class LeaderPlanner {
    * 尝试解析 Leader 的 LLM 输出
    * 最多重试 MAX_RETRIES 次，仍失败则返回 null
    */
-  parseLeaderOutput(
+  async parseLeaderOutput(
     raw: string,
     state: TeamState,
     retryFn?: () => Promise<string>,
-  ): { action: LeaderAction | null; retries: number; errors: string[] } {
+  ): Promise<{ action: LeaderAction | null; retries: number; errors: string[] }> {
     let errors: string[] = [];
     let retries = 0;
+    let currentRaw = raw;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       // 尝试提取 JSON
-      const jsonStr = this.extractJSON(raw);
+      const jsonStr = this.extractJSON(currentRaw);
       if (!jsonStr) {
         errors.push(
           `Attempt ${attempt + 1}: Output is not valid JSON`,
         );
         retries++;
+        // 如果有重试函数，获取新输出继续循环
+        if (retryFn && attempt < MAX_RETRIES) {
+          currentRaw = await retryFn();
+        }
         continue;
       }
 
@@ -260,6 +265,9 @@ export class LeaderPlanner {
           `Attempt ${attempt + 1}: Failed to parse JSON`,
         );
         retries++;
+        if (retryFn && attempt < MAX_RETRIES) {
+          currentRaw = await retryFn();
+        }
         continue;
       }
 
@@ -274,6 +282,10 @@ export class LeaderPlanner {
 
       errors = result.errors;
       retries++;
+      // 如果有重试函数，获取新输出继续下一轮
+      if (retryFn && attempt < MAX_RETRIES) {
+        currentRaw = await retryFn();
+      }
     }
 
     return { action: null, retries, errors };

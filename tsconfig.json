@@ -39,7 +39,8 @@
     "index.ts",
     "core/**/*",
     "web/**/*",
-    "memory/**/*"
+    "memory/**/*",
+    "tests/**/*"
   ],
   "exclude": [
     "node_modules",
