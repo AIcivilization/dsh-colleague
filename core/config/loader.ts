@@ -147,13 +147,21 @@ function parseMember(
   let skillPrompt: string | undefined;
 
   if (templatePath) {
-    templatePathResolved = resolve(configDir, templatePath);
+    // 模板路径相对于配置文件的父目录（项目根）解析
+    // config/team.yaml 中的 ./templates/xxx.yaml → 项目根/templates/xxx.yaml
+    templatePathResolved = resolve(configDir, '..', templatePath);
     try {
       skillPrompt = readFileSync(templatePathResolved, 'utf-8');
     } catch {
-      throw new Error(
-        `Member "${id}": template file not found: ${templatePathResolved}`,
-      );
+      // 如果上一级目录没找到，尝试相对于配置文件本身
+      try {
+        templatePathResolved = resolve(configDir, templatePath);
+        skillPrompt = readFileSync(templatePathResolved, 'utf-8');
+      } catch {
+        throw new Error(
+          `Member "${id}": template file not found: ${templatePath} (resolved: ${resolve(configDir, '..', templatePath)})`,
+        );
+      }
     }
   }
 
