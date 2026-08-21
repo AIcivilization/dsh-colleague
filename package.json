@@ -18,6 +18,8 @@
   "files": [
     "dist",
     "cordis.yml",
+    "dsh.bundle.json",
+    "cordis.patch.yml",
     "templates",
     "skills",
     "config",
@@ -29,9 +31,10 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:contract": "vitest run --config vitest.contract.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "check": "npm run type-check && npm run test && npm run test:integration && npm run test:e2e && npm run build"
+    "check": "npm run type-check && npm run test && npm run test:contract && npm run test:integration && npm run test:e2e && npm run build"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1",
