@@ -1,13 +1,11 @@
 /**
- * Colleague Plugin TeamViewToggle.tsx
- * 并行 / 单聊 / 看板视图切换 —— 放在标题行右侧的分段控件。
+ * ViewToggle — 视图切换分段控件
  */
 
 import React from 'react';
 import { t } from '../i18n';
 import type { TeamViewMode } from '../hooks/useTeamViewMode';
 
-// 用内联 SVG 代替 @icon-park/react
 const IconGrid = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
@@ -37,11 +35,9 @@ const TeamViewToggle: React.FC<Props> = ({ value, onChange }) => {
   ];
 
   return (
-    <div className='flex items-center gap-6px' data-testid='team-view-toggle'>
-      <span className='text-12px text-[color:var(--color-text-3)] whitespace-nowrap select-none'>
-        {t('team.view')}
-      </span>
-      <div className='flex items-center gap-2px p-2px rounded-8px bg-[color:var(--bg-2)]'>
+    <div className='cp-view-toggle' data-testid='team-view-toggle'>
+      <span className='cp-view-toggle-label'>{t('team.view')}</span>
+      <div className='cp-segment'>
         {options.map((opt) => {
           const selected = value === opt.mode;
           return (
@@ -53,11 +49,7 @@ const TeamViewToggle: React.FC<Props> = ({ value, onChange }) => {
               aria-label={opt.label}
               title={opt.label}
               onClick={() => onChange(opt.mode)}
-              className={`flex items-center justify-center h-26px w-30px rounded-6px border-none cursor-pointer transition-colors duration-150 ${
-                selected
-                  ? 'bg-[color:var(--brand)] text-white shadow-[0_1px_3px_rgba(0,0,0,0.12)]'
-                  : 'bg-transparent text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] hover:bg-[color:var(--bg-3)]'
-              }`}
+              className={`cp-segment-btn ${selected ? 'cp-segment-btn-selected' : ''}`}
             >
               {opt.icon}
             </button>

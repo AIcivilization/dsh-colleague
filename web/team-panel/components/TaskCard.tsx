@@ -1,6 +1,5 @@
 /**
- * Colleague Plugin TaskCard.tsx
- * 任务卡片：状态标签、负责人、依赖关系、描述展开/折叠
+ * TaskCard — 任务卡片
  */
 
 import React, { useRef, useState } from 'react';
@@ -16,7 +15,6 @@ type Props = {
   identity: ActivityIdentityResolver;
 };
 
-// 使用 Colleague Plugin：使用 CSS 变量语义色，不用 Tailwind 原生色
 const STATUS_COLOR: Record<string, string> = {
   pending: 'var(--bg-6)',
   in_progress: 'var(--primary)',
@@ -24,7 +22,6 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'var(--danger)',
 };
 
-// 内联 SVG
 const IconListView = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
@@ -63,37 +60,34 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
 
   return (
     <div
-      className='rounded-8px border border-solid border-[color:var(--border-base)] bg-[color:var(--bg-1)] p-8px flex flex-col gap-6px'
+      className='cp-card'
       data-testid='activity-task-card'
       data-task-id={task.id}
     >
-      <div className='flex items-center gap-6px'>
-        <span className='text-[color:var(--color-text-2)]'><IconListView /></span>
-        <span className='truncate text-13px font-medium text-[color:var(--color-text-1)] flex-1'>{task.title}</span>
-        <span
-          className='shrink-0 text-11px px-6px h-18px inline-flex items-center rounded-full text-white'
-          style={{ background: statusColor }}
-        >
-          {t(`task.status.${task.status}`, )}
+      <div className='cp-card-header'>
+        <span style={{ color: 'var(--color-text-2)' }}><IconListView /></span>
+        <span className='cp-card-title'>{task.title}</span>
+        <span className='cp-card-status-tag' style={{ background: statusColor }}>
+          {t(`task.status.${task.status}`)}
         </span>
       </div>
 
-      <div className='flex items-center gap-6px text-12px text-[color:var(--color-text-2)]'>
-        <span className='inline-block w-8px h-8px rounded-full shrink-0' style={{ backgroundColor: ownerColor }} />
+      <div className='cp-card-owner'>
+        <span className='cp-card-owner-dot' style={{ backgroundColor: ownerColor }} />
         <span className='truncate'>{ownerName}</span>
       </div>
 
       {task.dependencies && task.dependencies.length > 0 && (
-        <div className='flex flex-wrap items-center gap-4px'>
+        <div className='flex flex-wrap items-center' style={{ gap: '4px' }}>
           {task.dependencies.map((dep) => (
             <span
               key={dep}
-              className='inline-flex items-center gap-2px max-w-full px-6px h-18px rounded-4px text-11px cursor-pointer'
+              className='cp-dep-chip'
               style={{ background: 'color-mix(in srgb, var(--warning) 12%, transparent)', color: 'var(--warning)' }}
               title={`blocked by ${dep.slice(0, 6)}`}
             >
               <IconLock />
-              <span className='inline-block align-bottom max-w-210px truncate'>{t('task.blockedBy', { id: dep.slice(0, 6) })}</span>
+              <span className='truncate' style={{ maxWidth: '210px' }}>{t('task.blockedBy', { id: dep.slice(0, 6) })}</span>
             </span>
           ))}
         </div>
@@ -102,17 +96,17 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
       {description.length > 0 && (
         <div
           ref={descRef}
-          className='text-12px text-[color:var(--color-text-2)] whitespace-pre-wrap break-words'
+          className='cp-card-desc'
           style={expanded ? undefined : clampStyle(2)}
         >
           {description}
         </div>
       )}
 
-      <div className='flex items-center gap-8px text-11px text-[color:var(--color-text-3)]'>
+      <div className='cp-card-footer'>
         {description.length > 0 && (isClamped || expanded) && (
           <span
-            className='inline-flex items-center gap-2px cursor-pointer text-[color:var(--brand)]'
+            className='cp-card-expand-btn'
             role='button'
             tabIndex={0}
             data-testid='activity-task-expand'
@@ -123,7 +117,7 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
             {expanded ? t('task.collapse') : t('task.expand')}
           </span>
         )}
-        <span className='ms-auto shrink-0' title={time.full}>
+        <span className='cp-card-time' title={time.full}>
           {time.label}
         </span>
       </div>

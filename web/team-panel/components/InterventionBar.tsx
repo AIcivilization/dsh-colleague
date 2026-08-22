@@ -1,14 +1,10 @@
 /**
- * InterventionBar — 介入控制栏（差异化新增，但使用 Colleague Plugin 设计风格）
- *
- * 这是 Colleague Plugin 没有的部分，放在面板底部。
- * 使用 Colleague Plugin 的 CSS 变量和 Tailwind 工具类风格。
+ * InterventionBar — 介入控制栏
  */
 
 import React, { useState } from 'react';
 import { t } from '../i18n';
 
-// 内联 SVG
 const IconPlay = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
     <polygon points="5 3 19 12 5 21 5 3" />
@@ -63,28 +59,17 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
     }
   };
 
-  // Colleague Plugin 按钮类名
-  const btnBase = 'flex items-center gap-6px h-32px px-12px rounded-8px text-13px font-500 border-none cursor-pointer';
-
   return (
-    <div className='border-t border-solid border-[color:var(--border-base)] bg-[color:var(--bg-1)] px-12px py-8px'>
-      <div className='flex items-center gap-8px'>
+    <div className='cp-intervention-bar'>
+      <div className='cp-intervention-row'>
         {/* 暂停/恢复 */}
         {paused ? (
-          <button
-            onClick={onResume}
-            className={`${btnBase} text-white`}
-            style={{ background: 'var(--success)' }}
-          >
+          <button onClick={onResume} className='cp-intervention-btn cp-intervention-btn-resume'>
             <IconPlay />
             {t('intervention.resume')}
           </button>
         ) : (
-          <button
-            onClick={onPause}
-            className={`${btnBase} text-white`}
-            style={{ background: 'var(--warning)' }}
-          >
+          <button onClick={onPause} className='cp-intervention-btn cp-intervention-btn-pause'>
             <IconPause />
             {t('intervention.pause')}
           </button>
@@ -93,7 +78,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
         {/* 修正 */}
         <button
           onClick={() => setShowReviseInput(!showReviseInput)}
-          className={`${btnBase} bg-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--brand)]`}
+          className='cp-intervention-btn cp-intervention-btn-ghost cp-intervention-btn-ghost-revise'
         >
           <IconEdit />
           {t('intervention.revise')}
@@ -102,7 +87,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
         {/* 接管 */}
         <button
           onClick={onTakeover}
-          className={`${btnBase} bg-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--primary)]`}
+          className='cp-intervention-btn cp-intervention-btn-ghost cp-intervention-btn-ghost-takeover'
         >
           <IconUser />
           {t('intervention.takeover')}
@@ -111,43 +96,37 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
         {/* 跳过 */}
         <button
           onClick={onSkip}
-          className={`${btnBase} bg-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--danger)]`}
+          className='cp-intervention-btn cp-intervention-btn-ghost cp-intervention-btn-ghost-skip'
         >
           <IconSkip />
           {t('intervention.skip')}
         </button>
 
         {/* 右侧标签 */}
-        <div className='ms-auto'>
-          <span className='text-11px text-[color:var(--color-text-3)]'>{t('intervention.label')}</span>
-        </div>
+        <span className='cp-intervention-label'>{t('intervention.label')}</span>
       </div>
 
       {/* 修正输入框 */}
       {showReviseInput && (
-        <div className='mt-8px flex items-center gap-8px'>
+        <div className='cp-intervention-input-row'>
           <input
             type='text'
             value={reviseMessage}
             onChange={(e) => setReviseMessage(e.target.value)}
             placeholder={t('intervention.revisePlaceholder')}
-            className='flex-1 h-32px px-12px text-13px bg-[color:var(--bg-2)] border border-solid border-[color:var(--border-base)] rounded-8px outline-none text-[color:var(--text-primary)] focus:border-[color:var(--brand)]'
+            className='cp-intervention-input'
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleRevise();
               if (e.key === 'Escape') setShowReviseInput(false);
             }}
           />
-          <button
-            onClick={handleRevise}
-            className={`${btnBase} text-white`}
-            style={{ background: 'var(--brand)' }}
-          >
+          <button onClick={handleRevise} className='cp-intervention-btn cp-intervention-btn-brand'>
             {t('intervention.send')}
           </button>
           <button
             onClick={() => setShowReviseInput(false)}
-            className={`${btnBase} bg-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-2)]`}
+            className='cp-intervention-btn cp-intervention-btn-ghost'
           >
             {t('intervention.cancel')}
           </button>

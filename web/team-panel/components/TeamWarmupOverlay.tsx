@@ -1,6 +1,6 @@
 /**
- * Colleague Plugin TeamWarmupOverlay.tsx
- * 团队 warmup 遮罩 —— 磨砂玻璃覆盖对话区，从列抬头下方开始。
+ * TeamWarmupOverlay — 初始化遮罩
+ * 磨砂玻璃覆盖对话区，从列抬头下方开始
  */
 
 import React from 'react';
@@ -29,7 +29,6 @@ type Props = {
   onRetry?: () => void;
 };
 
-// 列抬头 h-40px + 底部 1px border-b
 const COLUMN_HEADER_HEIGHT = 41;
 
 const IconRefresh = () => (
@@ -39,7 +38,6 @@ const IconRefresh = () => (
   </svg>
 );
 
-/** 后端错误层层包裹，只有末尾一段对用户有意义。 */
 function simplifyWarmupError(raw: string | undefined): string | undefined {
   if (!raw) return raw;
   let s = raw.trim();
@@ -70,16 +68,12 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
     <div
       data-testid='team-warmup-overlay'
       data-phase={phase}
-      className='absolute start-0 end-0 bottom-0 z-20 flex flex-col items-center justify-center'
-      style={{
-        top: COLUMN_HEADER_HEIGHT,
-        background: 'color-mix(in srgb, var(--bg-1) 80%, transparent)',
-        backdropFilter: 'blur(3px)',
-      }}
+      className='cp-warmup-overlay'
+      style={{ top: COLUMN_HEADER_HEIGHT }}
     >
-      <div className='flex flex-col items-center gap-14px px-40px py-28px max-w-420px'>
-        {/* 成员头像：跟随各自 runtime 状态 */}
-        <div className='flex items-center gap-10px'>
+      <div className='cp-warmup-content'>
+        {/* 成员头像 */}
+        <div className='cp-warmup-avatars'>
           {assistants.slice(0, 6).map((a) => {
             const status = runtimeStatus.get(a.slot_id)?.status;
             const mc = colorOf(a.slot_id);
@@ -99,21 +93,16 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
                 key={a.slot_id}
                 data-testid={`team-warmup-avatar-${a.slot_id}`}
                 data-status={status ?? 'idle'}
-                className={`relative inline-flex rounded-full transition-all duration-300 ${isPending ? 'team-warmup-breathe' : ''}`}
+                className={`cp-warmup-avatar-wrap ${isPending ? 'team-warmup-breathe' : ''}`}
                 style={{ opacity, boxShadow }}
               >
-                <div
-                  className={`w-34px h-34px rounded-full flex items-center justify-center text-15px leading-none bg-[color:var(--fill-2)] ${isFailed ? 'grayscale' : ''}`}
-                >
+                <div className={`cp-warmup-avatar ${isFailed ? 'grayscale' : ''}`}>
                   <span className='font-600' style={{ color: mc }}>
                     {a.assistant_name.slice(0, 2).toUpperCase()}
                   </span>
                 </div>
                 {isFailed && (
-                  <span
-                    className='absolute -end-2px -bottom-2px w-14px h-14px rounded-full flex items-center justify-center text-9px font-700 text-white'
-                    style={{ background: 'var(--danger)', border: '1.5px solid var(--bg-1)' }}
-                  >
+                  <span className='cp-warmup-fail-badge' style={{ width: '14px', height: '14px', fontSize: '9px', border: '1.5px solid var(--bg-1)' }}>
                     !
                   </span>
                 )}
@@ -124,7 +113,7 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
 
         {isFailure ? (
           <>
-            <div className='text-15px font-600 text-[color:var(--text-primary)] text-center'>
+            <div className='cp-warmup-title'>
               {isMulti
                 ? t('warmup.failedMulti', { count: failedMembers.length })
                 : single
@@ -136,13 +125,13 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
             {isMulti ? (
               <div
                 data-testid='team-warmup-error'
-                className='w-320px max-h-120px overflow-y-auto flex flex-col gap-4px rounded-6px px-10px py-8px'
-                style={{ background: 'color-mix(in srgb, var(--danger) 8%, var(--bg-base))' }}
+                className='cp-warmup-error-box'
               >
                 {failedMembers.map((m) => (
                   <div
                     key={m.assistant.slot_id}
-                    className='flex items-start gap-6px text-11px leading-relaxed text-start'
+                    className='flex items-start'
+                    style={{ gap: '6px', fontSize: '11px', lineHeight: 1.5, textAlign: 'left' }}
                   >
                     <span className='shrink-0 font-600' style={{ color: 'var(--danger)' }}>
                       {m.assistant.assistant_name}
@@ -157,13 +146,12 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
             ) : single?.error ? (
               <div
                 data-testid='team-warmup-error'
-                className='max-w-320px max-h-64px overflow-y-auto text-11px leading-relaxed text-start rounded-6px px-10px py-6px'
-                style={{ background: 'color-mix(in srgb, var(--danger) 8%, var(--bg-base))', color: 'var(--danger)' }}
+                className='cp-warmup-error-single'
               >
                 {simplifyWarmupError(single.error)}
               </div>
             ) : null}
-            <div className='text-12px text-[color:var(--color-text-3)] text-center leading-relaxed'>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-3)', textAlign: 'center', lineHeight: 1.5 }}>
               {anyRemovable
                 ? t('warmup.switchOrRemove')
                 : t('warmup.switchModel')}
@@ -173,8 +161,7 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
                 type='button'
                 onClick={onRetry}
                 data-testid='team-warmup-retry'
-                className='mt-4px flex items-center gap-6px h-32px px-18px rounded-8px border-none text-13px font-500 text-white cursor-pointer'
-                style={{ background: 'var(--brand)' }}
+                className='cp-warmup-retry-btn'
               >
                 <IconRefresh />
                 {t('warmup.retry')}
@@ -183,18 +170,15 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
           </>
         ) : (
           <>
-            <div className='text-15px font-600 text-[color:var(--text-primary)]'>
+            <div className='cp-warmup-title'>
               {t('warmup.waking')}
             </div>
-            <div className='text-12px text-[color:var(--color-text-3)]'>
+            <div className='cp-warmup-subtitle'>
               {t('warmup.gettingReady')}
             </div>
-            {/* 品牌色进度条（不确定进度，来回扫动） */}
-            <div className='w-180px h-4px rounded-2px overflow-hidden' style={{ background: 'var(--bg-3)' }}>
-              <div
-                className='h-full rounded-2px team-warmup-sweep'
-                style={{ background: 'linear-gradient(90deg, var(--brand-hover), var(--brand))' }}
-              />
+            {/* 品牌色进度条 */}
+            <div className='cp-warmup-progress'>
+              <div className='cp-warmup-progress-bar team-warmup-sweep' />
             </div>
           </>
         )}

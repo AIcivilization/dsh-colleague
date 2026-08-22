@@ -6,9 +6,6 @@
  * 3. 视图切换 (TeamViewToggle)
  * 4. 活动看板 (ActivityBoardLayout + ActivityControlBar)
  * 5. 介入控制栏 (InterventionBar)
- *
- * 面板通过 TeamRuntime 的 subscribe 获取事件流，不再轮询。
- * 暂停、恢复、修正、接管、跳过通过 runtime 服务端确认后更新 UI。
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -38,7 +35,6 @@ import type { Blackboard, MemberState, MailboxMessage } from '../types';
 import type { TeamState, TeamEvent, InterventionCommand } from '../../core/runtime/types';
 import type { ActivityIdentityResolver } from './components/MessageCard';
 
-// ===== 类型适配 =====
 type TeamAssistant = {
   slot_id: string;
   assistant_name: string;
@@ -85,7 +81,6 @@ const TeamPage: React.FC<TeamPageProps> = ({
   const [paused, setPaused] = useState(false);
   const [skipTargetTaskId, setSkipTargetTaskId] = useState<string | null>(null);
 
-  // 将 MemberState 转为 TeamAssistant
   const assistants: TeamAssistant[] = useMemo(
     () =>
       members.map((m) => ({
@@ -98,16 +93,13 @@ const TeamPage: React.FC<TeamPageProps> = ({
     [members]
   );
 
-  // 成员身份色
   const { colorOf } = useTeamMemberColors(
     teamId,
     assistants.map((a) => ({ slot_id: a.slot_id, role: a.role }))
   );
 
-  // 视图模式
   const [viewMode, setViewMode] = useTeamViewMode(teamId);
 
-  // 活动流数据 — 用 useMemo 稳定化 slot_ids 防止无限重渲染
   const slotIds = useMemo(() => assistants.map((a) => a.slot_id), [assistants]);
   const [controls, setControls] = useTeamActivityControls(
     teamId,
@@ -117,7 +109,6 @@ const TeamPage: React.FC<TeamPageProps> = ({
   const feedKind =
     controls.contentFilter === 'messages' ? 'message' : controls.contentFilter === 'tasks' ? 'task' : 'all';
 
-  // 直接使用 runtime 而非 fetchState（fetchState 仅作为兼容回退）
   const { messages, tasks, members: feedMembers, snapshot, isLoading } = useTeamActivityFeed(
     teamId,
     true,
@@ -126,7 +117,6 @@ const TeamPage: React.FC<TeamPageProps> = ({
     runtime
   );
 
-  // Warmup — dormant 成员视为 idle（ready），不会触发 warmup 错误
   const getMemberRuntimeStatus = useCallback(
     (slot_id: string): TeamWarmupMemberState | undefined => {
       const member = members.find((m) => m.colleague_id === slot_id);
@@ -148,7 +138,6 @@ const TeamPage: React.FC<TeamPageProps> = ({
 
   const isWarmingUp = warmupPhase === 'warming';
 
-  // 活动流构建
   const knownSlots = useMemo(() => new Set(assistants.map((a) => a.slot_id)), [assistants]);
 
   const identity = useMemo<ActivityIdentityResolver>(() => {
@@ -207,7 +196,6 @@ const TeamPage: React.FC<TeamPageProps> = ({
     [assistants]
   );
 
-  // 暂停/恢复 — 等待服务端确认
   const handlePause = useCallback(() => {
     onPause();
     setPaused(true);
@@ -218,22 +206,18 @@ const TeamPage: React.FC<TeamPageProps> = ({
     setPaused(false);
   }, [onResume]);
 
-  // 跳过 — 需要选择具体任务
   const handleSkipClick = useCallback(() => {
-    // 如果有选中任务则跳过，否则提示用户选择
     if (skipTargetTaskId) {
       onSkip(skipTargetTaskId);
       setSkipTargetTaskId(null);
     } else {
-      // 取第一个 running 的任务
-      const runningTask = tasks.find((t) => t.status === 'in_progress');
+      const runningTask = tasks.find((tk) => tk.status === 'in_progress');
       if (runningTask) {
         onSkip(runningTask.id);
       }
     }
   }, [skipTargetTaskId, tasks, onSkip]);
 
-  // warmup 失败的成员（必须在所有早期 return 之前调用，遵守 Hooks 规则）
   const warmupFailedSlotIds = useMemo(() => {
     if (warmupPhase !== 'error') return undefined;
     const ids = new Set<string>();
@@ -245,27 +229,21 @@ const TeamPage: React.FC<TeamPageProps> = ({
 
   if (isLoading) {
     return (
-      <div className='flex items-center justify-center h-full' style={{ background: 'var(--bg-base)' }}>
-        <div
-          className='w-24px h-24px border-2 rounded-full loading'
-          style={{ borderColor: 'var(--bg-3)', borderTopColor: 'var(--brand)' }}
-        />
+      <div className='flex items-center justify-center h-full bg-base'>
+        <div className='cp-loading-spinner loading' />
       </div>
     );
   }
 
   return (
-    <div className='flex flex-col h-full' style={{ background: 'var(--bg-base)' }}>
+    <div className='flex flex-col h-full bg-base'>
       {/* 顶部标题栏 */}
-      <div
-        className='flex items-center justify-between px-12px h-40px shrink-0 border-b border-solid'
-        style={{ borderColor: 'var(--border-base)', background: 'var(--bg-1)' }}
-      >
-        <div className='flex items-center gap-8px'>
+      <div className='cp-titlebar'>
+        <div className='flex items-center' style={{ gap: '8px' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--brand)' }}>
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
-          <span className='text-16px font-700 text-[color:var(--text-primary)]'>{teamName}</span>
+          <span className='text-16px font-700 text-t-primary'>{teamName}</span>
         </div>
         {assistants.length > 1 ? <TeamViewToggle value={viewMode} onChange={setViewMode} /> : null}
       </div>
@@ -277,15 +255,12 @@ const TeamPage: React.FC<TeamPageProps> = ({
         onSwitchTab={setActiveSlotId}
         onRenameAssistant={(slot_id, new_name) => {
           // 成员重命名通过 runtime 受控操作
-          // 暂不支持持久化重命名
         }}
         onRemoveAssistant={(slot_id) => {
           // 成员移除通过 runtime 受控操作
-          // 暂不支持运行时移除
         }}
         onAddMember={() => {
           // 添加成员通过 runtime 受控操作
-          // 暂不支持运行时添加
         }}
         colorOf={colorOf}
         warmingUp={isWarmingUp}
@@ -304,7 +279,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
         />
 
         {viewMode === 'board' ? (
-          // 看板视图：多列并行展示
+          // 看板视图
           <div className='flex flex-col flex-1 h-full min-w-0'>
             <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
             <div className='flex-1 min-h-0'>
@@ -318,25 +293,22 @@ const TeamPage: React.FC<TeamPageProps> = ({
             </div>
           </div>
         ) : viewMode === 'parallel' ? (
-          // 并行视图：按成员分组，水平排列
+          // 并行视图
           <div className='flex flex-col flex-1 h-full min-w-0'>
             <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
-            <div className='flex-1 min-h-0 flex gap-8px overflow-auto p-8px'>
+            <div className='cp-board'>
               {lanes.map((lane) => (
-                <div
-                  key={lane.slotId}
-                  className='flex flex-col shrink-0 w-288px h-full rounded-8px border border-solid border-[color:var(--border-base)] bg-[color:var(--bg-2)]'
-                >
-                  <div className='flex items-center gap-6px px-10px py-8px border-b border-solid border-[color:var(--border-base)]'>
-                    <span className='inline-block w-8px h-8px rounded-full shrink-0' style={{ backgroundColor: lane.color }} />
-                    <span className='truncate text-12px font-medium text-[color:var(--color-text-1)]' title={lane.name}>
+                <div key={lane.slotId} className='cp-board-column'>
+                  <div className='cp-board-col-header'>
+                    <span className='cp-card-owner-dot' style={{ backgroundColor: lane.color }} />
+                    <span className='truncate' style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-1)' }} title={lane.name}>
                       {lane.name}
                     </span>
-                    <span className='ms-auto text-11px text-[color:var(--color-text-3)]'>
+                    <span className='cp-board-col-count'>
                       {filteredItems.filter((i) => i.laneSlotId === lane.slotId).length}
                     </span>
                   </div>
-                  <div className='flex-1 overflow-auto flex flex-col gap-8px p-8px'>
+                  <div className='cp-board-col-body'>
                     {filteredItems
                       .filter((i) => i.laneSlotId === lane.slotId)
                       .map((item) => {
@@ -345,9 +317,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
                           : <TaskCard key={item.id} task={item.task} identity={identity} />;
                       })}
                     {filteredItems.filter((i) => i.laneSlotId === lane.slotId).length === 0 && (
-                      <div className='text-12px text-[color:var(--color-text-3)] text-center py-12px'>
-                        {t('board.noActivity')}
-                      </div>
+                      <div className='cp-board-col-empty'>{t('board.noActivity')}</div>
                     )}
                   </div>
                 </div>
@@ -355,10 +325,10 @@ const TeamPage: React.FC<TeamPageProps> = ({
             </div>
           </div>
         ) : (
-          // 单聊视图：只显示选中成员的活动
+          // 单聊视图
           <div className='flex flex-col flex-1 h-full min-w-0'>
             <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
-            <div className='flex-1 min-h-0 overflow-auto p-8px'>
+            <div className='flex-1 min-h-0 overflow-auto' style={{ padding: '8px' }}>
               {filteredItems
                 .filter((i) => i.laneSlotId === activeSlotId)
                 .map((item) => {
@@ -367,7 +337,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
                     : <TaskCard key={item.id} task={item.task} identity={identity} />;
                 })}
               {filteredItems.filter((i) => i.laneSlotId === activeSlotId).length === 0 && (
-                <div className='text-12px text-[color:var(--color-text-3)] text-center py-24px'>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-3)', textAlign: 'center', padding: '24px 0' }}>
                   {t('board.noActivity')}
                 </div>
               )}

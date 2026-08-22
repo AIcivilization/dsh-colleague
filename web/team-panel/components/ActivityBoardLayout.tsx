@@ -1,6 +1,6 @@
 /**
- * Colleague Plugin ActivityBoardLayout.tsx
- * Board layout: one column per lane (members + fallback).
+ * ActivityBoardLayout — 看板列布局
+ * 每列对应一个成员或 fallback 列
  */
 
 import React, { useEffect, useMemo, useRef } from 'react';
@@ -19,7 +19,6 @@ type Props = {
   onLoadMore?: () => void;
 };
 
-/** Bottom-of-column sentinel: fires `onLoadMore` when scrolled into view. */
 const LoadMoreSentinel: React.FC<{
   rootRef: React.RefObject<HTMLElement | null>;
   onLoadMore: () => void;
@@ -37,7 +36,7 @@ const LoadMoreSentinel: React.FC<{
     io.observe(el);
     return () => io.disconnect();
   }, [onLoadMore, rootRef]);
-  return <div ref={ref} data-testid='activity-load-sentinel' className='h-1px w-full shrink-0' />;
+  return <div ref={ref} data-testid='activity-load-sentinel' className='cp-load-sentinel' />;
 };
 
 const BoardColumn: React.FC<{
@@ -54,33 +53,33 @@ const BoardColumn: React.FC<{
 
   return (
     <div
-      className='flex flex-col shrink-0 w-288px h-full rounded-8px border border-solid border-[color:var(--border-base)] bg-[color:var(--bg-2)]'
+      className='cp-board-column'
       data-testid='activity-board-column'
       data-lane-id={lane.slotId}
     >
-      <div className='flex items-center gap-6px px-10px py-8px border-b border-solid border-[color:var(--border-base)]'>
+      <div className='cp-board-col-header'>
         {lane.isFallback || !lane.backend ? (
           <>
-            <span className='inline-block w-8px h-8px rounded-full shrink-0' style={{ backgroundColor: lane.color }} />
-            <span className='truncate text-12px font-medium text-[color:var(--color-text-1)]' title={lane.name}>
+            <span className='cp-card-owner-dot' style={{ backgroundColor: lane.color }} />
+            <span className='truncate' style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-1)' }} title={lane.name}>
               {lane.name}
             </span>
           </>
         ) : (
-          <div className='flex items-center gap-6px min-w-0 flex-1'>
-            <span className='inline-block w-16px h-16px rounded-full shrink-0 flex items-center justify-center text-10px font-600 bg-[color:var(--fill-2)]' style={{ color: lane.color }}>
+          <div className='flex items-center min-w-0 flex-1' style={{ gap: '6px' }}>
+            <span className='cp-board-col-avatar' style={{ color: lane.color }}>
               {lane.name.slice(0, 2).toUpperCase()}
             </span>
-            <span className='truncate text-12px font-medium text-[color:var(--color-text-1)]' title={lane.name}>
+            <span className='truncate' style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-1)' }} title={lane.name}>
               {lane.name}
             </span>
           </div>
         )}
-        <span className='ms-auto text-11px text-[color:var(--color-text-3)]'>{laneItems.length}</span>
+        <span className='cp-board-col-count'>{laneItems.length}</span>
       </div>
-      <div ref={scrollRef} className='flex-1 overflow-auto flex flex-col gap-8px p-8px'>
+      <div ref={scrollRef} className='cp-board-col-body'>
         {laneItems.length === 0 ? (
-          <div className='text-12px text-[color:var(--color-text-3)] text-center py-12px'>{emptyLabel}</div>
+          <div className='cp-board-col-empty'>{emptyLabel}</div>
         ) : (
           <>
             {laneItems.map((item) =>
@@ -92,8 +91,8 @@ const BoardColumn: React.FC<{
             )}
             {showSentinel && <LoadMoreSentinel rootRef={scrollRef} onLoadMore={onLoadMore!} />}
             {isLoadingMore && (
-              <div className='flex items-center justify-center py-8px'>
-                <div className='w-16px h-16px border-2 border-[color:var(--border-base)] border-t-[color:var(--brand)] rounded-full loading' />
+              <div className='cp-col-loading'>
+                <div className='cp-col-loading-spinner loading' />
               </div>
             )}
           </>
@@ -126,7 +125,7 @@ const ActivityBoardLayout: React.FC<Props> = ({
   if (lanes.length === 0) return null;
 
   return (
-    <div className='flex h-full gap-8px overflow-auto p-8px' data-testid='activity-board'>
+    <div className='cp-board' data-testid='activity-board'>
       {lanes.map((lane) => (
         <BoardColumn
           key={lane.slotId}
