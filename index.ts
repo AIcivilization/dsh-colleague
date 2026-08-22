@@ -33,7 +33,7 @@ export interface ColleaguePluginConfig {
   leaderPromptPath?: string;
 }
 
-export const name = 'colleague-plugin';
+export const name = 'dsh-colleague';
 export const inject = [] as const;
 
 import { fileURLToPath } from 'node:url';

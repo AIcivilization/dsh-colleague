@@ -1,8 +1,8 @@
-# colleague-plugin Cordis patch 层
+# dsh-colleague Cordis patch 层
 # 安装到 DSH profile 时被框架自动 apply
 - insert:
-    - id: colleague-plugin
-      name: colleague-plugin
+    - id: dsh-colleague
+      name: dsh-colleague
       config:
         maxConcurrentWriters: 1
         memoryEnabled: true

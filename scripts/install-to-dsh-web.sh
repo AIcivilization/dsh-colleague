@@ -53,6 +53,7 @@ info "构建完成"
 info "步骤 2/4: 安装到 web profile..."
 
 # 先移除旧版本（如果已安装）
+$DSH_BIN plugin --profile web remove dsh-colleague 2>/dev/null || true
 $DSH_BIN plugin --profile web remove colleague-plugin 2>/dev/null || true
 
 # 安装
@@ -99,7 +100,7 @@ STATE=$(curl -sf http://127.0.0.1:3080/plugin-console/state 2>/dev/null || echo 
 if echo "$STATE" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
-entries = [e for e in d.get('entries', []) if 'colleague' in e.get('entryId', '')]
+entries = [e for e in d.get('entries', []) if 'dsh-colleague' in e.get('entryId', '') or 'colleague' in e.get('entryId', '')]
 if not entries:
     print('NOT_FOUND')
     sys.exit(1)
@@ -109,7 +110,7 @@ print(f\"status={e.get('fiberPhase')}, enabled={e.get('enabled')}, extra={e.get(
   info "插件已验证: $(echo "$STATE" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
-entries = [e for e in d.get('entries', []) if 'colleague' in e.get('entryId', '')]
+entries = [e for e in d.get('entries', []) if 'dsh-colleague' in e.get('entryId', '') or 'colleague' in e.get('entryId', '')]
 e = entries[0]
 print(f\"status={e.get('fiberPhase')}, enabled={e.get('enabled')}, extra={e.get('extra')}\")
 ")"
@@ -118,16 +119,16 @@ else
 fi
 
 # 验证 API 路由
-API_STATE=$(curl -sf http://127.0.0.1:3080/plugins/colleague-plugin/state 2>/dev/null || echo "")
+API_STATE=$(curl -sf http://127.0.0.1:3080/plugins/dsh-colleague/state 2>/dev/null || curl -sf http://127.0.0.1:3080/plugins/colleague-plugin/state 2>/dev/null || echo "")
 if [ -n "$API_STATE" ] && echo "$API_STATE" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
 members = d.get('members', [])
 print(f'members={len(members)}')
 " 2>/dev/null; then
-  info "API 路由 /plugins/colleague-plugin/state 正常"
+  info "API 路由正常"
 else
-  warn "API 路由 /plugins/colleague-plugin/state 未就绪（webServer 可能尚未注册）"
+  warn "API 路由未就绪（webServer 可能尚未注册）"
 fi
 
 echo ""
@@ -136,6 +137,6 @@ info "${GREEN}  安装完成!${NC}"
 info "${GREEN}========================================${NC}"
 echo ""
 echo "  DSH Web:  http://127.0.0.1:3080"
-echo "  设置 → 插件 → 插件管理 → 可以看到 colleague-plugin"
+echo "  设置 → 插件 → 插件管理 → 可以看到 dsh-colleague"
 echo "  设置 → 插件 → 插件配置 → 可以看到团队面板卡片"
 echo ""

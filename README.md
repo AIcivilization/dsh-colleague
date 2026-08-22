@@ -1,41 +1,57 @@
-# Colleague Plugin
+# dsh-colleague
 
 > 有记忆、有角色的长期 AI 团队 — 基于 DeepSeek Harness (DSH) 的多 Agent 协作插件
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## 是什么
 
-Colleague Plugin 是一个 DSH (DeepSeek Harness) Cordis 插件，让多个 AI Agent 像真正的同事一样组队干活：
+dsh-colleague 是一个 [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) Cordis 插件，让多个 AI Agent 像真正的同事一样组队干活：
 
 - **Leader 拆解目标** → Coder 写代码 → Reviewer 审核代码 → Tester 测试验证 → Docs 补文档
 - 全自动流转，用户随时可以暂停、修正、接管或跳过
 - 基于 DSH 原生 Subagent 架构，不自己管理子进程
 
-## 安装
+## 快速开始
 
 ### 前置条件
 
-- Node.js >= 22.19.0
-- 已安装 DSH (DeepSeek Harness)
+- Node.js `>= 22.19.0`
+- 已安装 DSH (`dsh --version` >= 0.1.0-rc.8)
 - 已在 DSH 中注册至少一个 subagent provider
 
-### 安装插件
+### 一键安装
 
 ```bash
-# 在 DSH 中添加插件
-dsh plugin --profile colleague-dev add ./colleague-plugin
+# 克隆仓库
+git clone https://github.com/AIcivilization/dsh-colleague.git
+cd dsh-colleague
 
-# 验证安装
-dsh --profile colleague-dev --dump-config
+# 一键安装（构建 + 注册到 DSH + 重启 + 验证）
+bash scripts/install-to-dsh-web.sh
 ```
 
-### 启动
+脚本会自动完成：
+1. 构建 `dist/`
+2. 用 `dsh plugin --profile web add file://` 安装到 web profile
+3. 重启 DSH web
+4. 验证插件已挂载、API 路由可用
+
+安装完成后打开 http://127.0.0.1:3080 ，在 **设置 → 插件** 中可以看到 `dsh-colleague`。
+
+### 手动安装
 
 ```bash
-# 启动 DSH Web，团队面板将作为嵌入面板显示
-dsh --profile colleague-dev web
-```
+# 构建
+npm install
+npm run build
 
-不再需要 `npm run server` 或 `npm run dev` — 面板直接在 DSH Web 宿主内运行。
+# 安装到 DSH
+dsh plugin --profile web add file:///path/to/dsh-colleague
+
+# 重启 DSH
+dsh web
+```
 
 ## 团队角色
 
@@ -71,9 +87,6 @@ members:
     slot_id: 1
   # ...
 
-workspace:
-  path: "./workspace/"
-
 concurrency:
   max_writers: 1  # 首版串行写入
 
@@ -89,26 +102,36 @@ memory:
 - **`role`**: 必须是 `leader` / `coder` / `reviewer` / `tester` / `docs` 之一
 - **`max_writers`**: 最大并发写任务数，首版固定为 1（串行写入）
 
-## 权限模型
+## 架构
 
-- 默认权限模式为 `reject`（安全第一）
-- 所有高风险操作需用户通过 DSH 的权限机制确认
-- 未经用户确认的高风险操作不能执行
-
-## 工作区规则
-
-- 工作区由父 DSH session 提供
-- 启动前执行预检：目录存在、Git 状态可读、允许写入范围明确
-- 首版采用串行写入：coder 与 coder、coder 与 docs 不可并发写
-- 产出物通过任务前后的 Git diff 归属
-
-## 记忆
-
-首版记忆实现为持久化团队事件、架构决定、已验证命令和质量结论。按任务检索少量相关内容注入 Leader 或执行角色。
-
-- 单次注入最多 5 条记忆，每条最多 500 字符，总计不超过 2000 字符
-- 重启后可检索上一任务的架构决定和测试结论
-- L0–L3 蒸馏移入后续版本
+```
+index.ts                          — DSH Cordis 插件入口
+├── core/
+│   ├── runtime/
+│   │   ├── team-runtime.ts      — 团队运行时（事件溯源 + 状态投影）
+│   │   ├── types.ts             — 类型定义
+│   │   └── workspace-lock.ts    — 串行写入锁
+│   ├── orchestrator/
+│   │   └── orchestration-loop.ts — 编排循环（Leader → 执行 → 质量门禁）
+│   ├── planner/
+│   │   └── leader-planner.ts    — Leader 输出 schema 校验
+│   ├── quality/
+│   │   └── gates.ts             — 质量门禁
+│   └── config/
+│       └── loader.ts            — YAML 配置加载器
+├── memory/
+│   ├── store.ts                 — 记忆服务
+│   └── types.ts
+├── web/
+│   ├── main.tsx                 — React 面板入口
+│   ├── team-panel/              — UI 组件
+│   └── types.ts                 — UI 适配层
+├── templates/                   — 角色模板
+├── skills/                      — SKILL.md 技能定义
+├── config/                      — 团队配置
+├── cordis.patch.yml             — Cordis 补丁层
+└── dsh.bundle.json              — DSH bundle 声明
+```
 
 ## 用户介入
 
@@ -132,8 +155,8 @@ npm run type-check
 # 构建
 npm run build
 
-# 完整检查（类型 + 测试 + 构建）
-npm run check
+# 测试
+npm test
 ```
 
 ## 已知限制
@@ -146,4 +169,4 @@ npm run check
 
 ## License
 
-MIT
+[MIT](LICENSE)

@@ -1,12 +1,16 @@
 {
-  "name": "colleague-plugin",
+  "name": "dsh-colleague",
   "version": "0.1.0",
   "description": "有记忆、有角色的长期 AI 团队 — 基于 DeepSeek Harness 的多 agent 协作插件",
   "license": "MIT",
   "repository": {
-    "type": "local",
-    "url": "file:///Users/wf/自进化/临时/colleague-plugin"
+    "type": "git",
+    "url": "git+https://github.com/AIcivilization/dsh-colleague.git"
   },
+  "homepage": "https://github.com/AIcivilization/dsh-colleague#readme",
+  "bugs": {
+    "url": "https://github.com/AIcivilization/dsh-colleague/issues"
+ },
   "type": "module",
   "main": "./dist/index.js",
   "exports": {

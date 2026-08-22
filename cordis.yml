@@ -1,9 +1,9 @@
-# Colleague Plugin — DeepSeek Harness 插件配置
-# 安装方式: dsh plugin --profile web add file:///path/to/colleague-plugin
+# dsh-colleague — DeepSeek Harness 插件配置
+# 安装方式: dsh plugin --profile web add file:///path/to/dsh-colleague
 # 启动方式: dsh --profile web web
 
-- id: colleague-plugin
-  name: 'colleague-plugin'
+- id: dsh-colleague
+  name: 'dsh-colleague'
   config:
     maxConcurrentWriters: 1
     memoryEnabled: true

@@ -1,11 +1,11 @@
 {
-  "id": "colleague-plugin",
-  "name": "colleague-plugin",
+  "id": "dsh-colleague",
+  "name": "dsh-colleague",
   "version": "0.1.0",
   "description": "有记忆、有角色的长期 AI 团队 — 基于 DeepSeek Harness 的多 Agent 协作插件",
-  "author": "Colleague Plugin Team",
+  "author": "AIcivilization",
   "license": "MIT",
-  "homepage": "file:///Users/wf/自进化/临时/colleague-plugin",
+  "homepage": "https://github.com/AIcivilization/dsh-colleague#readme",
   "entry": {
     "host": "./dist/index.js",
     "client": "./dist/web/main.js"
