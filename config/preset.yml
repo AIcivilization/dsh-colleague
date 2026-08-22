@@ -1,57 +1,57 @@
-# dsh preset 配置：同事插件
-# 在 dsh 的 agent-preset 目录下放置此文件
-# 参考 dsh 的 standard/agent.cordis.yml 和 preset.yml 结构
+# dsh preset config: Colleague plugin
+# Place this file in dsh's agent-preset directory
+# Reference dsh's standard/agent.cordis.yml and preset.yml structure
 
 # ===== preset.yml =====
-# 同事插件 preset — 定义插件的基础配置
+# Colleague plugin preset — defines the plugin's base configuration
 
 id: colleague
-name: '同事插件'
-description: '有记忆、有角色的长期 AI 团队 — 基于 dsh 的多 agent 协作插件'
+name: 'Colleague Plugin'
+description: 'Persistent, role-based AI teams — a multi-agent collaboration plugin for DSH'
 version: '1.0.0'
-author: 'colleague-plugin'
+author: 'dsh-colleague'
 
-# 依赖的 dsh 包
+# DSH package dependencies
 dependencies:
-  - '@deepseek-ai/dsh-subagent-acp'    # ACP 协议支持
-  - '@deepseek-ai/dsh-subagent-codex'  # Codex 直连（可选）
-  - '@deepseek-ai/dsh-subagent-claude-code'  # Claude Code 直连（可选）
+  - '@deepseek-ai/dsh-subagent-acp'    # ACP protocol support
+  - '@deepseek-ai/dsh-subagent-codex'  # Codex direct connection (optional)
+  - '@deepseek-ai/dsh-subagent-claude-code'  # Claude Code direct connection (optional)
 
-# 启用的 agent
+# Enabled agents
 agents:
   - id: colleague-leader
-    name: '同事-组织者'
+    name: 'Colleague-Lead'
     preset: './templates/orchestrator.yaml'
-    
+
   - id: colleague-coder
-    name: '同事-码农'
+    name: 'Colleague-Coder'
     preset: './templates/coder.yaml'
-    
+
   - id: colleague-reviewer
-    name: '同事-审核员'
+    name: 'Colleague-Reviewer'
     preset: './templates/reviewer.yaml'
-    
+
   - id: colleague-tester
-    name: '同事-测试员'
+    name: 'Colleague-Tester'
     preset: './templates/tester.yaml'
-    
+
   - id: colleague-docs
-    name: '同事-文档员'
+    name: 'Colleague-Doc Writer'
     preset: './templates/doc-writer.yaml'
 
-# WebUI 模式（第 5 模式：团队面板）
+# WebUI mode (mode 5: team panel)
 webui:
   enabled: true
   entry: './web/team-panel/index.tsx'
   port: 3210
 
-# Agent 自动发现
+# Agent auto-discovery
 discovery:
   enabled: true
   module: './core/discovery/agent-discovery.ts'
   scan_on_startup: true
 
-# 记忆系统
+# Memory system
 memory:
   enabled: true
   module: './memory/types.ts'

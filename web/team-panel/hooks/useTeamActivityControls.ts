@@ -1,7 +1,7 @@
 /**
  * Colleague Plugin useTeamActivityControls.ts
- * 活动控制状态：排序方向、内容过滤、成员选择、系统消息/已完成任务开关
- * 状态持久化到 localStorage，按 teamId 隔离。
+ * Activity control state: sort direction, content filter, member selection, system messages/finished tasks toggles
+ * State persisted to localStorage, isolated per teamId.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -17,7 +17,7 @@ function loadState(teamId: string, validLaneIds: string[]): ActivityControlsStat
       return {
         sortDirection: parsed.sortDirection ?? 'desc',
         contentFilter: parsed.contentFilter ?? 'all',
-        // 过滤掉已不存在的成员
+        // Filter out members that no longer exist
         selectedMembers: (parsed.selectedMembers ?? []).filter((id: string) => validLaneIds.includes(id)),
         showSystemMessages: parsed.showSystemMessages ?? false,
         showTerminalTasks: parsed.showTerminalTasks ?? false,
@@ -49,8 +49,8 @@ export function useTeamActivityControls(
 ): [ActivityControlsState, (next: ActivityControlsState) => void] {
   const [state, setState] = useState<ActivityControlsState>(() => loadState(teamId, validLaneIds));
 
-  // 当 validLaneIds 变化时，过滤掉已不存在的成员
-  // 用 JSON 序列化比较，避免数组引用不同但内容相同导致的无限重渲染
+  // When validLaneIds changes, filter out members that no longer exist
+  // Use JSON serialization for comparison to avoid infinite re-render from array reference differences
   const laneKey = validLaneIds.join(',');
   useEffect(() => {
     setState((prev) => {

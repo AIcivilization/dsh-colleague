@@ -1,5 +1,5 @@
 /**
- * ViewToggle — 视图切换分段控件
+ * ViewToggle — view toggle segmented control
  */
 
 import React from 'react';

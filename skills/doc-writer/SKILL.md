@@ -1,109 +1,109 @@
-# Skill: Documentation (文档)
+# Skill: Documentation
 
-> 文档员的核心技能 — 负责编写技术文档、补充注释、生成 README
+> Core skill of the Doc Writer — responsible for writing technical docs, adding comments, and generating README
 
-## 能力定义
+## Capability Definition
 
 ```yaml
 skill_id: docs
-name: "技术文档"
-description: "阅读代码产出物，编写准确的技术文档、API 文档、使用说明"
+name: "Technical Documentation"
+description: "Read code artifacts, write accurate technical docs, API docs, and usage guides"
 category: knowledge
 complexity: low
 ```
 
-## 文档类型
+## Documentation Types
 
 ### 1. README
 
-项目入口文档，让新人在 5 分钟内跑起来：
+Project entry document — let a newcomer get running in 5 minutes:
 
 ```markdown
-# 项目名
+# Project Name
 
-## 安装
+## Install
 npm install
 
-## 运行
+## Run
 npm run dev
 
-## 使用
-访问 http://localhost:3000
+## Usage
+Visit http://localhost:3000
 ```
 
-### 2. API 文档
+### 2. API Documentation
 
-接口定义、参数说明、返回值：
+Interface definitions, parameter descriptions, return values:
 
 ```markdown
 ## POST /api/login
 
-### 参数
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| username | string | 是 | 用户名 |
-| password | string | 是 | 密码 |
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| username | string | Yes | Username |
+| password | string | Yes | Password |
 
-### 返回值
+### Return Value
 { "status": "success", "token": "..." }
 ```
 
-### 3. 架构文档
+### 3. Architecture Documentation
 
-模块关系、数据流、设计决策：
+Module relationships, data flow, design decisions:
 
 ```markdown
-## 模块结构
-- /components — UI 组件
-- /api — 后端接口
-- /utils — 工具函数
+## Module Structure
+- /components — UI components
+- /api — Backend endpoints
+- /utils — Utility functions
 
-## 数据流
-用户输入 → 表单验证 → API 调用 → 返回 token → 存入 localStorage
+## Data Flow
+User input -> Form validation -> API call -> Return token -> Store in localStorage
 ```
 
-### 4. 代码注释
+### 4. Code Comments
 
-只写"为什么"，不写"是什么"：
+Only write "why", not "what":
 
 ```typescript
-// ✅ 好注释：解释为什么
-// 使用 setTimeout 而不是 setInterval，因为需要等前一次请求完成
+// Good comment: explains why
+// Using setTimeout instead of setInterval because we need to wait for the previous request to complete
 const poll = (fn, delay) => { ... }
 
-// ❌ 烂注释：解释是什么（看代码就知道）
-// 定义一个函数叫 poll，接收两个参数
+// Bad comment: explains what (the code shows this)
+// Define a function called poll that takes two parameters
 const poll = (fn, delay) => { ... }
 ```
 
-## 工作流程
+## Workflow
 
 ```
-接收文档任务（从 mailbox）
-    │
-    ▼
-阅读码农的产出物代码
-    │
-    ▼
-确定文档类型
-    │
-    ├── README → 项目说明
-    ├── API 文档 → 接口定义
-    ├── 架构文档 → 模块关系
-    └── 代码注释 → 补充复杂逻辑注释
-    │
-    ▼
-编写文档
-    │
-    ▼
-黑板更新产出物
-    │
-    ▼
-mailbox 通知组织者完成
+Receive documentation task (from mailbox)
+    |
+    v
+Read Coder's artifact code
+    |
+    v
+Determine documentation type
+    |
+    +-- README -> project description
+    +-- API docs -> interface definitions
+    +-- Architecture docs -> module relationships
+    +-- Code comments -> add comments for complex logic
+    |
+    v
+Write documentation
+    |
+    v
+Update blackboard with artifacts
+    |
+    v
+Notify Lead of completion via mailbox
 ```
 
-## 禁止事项
+## Prohibitions
 
-- ❌ 不要写废话（每句话要有信息量）
-- ❌ 不要写和代码不一致的文档
-- ❌ 不要给简单代码加注释（`let a = 1` 不需要注释）
+- Do not write filler text (every sentence should carry information)
+- Do not write documentation inconsistent with the code
+- Do not add comments to simple code (`let a = 1` doesn't need a comment)

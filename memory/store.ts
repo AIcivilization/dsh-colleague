@@ -1,9 +1,9 @@
 /**
- * 记忆服务实现
+ * Memory service implementation
  *
- * 首版实现为持久化团队事件、架构决定、已验证命令和质量结论。
- * 按任务检索少量相关内容注入 Leader 或执行角色。
- * 单次任务注入的记忆内容有数量与字符上限，避免无限增长。
+ * First version implements persistent team events, architectural decisions, verified commands, and quality conclusions.
+ * Retrieves a small amount of relevant content per task for injection into Leader or execution roles.
+ * Single-task injection has entry count and character limits to prevent unbounded growth.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -122,7 +122,7 @@ export class MemoryService implements MemoryOps {
       truncated.push({ ...entry, content });
       totalChars += content.length;
 
-      // 更新访问记录
+      // Update access record
       entry.metadata.lastAccessed = Date.now();
       entry.metadata.accessCount = (entry.metadata.accessCount || 0) + 1;
     }
@@ -144,7 +144,7 @@ export class MemoryService implements MemoryOps {
       const lines = this.entries.map((e) => JSON.stringify(e));
       writeFileSync(this.persistencePath, lines.join('\n') + '\n', 'utf-8');
     } catch {
-      // 持久化失败不阻断主流程
+      // Persistence failure does not block the main flow
     }
   }
 
@@ -156,7 +156,7 @@ export class MemoryService implements MemoryOps {
       const lines = text.split('\n').filter((l) => l.trim());
       this.entries = lines.map((l) => JSON.parse(l) as MemoryEntry);
     } catch {
-      // 加载失败不阻断启动
+      // Load failure does not block startup
     }
   }
 }

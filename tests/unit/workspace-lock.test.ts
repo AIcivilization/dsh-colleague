@@ -1,14 +1,14 @@
 /**
- * WorkspaceLock 单元测试
+ * WorkspaceLock single unitTest
  *
- * 测试覆盖：
- * - acquire/release 串行写入
- * - 重复 acquire 返回 false
- * - 非持有者 release 无效
+ * Testcover cover：
+ * - acquire/release serialwrite
+ * - duplicate acquire return return false
+ * - not hold has or release invalid
  * - isLocked / getLockHolder
- * - precheck（目录存在、Git 仓库）
+ * - precheck（item record storeat、Git  ）
  * - snapshotBefore / snapshotAfter / computeDiff
- * - clearSnapshot
+ * - cleanSnapshot
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -24,11 +24,11 @@ describe('WorkspaceLock', () => {
 
   beforeEach(() => {
     workspace = mkdtempSync(join(tmpdir(), 'ws-lock-test-'));
-    // 初始化 git 仓库
+    // initial initial ize git  
     execSync('git init', { cwd: workspace, stdio: 'pipe' });
     execSync('git config user.email test@test.com', { cwd: workspace, stdio: 'pipe' });
     execSync('git config user.name Test', { cwd: workspace, stdio: 'pipe' });
-    // 创建初始提交
+    // createinitial initial submit submit
     writeFileSync(join(workspace, 'README.md'), '# Test\n');
     execSync('git add .', { cwd: workspace, stdio: 'pipe' });
     execSync('git commit -m "init"', { cwd: workspace, stdio: 'pipe' });
@@ -40,33 +40,33 @@ describe('WorkspaceLock', () => {
   });
 
   describe('acquire / release', () => {
-    it('首次 acquire 成功', () => {
+    it('first time acquire success', () => {
       expect(lock.acquire('task-001')).toBe(true);
       expect(lock.isLocked()).toBe(true);
       expect(lock.getLockHolder()).toBe('task-001');
     });
 
-    it('已锁时 acquire 返回 false', () => {
+    it('haslockwhen acquire return return false', () => {
       lock.acquire('task-001');
       expect(lock.acquire('task-002')).toBe(false);
       expect(lock.getLockHolder()).toBe('task-001');
     });
 
-    it('持有者 release 成功', () => {
+    it('hold has or release success', () => {
       lock.acquire('task-001');
       lock.release('task-001');
       expect(lock.isLocked()).toBe(false);
       expect(lock.getLockHolder()).toBeNull();
     });
 
-    it('非持有者 release 无效', () => {
+    it('not hold has or release invalid', () => {
       lock.acquire('task-001');
-      lock.release('task-002'); // 不是持有者
+      lock.release('task-002'); // notishold has or
       expect(lock.isLocked()).toBe(true);
       expect(lock.getLockHolder()).toBe('task-001');
     });
 
-    it('release 后可再次 acquire', () => {
+    it('release aftercanagain time acquire', () => {
       lock.acquire('task-001');
       lock.release('task-001');
       expect(lock.acquire('task-002')).toBe(true);
@@ -75,20 +75,20 @@ describe('WorkspaceLock', () => {
   });
 
   describe('precheck', () => {
-    it('合法 git 仓库通过 precheck', () => {
+    it('Legal git  Passed precheck', () => {
       const result = lock.precheck();
       expect(result.ok).toBe(true);
       expect(result.errors.length).toBe(0);
     });
 
-    it('目录不存在时 precheck 失败', () => {
+    it('item recorddoes not existwhen precheck failed', () => {
       const badLock = new WorkspaceLock('/nonexistent/path');
       const result = badLock.precheck();
       expect(result.ok).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it('非 git 仓库时 precheck 失败', () => {
+    it('not git  when precheck failed', () => {
       const nonGitDir = mkdtempSync(join(tmpdir(), 'non-git-'));
       const nonGitLock = new WorkspaceLock(nonGitDir);
       const result = nonGitLock.precheck();
@@ -99,53 +99,53 @@ describe('WorkspaceLock', () => {
   });
 
   describe('snapshotBefore / snapshotAfter', () => {
-    it('snapshotBefore 记录 HEAD', () => {
+    it('snapshotBefore record record HEAD', () => {
       const snapshot = lock.snapshotBefore('task-001');
       expect(snapshot.head).toBeTruthy();
-      expect(snapshot.head.length).toBe(40); // git hash 长度
+      expect(snapshot.head.length).toBe(40); // git hash long degree
     });
 
-    it('snapshotAfter 计算 diff（无变更时 diff 为空）', () => {
+    it('snapshotAfter count compute diff（no change updatewhen diff forempty）', () => {
       lock.snapshotBefore('task-001');
       const { before, after, diff } = lock.snapshotAfter('task-001');
       expect(before.head).toBe(after.head);
       expect(diff.length).toBe(0);
     });
 
-    it('snapshotAfter 计算 diff（有新文件变更）', () => {
+    it('snapshotAfter count compute diff（has new text component change update）', () => {
       lock.snapshotBefore('task-001');
-      // 创建新文件
+      // createnew text component
       writeFileSync(join(workspace, 'new-file.ts'), 'export const x = 1;\n');
       const { before, after, diff } = lock.snapshotAfter('task-001');
-      // HEAD 没变但工作区有变更
+      // HEAD no change butworkspacehas change update
       expect(before.head).toBe(after.head);
       expect(after.isDirty).toBe(true);
       expect(diff.length).toBeGreaterThan(0);
       expect(diff.some((f) => f.includes('new-file.ts'))).toBe(true);
     });
 
-    it('snapshotAfter 计算 diff（有 commit 变更）', () => {
+    it('snapshotAfter count compute diff（has commit change update）', () => {
       lock.snapshotBefore('task-001');
-      // 创建新文件并提交
+      // createnew text component and submit submit
       writeFileSync(join(workspace, 'feature.ts'), 'export const y = 2;\n');
       execSync('git add .', { cwd: workspace, stdio: 'pipe' });
       execSync('git commit -m "feature"', { cwd: workspace, stdio: 'pipe' });
       const { before, after, diff } = lock.snapshotAfter('task-001');
-      // HEAD 变了
+      // HEAD change
       expect(before.head).not.toBe(after.head);
       expect(diff.length).toBeGreaterThan(0);
       expect(diff.some((f) => f.includes('feature.ts'))).toBe(true);
     });
 
-    it('无 before-snapshot 时 snapshotAfter 抛出', () => {
+    it('no before-snapshot when snapshotAfter throws', () => {
       expect(() => lock.snapshotAfter('nonexistent')).toThrow(
         'No before-snapshot for task nonexistent',
       );
     });
   });
 
-  describe('clearSnapshot', () => {
-    it('清除后 snapshotAfter 抛出', () => {
+  describe('cleanSnapshot', () => {
+    it('clean removeafter snapshotAfter throws', () => {
       lock.snapshotBefore('task-001');
       lock.clearSnapshot('task-001');
       expect(() => lock.snapshotAfter('task-001')).toThrow(

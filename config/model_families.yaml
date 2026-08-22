@@ -1,40 +1,40 @@
-# 模型族绑定配置
-# 绑定模型族，版本可升级
+# Model family binding config
+# Bind to model families; versions can be upgraded
 
 model_families:
   deepseek:
     current_version: "deepseek-v3"
     upgrade_to: "deepseek-v4"
     acp_command: "deepseek"
-    description: "DeepSeek 模型族"
-    
+    description: "DeepSeek model family"
+
   gpt:
     current_version: "gpt-5.6"
     upgrade_to: "gpt-5.7"
     acp_command: "codex"
-    description: "OpenAI GPT 模型族"
-    
+    description: "OpenAI GPT model family"
+
   claude:
     current_version: "claude-opus-4.5"
     acp_command: "claude"
-    description: "Anthropic Claude 模型族"
-    
+    description: "Anthropic Claude model family"
+
   gemini:
     current_version: "gemini-2.5-pro"
     acp_command: "gemini"
-    description: "Google Gemini 模型族"
-    
+    description: "Google Gemini model family"
+
   qwen:
     current_version: "qwen3-coder"
     acp_command: "qwen"
-    description: "阿里通义千问模型族"
-    
+    description: "Alibaba Qwen model family"
+
   local-ollama:
     current_version: "qwen2.5-coder"
     acp_command: "ollama"
-    description: "本地 Ollama 模型族"
+    description: "Local Ollama model family"
 
-# 绑定规则：
-# 1. 每个同事绑定一个模型族（不是模型版本）
-# 2. 绑定后固定，但可以升级版本
-# 3. 比如绑定 gpt5.6，期间 gpt 升级了，可以换成 gpt5.7
+# Binding rules:
+# 1. Each colleague binds to a model family (not a model version)
+# 2. Binding is fixed, but the version can be upgraded
+# 3. e.g., bound to gpt5.6, can upgrade to gpt5.7 when gpt updates

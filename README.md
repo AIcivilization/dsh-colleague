@@ -1,75 +1,75 @@
 # dsh-colleague
 
-> 有记忆、有角色的长期 AI 团队 — 基于 DeepSeek Harness (DSH) 的多 Agent 协作插件
+> Persistent, role-based AI teams — a multi-agent collaboration plugin for DeepSeek Harness (DSH)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 是什么
+## Overview
 
-dsh-colleague 是一个 [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) Cordis 插件，让多个 AI Agent 像真正的同事一样组队干活：
+dsh-colleague is a [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) Cordis plugin that lets multiple AI agents work together like real colleagues:
 
-- **Leader 拆解目标** → Coder 写代码 → Reviewer 审核代码 → Tester 测试验证 → Docs 补文档
-- 全自动流转，用户随时可以暂停、修正、接管或跳过
-- 基于 DSH 原生 Subagent 架构，不自己管理子进程
+- **Leader decomposes goals** → Coder writes code → Reviewer reviews → Tester validates → Docs writes documentation
+- Fully automated workflow with real-time human intervention (pause, revise, takeover, skip)
+- Built on DSH's native Subagent architecture — no manual subprocess management
 
-## 快速开始
+## Quick Start
 
-### 前置条件
+### Prerequisites
 
 - Node.js `>= 22.19.0`
-- 已安装 DSH (`dsh --version` >= 0.1.0-rc.8)
-- 已在 DSH 中注册至少一个 subagent provider
+- DSH installed (`dsh --version` >= 0.1.0-rc.8)
+- At least one subagent provider registered in DSH
 
-### 一键安装
+### One-Click Install
 
 ```bash
-# 克隆仓库
+# Clone the repo
 git clone https://github.com/AIcivilization/dsh-colleague.git
 cd dsh-colleague
 
-# 一键安装（构建 + 注册到 DSH + 重启 + 验证）
+# One-click install: build + register with DSH + restart + verify
 bash scripts/install-to-dsh-web.sh
 ```
 
-脚本会自动完成：
-1. 构建 `dist/`
-2. 用 `dsh plugin --profile web add file://` 安装到 web profile
-3. 重启 DSH web
-4. 验证插件已挂载、API 路由可用
+The script automatically:
+1. Builds `dist/`
+2. Installs to the web profile via `dsh plugin --profile web add file://`
+3. Restarts DSH web
+4. Verifies the plugin is mounted and API routes are accessible
 
-安装完成后打开 http://127.0.0.1:3080 ，在 **设置 → 插件** 中可以看到 `dsh-colleague`。
+After installation, open http://127.0.0.1:3080 and navigate to **Settings → Plugins** to see `dsh-colleague`.
 
-### 手动安装
+### Manual Install
 
 ```bash
-# 构建
+# Build
 npm install
 npm run build
 
-# 安装到 DSH
+# Install to DSH
 dsh plugin --profile web add file:///path/to/dsh-colleague
 
-# 重启 DSH
+# Restart DSH
 dsh web
 ```
 
-## 团队角色
+## Team Roles
 
-| 角色 | 技能 | 职责 | 模板文件 |
-|------|------|------|----------|
-| Leader | orchestration | 拆解目标、分派任务、决策流转 | `templates/orchestrator.yaml` |
-| Coder | coding | 编写代码、实现功能、修复 bug | `templates/coder.yaml` |
-| Reviewer | review | Code review、安全审计、质量把关 | `templates/reviewer.yaml` |
-| Tester | testing | 编写测试、执行测试、验证结果 | `templates/tester.yaml` |
-| Docs | docs | 编写技术文档、API 文档、README | `templates/doc-writer.yaml` |
+| Role | Skill | Responsibilities | Template |
+|------|-------|-----------------|----------|
+| Leader | orchestration | Decompose goals, assign tasks, orchestrate workflow | `templates/orchestrator.yaml` |
+| Coder | coding | Write code, implement features, fix bugs | `templates/coder.yaml` |
+| Reviewer | review | Code review, security audit, quality control | `templates/reviewer.yaml` |
+| Tester | testing | Write tests, execute tests, validate results | `templates/tester.yaml` |
+| Docs | docs | Write technical docs, API docs, README | `templates/doc-writer.yaml` |
 
-## 配置
+## Configuration
 
-### 团队配置 (`config/team.yaml`)
+### Team Config (`config/team.yaml`)
 
 ```yaml
 team:
-  name: "前端项目组"
+  name: "Frontend Team"
 
 members:
   - id: "leader-01"
@@ -88,84 +88,93 @@ members:
   # ...
 
 concurrency:
-  max_writers: 1  # 首版串行写入
+  max_writers: 1  # Serial writes (first version)
 
 memory:
   enabled: true
   persistence: true
 ```
 
-### 关键配置说明
+### Key Config Fields
 
-- **`provider`**: DSH 已注册的 subagent provider 名称（如 `dsh`、`acp`、`codex`、`claude-code`）
-- **`model`**: 模型标识（如 `deepseek`）
-- **`role`**: 必须是 `leader` / `coder` / `reviewer` / `tester` / `docs` 之一
-- **`max_writers`**: 最大并发写任务数，首版固定为 1（串行写入）
+- **`provider`**: A registered DSH subagent provider name (e.g., `dsh`, `acp`, `codex`, `claude-code`)
+- **`model`**: Model identifier (e.g., `deepseek`)
+- **`role`**: Must be one of `leader` / `coder` / `reviewer` / `tester` / `docs`
+- **`max_writers`**: Max concurrent write tasks (first version: 1, serial writes)
 
-## 架构
+## Architecture
 
 ```
-index.ts                          — DSH Cordis 插件入口
+index.ts                          — DSH Cordis plugin entry
 ├── core/
 │   ├── runtime/
-│   │   ├── team-runtime.ts      — 团队运行时（事件溯源 + 状态投影）
-│   │   ├── types.ts             — 类型定义
-│   │   └── workspace-lock.ts    — 串行写入锁
+│   │   ├── team-runtime.ts      — Team runtime (event sourcing + state projection)
+│   │   ├── types.ts             — Type definitions
+│   │   └── workspace-lock.ts    — Serial write lock
 │   ├── orchestrator/
-│   │   └── orchestration-loop.ts — 编排循环（Leader → 执行 → 质量门禁）
+│   │   └── orchestration-loop.ts — Orchestration loop (Leader → execute → quality gates)
 │   ├── planner/
-│   │   └── leader-planner.ts    — Leader 输出 schema 校验
+│   │   └── leader-planner.ts    — Leader output schema validation
 │   ├── quality/
-│   │   └── gates.ts             — 质量门禁
+│   │   └── gates.ts             — Quality gates
 │   └── config/
-│       └── loader.ts            — YAML 配置加载器
+│       └── loader.ts            — YAML config loader
 ├── memory/
-│   ├── store.ts                 — 记忆服务
+│   ├── store.ts                 — Memory service
 │   └── types.ts
 ├── web/
-│   ├── main.tsx                 — React 面板入口
-│   ├── team-panel/              — UI 组件
-│   └── types.ts                 — UI 适配层
-├── templates/                   — 角色模板
-├── skills/                      — SKILL.md 技能定义
-├── config/                      — 团队配置
-├── cordis.patch.yml             — Cordis 补丁层
-└── dsh.bundle.json              — DSH bundle 声明
+│   ├── main.tsx                 — React panel entry
+│   ├── team-panel/              — UI components
+│   └── types.ts                 — UI adapter layer
+├── templates/                   — Role templates
+├── skills/                      — SKILL.md skill definitions
+├── config/                      — Team configuration
+├── cordis.patch.yml             — Cordis patch layer
+└── dsh.bundle.json              — DSH bundle declaration
 ```
 
-## 用户介入
+## User Intervention
 
-| 操作 | 效果 |
-|------|------|
-| 暂停 | 团队暂停调度，等待恢复 |
-| 恢复 | 团队继续调度 |
-| 修正 | Leader 接收修正指令，重新规划 |
-| 接管 | Leader 暂停，等待用户手动操作 |
-| 跳过 | 取消指定任务（需选择具体任务） |
+| Action | Effect |
+|--------|--------|
+| Pause | Team pauses scheduling, waits for resume |
+| Resume | Team continues scheduling |
+| Revise | Lead receives revision instructions and re-plans |
+| Takeover | Lead pauses, waits for manual user action |
+| Skip | Cancel a specific task (requires selecting the task) |
 
-## 开发
+## Internationalization (i18n)
+
+The web panel supports **bilingual** (Chinese / English) UI with automatic system language detection:
+
+- Auto-detects via `navigator.language` on first load
+- Chinese system → Chinese UI; everything else → English UI
+- Manual language switch supported via `setLang('zh' | 'en')`
+- All UI strings managed through a centralized translation table in `web/team-panel/i18n/index.ts`
+
+## Development
 
 ```bash
-# 安装依赖
+# Install dependencies
 npm install
 
-# 类型检查
+# Type check
 npm run type-check
 
-# 构建
+# Build
 npm run build
 
-# 测试
+# Test
 npm test
 ```
 
-## 已知限制
+## Known Limitations
 
-- 首版每个团队绑定一个 DSH 会话和一个工作区
-- 不支持多 CLI 混合团队（所有成员使用同一 provider）
-- 不支持 L0–L3 记忆蒸馏
-- 不支持多团队协作
-- 不支持历史回放
+- First version: each team binds to one DSH session and one workspace
+- No multi-CLI mixed teams (all members use the same provider)
+- No L0–L3 memory distillation
+- No multi-team collaboration
+- No history replay
 
 ## License
 

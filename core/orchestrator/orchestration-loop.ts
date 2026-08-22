@@ -1,23 +1,24 @@
 /**
- * OrchestrationLoop — 编排循环（插件的心脏）
+ * OrchestrationLoop — the orchestration loop (heart of the plugin)
  *
- * 从被删掉的原始 leaderDecisionLoop 伪代码恢复并重写为基于 DSH SubagentRuntime 的真实实现。
+ * Reconstructed from the original leaderDecisionLoop pseudocode and rewritten
+ * as a real implementation based on DSH SubagentRuntime.
  *
- * 循环流程：
- *   1. 接收用户目标
- *   2. 调用 Leader subagent → 获得原始输出
- *   3. LeaderPlanner.parseLeaderOutput → 校验为 LeaderAction
- *   4. 执行 action：
- *      - create_task → 在 TeamRuntime 创建任务 → 派给对应角色 subagent → 等待结果 → 记录质量
- *      - request_review → 派给 reviewer subagent → 记录质量
- *      - request_test → 派给 tester subagent → 记录质量
- *      - request_docs → 派给 docs subagent → 记录质量
- *      - unblock_task → 解除任务阻塞
- *      - report → 标记完成，退出循环
- *      - ask_user → 暂停等待用户输入
- *   5. 循环回到第 2 步
+ * Loop flow:
+ *   1. Receive user goal
+ *   2. Call Leader subagent → get raw output
+ *   3. LeaderPlanner.parseLeaderOutput → validate as LeaderAction
+ *   4. Execute action:
+ *      - create_task → create task in TeamRuntime → dispatch to role subagent → wait for result → record quality
+ *      - request_review → dispatch to reviewer subagent → record quality
+ *      - request_test → dispatch to tester subagent → record quality
+ *      - request_docs → dispatch to docs subagent → record quality
+ *      - unblock_task → unblock task
+ *      - report → mark complete, exit loop
+ *      - ask_user → pause and wait for user input
+ *   5. Loop back to step 2
  *
- * 支持暂停/恢复/取消，尊重工作区锁和并发限制。
+ * Supports pause/resume/cancel. Respects workspace lock and concurrency limits.
  */
 
 import type { TeamRuntime } from '../runtime/team-runtime';
@@ -39,9 +40,9 @@ import {
   needsRevision,
 } from '../quality/gates';
 
-// ===== 类型定义 =====
+// ===== Type definitions =====
 
-/** DSH SubagentRuntime 的最小接口（避免硬依赖） */
+/** Minimal interface for DSH SubagentRuntime (avoids hard dependency) */
 export interface SubagentRuntimeLike {
   start(
     name: string,
@@ -54,13 +55,13 @@ export interface SubagentRuntimeLike {
   ): Promise<SubagentRunLike>;
 }
 
-/** DSH SubagentRun 的最小接口 */
+/** Minimal interface for DSH SubagentRun */
 export interface SubagentRunLike {
   result: Promise<SubagentResultLike>;
   dispose(): Promise<void>;
 }
 
-/** DSH SubagentResult 的最小接口 */
+/** Minimal interface for DSH SubagentResult */
 export interface SubagentResultLike {
   output: ContentBlock[];
   stopReason: string;
@@ -68,7 +69,7 @@ export interface SubagentResultLike {
   diagnostic?: string;
 }
 
-/** 提取文本内容 */
+/** Extract text content */
 function extractText(blocks: ContentBlock[]): string {
   return blocks
     .map((b) => {
@@ -80,28 +81,28 @@ function extractText(blocks: ContentBlock[]): string {
     .join('');
 }
 
-/** 将文本转为 ContentBlock[]（文本块） */
+/** Convert text to ContentBlock[] (text blocks) */
 function toContentBlocks(text: string): ContentBlock[] {
   return [{ type: 'text', text } as ContentBlock];
 }
 
-/** 编排循环的配置 */
+/** Orchestration loop configuration */
 export interface OrchestrationLoopConfig {
-  /** 最大循环迭代次数（防止无限循环） */
+  /** Max loop iterations (prevents infinite loop) */
   maxIterations?: number;
-  /** 每个 subagent 调用的超时（毫秒） */
+  /** Timeout per subagent call (ms) */
   taskTimeoutMs?: number;
-  /** Leader 的 decision prompt */
+  /** Leader decision prompt */
   leaderDecisionPrompt?: string;
 }
 
-/** 编排循环的状态 */
+/** Orchestration loop state */
 export type LoopState = 'idle' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
 
-/** 编排事件监听器 */
+/** Orchestration event listener */
 export type LoopListener = (event: LoopEvent) => void;
 
-/** 编排事件 */
+/** Orchestration event */
 export interface LoopEvent {
   type:
     | 'loop_started'
@@ -126,7 +127,7 @@ export interface LoopEvent {
   timestamp: number;
 }
 
-// ===== 编排循环 =====
+// ===== Orchestration loop =====
 
 export class OrchestrationLoop {
   private runtime: TeamRuntime;
@@ -149,19 +150,19 @@ export class OrchestrationLoop {
     this.planner = planner;
     this.config = {
       maxIterations: config?.maxIterations ?? 50,
-      taskTimeoutMs: config?.taskTimeoutMs ?? 300_000, // 5 分钟
+      taskTimeoutMs: config?.taskTimeoutMs ?? 300_000, // 5 minutes
       leaderDecisionPrompt: config?.leaderDecisionPrompt ?? '',
     };
   }
 
-  // ===== Subagent 绑定 =====
+  // ===== Subagent binding =====
 
-  /** 绑定 DSH SubagentRuntime 实例 */
+  /** Bind DSH SubagentRuntime instance */
   bindSubagentRuntime(rt: SubagentRuntimeLike): void {
     this.subagentRuntime = rt;
   }
 
-  // ===== 状态管理 =====
+  // ===== State management =====
 
   getState(): LoopState {
     return this.state;
@@ -188,16 +189,16 @@ export class OrchestrationLoop {
       try {
         listener(event);
       } catch {
-        // 监听器错误不影响主流程
+        // Listener errors do not affect the main flow
       }
     }
   }
 
-  // ===== 公共 API =====
+  // ===== Public API =====
 
   /**
-   * 启动编排循环
-   * @param goal 用户目标
+   * Start the orchestration loop
+   * @param goal User goal
    */
   async start(goal: string): Promise<void> {
     if (this.state !== 'idle' && this.state !== 'failed') {
@@ -211,7 +212,7 @@ export class OrchestrationLoop {
     this.currentGoal = goal;
     this.abortController = new AbortController();
 
-    // 启动团队
+    // Start team
     this.runtime.startPlanning();
     this.runtime.startRunning();
 
@@ -228,7 +229,7 @@ export class OrchestrationLoop {
     }
   }
 
-  /** 暂停循环 */
+  /** Pause loop */
   pause(): void {
     if (this.state !== 'running') return;
     this.runtime.pause();
@@ -239,14 +240,14 @@ export class OrchestrationLoop {
     }
   }
 
-  /** 恢复循环 */
+  /** Resume loop */
   resume(): void {
     if (this.state !== 'paused') return;
     this.runtime.resume();
     this.state = 'running';
     this.abortController = new AbortController();
     this.emit('loop_resumed');
-    // 异步恢复循环
+    // Async resume loop
     this.runLoop().catch((err) => {
       const message = err instanceof Error ? err.message : String(err);
       this.emit('loop_failed', { message });
@@ -255,7 +256,7 @@ export class OrchestrationLoop {
     });
   }
 
-  /** 取消循环 */
+  /** Cancel loop */
   cancel(): void {
     this.state = 'cancelled';
     if (this.abortController) {
@@ -266,9 +267,9 @@ export class OrchestrationLoop {
   }
 
   /**
-   * 回答 Leader 的问题
-   * 当 Leader 发出 ask_user 后，循环暂停等待用户回答。
-   * 用户回答后调用此方法，循环继续。
+   * Answer the Leader's question.
+   * When Leader emits ask_user, the loop pauses waiting for user answer.
+   * After user answers, call this method to continue the loop.
    */
   answerUser(response: string): void {
     if (this.userResponseResolver) {
@@ -277,21 +278,21 @@ export class OrchestrationLoop {
     }
   }
 
-  // ===== 核心循环 =====
+  // ===== Core loop =====
 
   private async runLoop(): Promise<void> {
     const maxIter = this.config.maxIterations;
 
     for (let iter = 0; iter < maxIter; iter++) {
-      // 检查是否被取消或暂停
+      // Check if cancelled or paused
       if (this.state === 'cancelled' || this.state === 'paused') {
         return;
       }
 
-      // 获取当前团队状态
+      // Get current team state
       const snapshot = this.runtime.getSnapshot();
 
-      // 检查是否已经完成
+      // Check if already completed
       if (snapshot.status === 'completed' || snapshot.status === 'failed' || snapshot.status === 'cancelled') {
         this.state = snapshot.status === 'completed' ? 'completed' : snapshot.status === 'cancelled' ? 'cancelled' : 'failed';
         if (this.state === 'completed') {
@@ -300,10 +301,10 @@ export class OrchestrationLoop {
         return;
       }
 
-      // 1. 构建 Leader prompt
+      // 1. Build Leader prompt
       const leaderPrompt = this.buildLeaderPrompt(snapshot, this.currentGoal!);
 
-      // 2. 调用 Leader subagent
+      // 2. Call Leader subagent
       this.emit('leader_called', { message: `Iteration ${iter + 1}` });
 
       const leaderMember = snapshot.members.find((m) => m.role === 'leader');
@@ -318,19 +319,19 @@ export class OrchestrationLoop {
 
       this.emit('leader_output_received', { message: leaderOutput.slice(0, 200) });
 
-      // 3. 解析 Leader 输出
+      // 3. Parse Leader output
       const parseResult = await this.planner.parseLeaderOutput(
         leaderOutput,
         snapshot,
-        undefined, // 无重试函数（首版不自动重试 LLM 调用）
+        undefined, // No retry function (first version does not auto-retry LLM calls)
       );
 
       if (!parseResult.action) {
-        // Leader 输出无效，记录错误并继续循环
+        // Leader output invalid — log error and continue loop
         this.emit('error', {
           message: `Leader output invalid after ${parseResult.retries} retries: ${parseResult.errors.join('; ')}`,
         });
-        // 尝试让 Leader 重新决策
+        // Let Leader re-decide
         continue;
       }
 
@@ -339,7 +340,7 @@ export class OrchestrationLoop {
         message: parseResult.action.type,
       });
 
-      // 4. 执行 action
+      // 4. Execute action
       const shouldStop = await this.executeAction(parseResult.action, snapshot.members);
 
       if (shouldStop) {
@@ -347,11 +348,11 @@ export class OrchestrationLoop {
       }
     }
 
-    // 超过最大迭代次数
+    // Exceeded max iterations
     throw new Error(`Max iterations (${maxIter}) reached without completion`);
   }
 
-  // ===== Leader Prompt 构建 =====
+  // ===== Leader prompt building =====
 
   private buildLeaderPrompt(snapshot: ReturnType<TeamRuntime['getSnapshot']>, goal: string): string {
     const tasks = snapshot.tasks.map((t) => {
@@ -375,42 +376,42 @@ export class OrchestrationLoop {
     const parts: string[] = [
       this.config.leaderDecisionPrompt,
       '',
-      '## 团队目标',
+      '## Team Goal',
       goal,
       '',
-      '## 当前团队状态',
-      '- 状态: ' + snapshot.status,
-      '- 成员:',
+      '## Current Team State',
+      '- Status: ' + snapshot.status,
+      '- Members:',
       members,
       '',
-      '## 任务列表',
-      tasks || '（无任务）',
+      '## Task List',
+      tasks || '(no tasks)',
       '',
-      '## 最近事件',
-      recentEvents || '（无事件）',
+      '## Recent Events',
+      recentEvents || '(no events)',
     ];
 
     if (memory) {
-      parts.push('', '## 相关记忆', memory);
+      parts.push('', '## Relevant Memory', memory);
     }
 
     parts.push(
       '',
-      '## 你的决策',
-      '查看以上信息，决定下一步。输出 JSON 动作之一：',
-      '- create_task: 创建子任务',
-      '- unblock_task: 解除任务阻塞',
-      '- request_review: 请求审核',
-      '- request_test: 请求测试',
-      '- request_docs: 请求文档',
-      '- report: 汇报完成',
-      '- ask_user: 询问用户',
+      '## Your Decision',
+      'Review the above and decide the next step. Output one JSON action:',
+      '- create_task: create a subtask',
+      '- unblock_task: unblock a task',
+      '- request_review: request a review',
+      '- request_test: request a test',
+      '- request_docs: request documentation',
+      '- report: report completion',
+      '- ask_user: ask the user a question',
     );
 
     return parts.join('\n');
   }
 
-  // ===== Action 执行 =====
+  // ===== Action execution =====
 
   private async executeAction(action: LeaderAction, members: MemberConfig[]): Promise<boolean> {
     switch (action.type) {
@@ -440,7 +441,7 @@ export class OrchestrationLoop {
       return false;
     }
 
-    // 在 TeamRuntime 中创建任务
+    // Create task in TeamRuntime
     const task = this.runtime.createTask(
       action.task.title,
       action.task.description,
@@ -450,7 +451,7 @@ export class OrchestrationLoop {
 
     this.emit('task_dispatched', { taskId: task.id, message: 'Created: ' + task.title });
 
-    // 派给对应角色的 subagent 执行
+    // Dispatch to the corresponding role subagent for execution
     await this.dispatchAndExecuteTask(task);
 
     return false;
@@ -462,7 +463,7 @@ export class OrchestrationLoop {
       return false;
     }
 
-    // 解除阻塞
+    // Unblock
     this.runtime.transitionTask(action.taskId, 'ready');
     return false;
   }
@@ -479,7 +480,7 @@ export class OrchestrationLoop {
       return false;
     }
 
-    // 获取被审核的任务
+    // Get the task to review
     const snapshot = this.runtime.getSnapshot();
     const targetTask = snapshot.tasks.find((t) => t.id === action.taskId);
     if (!targetTask) {
@@ -487,16 +488,16 @@ export class OrchestrationLoop {
       return false;
     }
 
-    // 构建 reviewer prompt
+    // Build reviewer prompt
     const reviewPrompt = this.buildReviewPrompt(targetTask, action.reason);
 
-    // 调用 reviewer subagent
+    // Call reviewer subagent
     const output = await this.callSubagent(reviewer, reviewPrompt);
 
-    // 解析质量结论
+    // Parse quality result
     const quality = this.parseQualityResult(output, 'approved', 'changes_requested');
 
-    // 记录质量
+    // Record quality
     this.runtime.recordQuality(action.taskId, {
       status: quality.status as QualityStatus,
       reviewerId: reviewer.id,
@@ -574,7 +575,7 @@ export class OrchestrationLoop {
     const docsPrompt = this.buildDocsPrompt(targetTask, action.reason);
     const output = await this.callSubagent(docs, docsPrompt);
 
-    // 解析任务结果
+    // Parse task result
     const result = this.parseTaskResult(output);
     this.runtime.transitionTask(action.taskId, 'passed', result);
 
@@ -603,22 +604,22 @@ export class OrchestrationLoop {
 
     this.emit('user_question', { message: action.question });
 
-    // 暂停循环，等待用户回答
+    // Pause loop, wait for user answer
     this.runtime.pause();
     const response = await new Promise<string>((resolve) => {
       this.userResponseResolver = resolve;
     });
 
-    // 用户回答后恢复
+    // Resume after user answers
     this.runtime.resume();
 
-    // 将用户回答注入到当前目标
-    this.currentGoal = (this.currentGoal || '') + '\n\n用户补充：' + response;
+    // Inject user answer into current goal
+    this.currentGoal = (this.currentGoal || '') + '\n\nUser addition: ' + response;
 
     return false;
   }
 
-  // ===== 任务派发与执行 =====
+  // ===== Task dispatch and execution =====
 
   private async dispatchAndExecuteTask(task: Task): Promise<void> {
     const snapshot = this.runtime.getSnapshot();
@@ -634,7 +635,7 @@ export class OrchestrationLoop {
       return;
     }
 
-    // 迁移到 ready 再到 running
+    // Transition to ready then running
     this.runtime.transitionTask(task.id, 'ready');
     this.runtime.transitionTask(task.id, 'running');
 
@@ -644,17 +645,17 @@ export class OrchestrationLoop {
       message: 'Dispatched to ' + assignee.name + ': ' + task.title,
     });
 
-    // 构建 task prompt
+    // Build task prompt
     const taskPrompt = this.buildTaskPrompt(task, assignee);
 
     try {
-      // 调用 subagent 执行任务
+      // Call subagent to execute task
       const output = await this.callSubagent(assignee, taskPrompt);
 
-      // 解析任务结果
+      // Parse task result
       const result = this.parseTaskResult(output);
 
-      // 记录结果
+      // Record result
       this.runtime.transitionTask(task.id, result.status === 'completed' ? 'passed' : 'failed', result);
 
       this.emit('task_completed', {
@@ -670,7 +671,7 @@ export class OrchestrationLoop {
         message,
       });
 
-      // 任务失败
+      // Task failed
       this.runtime.transitionTask(task.id, 'failed', {
         status: 'failed',
         summary: message,
@@ -680,7 +681,7 @@ export class OrchestrationLoop {
     }
   }
 
-  // ===== Subagent 调用 =====
+  // ===== Subagent call =====
 
   private async callSubagent(member: MemberConfig, prompt: string): Promise<string> {
     if (!this.subagentRuntime) {
@@ -704,36 +705,36 @@ export class OrchestrationLoop {
     }
   }
 
-  // ===== Prompt 构建 =====
+  // ===== Prompt building =====
 
   private buildTaskPrompt(task: Task, member: MemberConfig): string {
     const memory = this.runtime.getMemoryForTask(task.id);
     const parts: string[] = [
-      member.skillPrompt || ('你是团队的' + member.name + '（' + member.role + '）。'),
+      member.skillPrompt || ('You are the team\'s ' + member.name + ' (' + member.role + ').'),
       '',
-      '## 你的任务',
+      '## Your Task',
       task.title,
       '',
-      '## 任务描述',
+      '## Task Description',
       task.description,
     ];
 
     if (task.dependencies.length > 0) {
-      parts.push('', '## 依赖任务', ...task.dependencies.map((d) => '- ' + d));
+      parts.push('', '## Dependency Tasks', ...task.dependencies.map((d) => '- ' + d));
     }
 
     if (memory) {
-      parts.push('', '## 相关记忆', memory);
+      parts.push('', '## Relevant Memory', memory);
     }
 
     parts.push(
       '',
-      '## 完成后报告',
-      '输出 JSON：',
+      '## Completion Report',
+      'Output JSON:',
       '```json',
       '{',
       '  "status": "completed" | "failed" | "blocked",',
-      '  "summary": "完成摘要",',
+      '  "summary": "completion summary",',
       '  "artifacts": ["file1.ts", "file2.ts"],',
       '  "issues": []',
       '}',
@@ -746,38 +747,38 @@ export class OrchestrationLoop {
   private buildReviewPrompt(task: Task, reason: string): string {
     const result = task.result;
     const parts: string[] = [
-      '你是团队的审核员。',
+      'You are the team\'s Reviewer.',
       '',
-      '## 审核任务',
+      '## Review Task',
       task.title,
       '',
-      '## 任务描述',
+      '## Task Description',
       task.description,
       '',
-      '## 执行者报告',
-      result?.summary || '（无报告）',
+      '## Executor Report',
+      result?.summary || '(no report)',
     ];
 
     if (result?.artifacts && result.artifacts.length > 0) {
-      parts.push('产出文件: ' + result.artifacts.join(', '));
+      parts.push('Artifacts: ' + result.artifacts.join(', '));
     }
 
     parts.push(
       '',
-      '## 审核原因',
+      '## Review Reason',
       reason,
       '',
-      '## 审核要求',
-      '检查代码质量、安全性、可维护性。',
+      '## Review Requirements',
+      'Check code quality, security, and maintainability.',
       '',
-      '## 审核结论格式',
-      '输出 JSON：',
+      '## Review Result Format',
+      'Output JSON:',
       '```json',
       '{',
       '  "status": "approved" | "changes_requested",',
-      '  "summary": "审核结论摘要",',
+      '  "summary": "review conclusion summary",',
       '  "issues": [',
-      '    { "severity": "critical" | "warning" | "suggestion", "file": "path", "line": 42, "description": "问题描述", "suggestion": "修复建议" }',
+      '    { "severity": "critical" | "warning" | "suggestion", "file": "path", "line": 42, "description": "issue description", "suggestion": "fix suggestion" }',
       '  ]',
       '}',
       '```',
@@ -789,35 +790,35 @@ export class OrchestrationLoop {
   private buildTestPrompt(task: Task, reason: string): string {
     const result = task.result;
     const parts: string[] = [
-      '你是团队的测试员。',
+      'You are the team\'s Tester.',
       '',
-      '## 测试任务',
+      '## Test Task',
       task.title,
       '',
-      '## 任务描述',
+      '## Task Description',
       task.description,
       '',
-      '## 执行者报告',
-      result?.summary || '（无报告）',
+      '## Executor Report',
+      result?.summary || '(no report)',
     ];
 
     if (result?.artifacts && result.artifacts.length > 0) {
-      parts.push('产出文件: ' + result.artifacts.join(', '));
+      parts.push('Artifacts: ' + result.artifacts.join(', '));
     }
 
     parts.push(
       '',
-      '## 测试原因',
+      '## Test Reason',
       reason,
       '',
-      '## 测试结论格式',
-      '输出 JSON：',
+      '## Test Result Format',
+      'Output JSON:',
       '```json',
       '{',
       '  "status": "test_passed" | "test_failed",',
-      '  "summary": "测试结论摘要",',
+      '  "summary": "test conclusion summary",',
       '  "issues": [',
-      '    { "severity": "critical" | "warning" | "suggestion", "file": "path", "line": 42, "description": "问题描述", "suggestion": "修复建议" }',
+      '    { "severity": "critical" | "warning" | "suggestion", "file": "path", "line": 42, "description": "issue description", "suggestion": "fix suggestion" }',
       '  ]',
       '}',
       '```',
@@ -828,23 +829,23 @@ export class OrchestrationLoop {
 
   private buildDocsPrompt(task: Task, reason: string): string {
     const parts: string[] = [
-      '你是团队的文档员。',
+      'You are the team\'s Doc Writer.',
       '',
-      '## 文档任务',
+      '## Documentation Task',
       task.title,
       '',
-      '## 任务描述',
+      '## Task Description',
       task.description,
       '',
-      '## 文档原因',
+      '## Documentation Reason',
       reason,
       '',
-      '## 完成后报告',
-      '输出 JSON：',
+      '## Completion Report',
+      'Output JSON:',
       '```json',
       '{',
       '  "status": "completed",',
-      '  "summary": "文档完成摘要",',
+      '  "summary": "documentation completion summary",',
       '  "artifacts": ["docs.md"],',
       '  "issues": []',
       '}',
@@ -854,10 +855,10 @@ export class OrchestrationLoop {
     return parts.join('\n');
   }
 
-  // ===== 结果解析 =====
+  // ===== Result parsing =====
 
   private parseTaskResult(raw: string): TaskResult {
-    // 尝试提取 JSON
+    // Attempt to extract JSON
     const jsonStr = this.extractJSON(raw);
     if (jsonStr) {
       try {
@@ -867,11 +868,11 @@ export class OrchestrationLoop {
           return validation.result;
         }
       } catch {
-        // JSON 解析失败
+        // JSON parse failed
       }
     }
 
-    // 如果无法解析结构化结果，从原始文本生成
+    // If structured result cannot be parsed, generate from raw text
     return {
       status: 'completed',
       summary: raw.slice(0, 500),
@@ -898,11 +899,11 @@ export class OrchestrationLoop {
           };
         }
       } catch {
-        // JSON 解析失败
+        // JSON parse failed
       }
     }
 
-    // 如果无法解析，默认通过（不阻塞流程）
+    // If cannot parse, default to pass (do not block flow)
     return {
       status: passStatus,
       summary: raw.slice(0, 500),
@@ -913,18 +914,18 @@ export class OrchestrationLoop {
   private extractJSON(text: string): string | null {
     const trimmed = text.trim();
 
-    // 直接 JSON
+    // Direct JSON
     if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
       return trimmed;
     }
 
-    // 从 markdown 代码块中提取
+    // Extract from markdown code block
     const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
       return codeBlockMatch[1].trim();
     }
 
-    // 尝试找到第一个 { 到最后一个 }
+    // Try to find first { to last }
     const firstBrace = trimmed.indexOf('{');
     const lastBrace = trimmed.lastIndexOf('}');
     if (firstBrace >= 0 && lastBrace > firstBrace) {
@@ -934,7 +935,7 @@ export class OrchestrationLoop {
     return null;
   }
 
-  // ===== 清理 =====
+  // ===== Cleanup =====
 
   dispose(): void {
     this.listeners = [];

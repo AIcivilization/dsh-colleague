@@ -1,13 +1,13 @@
 /**
- * LeaderPlanner 单元测试
+ * LeaderPlanner unit tests
  *
- * 测试覆盖：
- * - 输出 schema 校验（create_task / unblock_task / request_* / report / ask_user）
- * - 依赖校验（不存在依赖、循环依赖）
- * - 并发额度校验
- * - JSON 提取与解析（直接 JSON、代码块、无 JSON）
- * - 重试机制
- * - reason 字段必须非空
+ * Test coverage:
+ * - - Output schema validation (create_task / unblock_task / request_* / report / ask_user)
+ * - - Dependency validation (non-existent dependencies, loop dependencies)
+ * - - Concurrency budget validation
+ * - - JSON extraction and parsing (direct JSON, code blocks, no JSON)
+ * - - Retry mechanism
+ * - - reason field must be non-empty
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -16,18 +16,18 @@ import type { TeamState, Task, MemberConfig } from '../../core/runtime/types';
 
 function makeMembers(): MemberConfig[] {
   return [
-    { id: 'leader-01', name: '组长', role: 'leader', provider: 'dsh', slotId: 0 },
-    { id: 'coder-01', name: '码农', role: 'coder', provider: 'dsh', slotId: 1 },
-    { id: 'reviewer-01', name: '审核员', role: 'reviewer', provider: 'dsh', slotId: 2 },
-    { id: 'tester-01', name: '测试员', role: 'tester', provider: 'dsh', slotId: 3 },
-    { id: 'docs-01', name: '文档员', role: 'docs', provider: 'dsh', slotId: 4 },
+    { id: 'leader-01', name: 'Lead', role: 'leader', provider: 'dsh', slotId: 0 },
+    { id: 'coder-01', name: 'Coder', role: 'coder', provider: 'dsh', slotId: 1 },
+    { id: 'reviewer-01', name: 'Reviewer', role: 'reviewer', provider: 'dsh', slotId: 2 },
+    { id: 'tester-01', name: 'Tester', role: 'tester', provider: 'dsh', slotId: 3 },
+    { id: 'docs-01', name: 'Doc Writer', role: 'docs', provider: 'dsh', slotId: 4 },
   ];
 }
 
 function makeState(tasks: Task[] = []): TeamState {
   return {
     id: 'test-team',
-    name: '测试团队',
+    name: 'Test Team',
     status: 'running',
     members: makeMembers(),
     tasks,
@@ -41,8 +41,8 @@ function makeState(tasks: Task[] = []): TeamState {
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'task-001',
-    title: '测试任务',
-    description: '描述',
+    title: 'Test Task',
+    description: 'Description',
     assigneeId: 'coder-01',
     role: 'coder',
     status: 'planned',
@@ -60,14 +60,14 @@ describe('LeaderPlanner', () => {
     planner = new LeaderPlanner(1);
   });
 
-  describe('create_task 校验', () => {
-    it('合法 create_task 通过', () => {
+  describe('create_task Validation', () => {
+    it('Legal create_task Passed', () => {
       const action = {
         type: 'create_task',
-        reason: '需要实现登录功能',
+        reason: 'Need to implementloginsuccesscan',
         task: {
-          title: '实现登录',
-          description: '实现用户登录 API',
+          title: 'implementlogin',
+          description: 'implementuse userlogin API',
           role: 'coder',
           dependencies: [],
         },
@@ -77,33 +77,33 @@ describe('LeaderPlanner', () => {
       expect(result.errors.length).toBe(0);
     });
 
-    it('缺少 task 字段被拒绝', () => {
+    it('Missing task fieldRejected', () => {
       const action = {
         type: 'create_task',
-        reason: '需要实现',
+        reason: 'Need to implement',
       };
       const result = planner.validate(action, makeState());
       expect(result.valid).toBe(false);
       expect(result.errors.some((e) => e.includes('"task"'))).toBe(true);
     });
 
-    it('缺少 title 被拒绝', () => {
+    it('Missing title Rejected', () => {
       const action = {
         type: 'create_task',
-        reason: '需要实现',
-        task: { description: '描述', role: 'coder', dependencies: [] },
+        reason: 'Need to implement',
+        task: { description: 'Description', role: 'coder', dependencies: [] },
       };
       const result = planner.validate(action, makeState());
       expect(result.valid).toBe(false);
     });
 
-    it('非法角色被拒绝', () => {
+    it('illegal roleRejected', () => {
       const action = {
         type: 'create_task',
-        reason: '需要实现',
+        reason: 'Need to implement',
         task: {
-          title: '标题',
-          description: '描述',
+          title: 'Title',
+          description: 'Description',
           role: 'leader',
           dependencies: [],
         },
@@ -113,18 +113,18 @@ describe('LeaderPlanner', () => {
       expect(result.errors.some((e) => e.includes('role'))).toBe(true);
     });
 
-    it('角色对应成员不存在被拒绝', () => {
+    it('rolecorrectshouldmemberdoes not existRejected', () => {
       const action = {
         type: 'create_task',
-        reason: '需要实现',
+        reason: 'Need to implement',
         task: {
-          title: '标题',
-          description: '描述',
+          title: 'Title',
+          description: 'Description',
           role: 'tester',
           dependencies: [],
         },
       };
-      // 没有 tester 成员
+      // no has tester member
       const state = makeState();
       state.members = state.members.filter((m) => m.role !== 'tester');
       const result = planner.validate(action, state);
@@ -132,13 +132,13 @@ describe('LeaderPlanner', () => {
       expect(result.errors.some((e) => e.includes('No member with role'))).toBe(true);
     });
 
-    it('依赖不存在的任务被拒绝', () => {
+    it('dependencydoes not existoftaskRejected', () => {
       const action = {
         type: 'create_task',
-        reason: '需要实现',
+        reason: 'Need to implement',
         task: {
-          title: '标题',
-          description: '描述',
+          title: 'Title',
+          description: 'Description',
           role: 'coder',
           dependencies: ['nonexistent-id'],
         },
@@ -148,14 +148,14 @@ describe('LeaderPlanner', () => {
       expect(result.errors.some((e) => e.includes('Dependency task not found'))).toBe(true);
     });
 
-    it('依赖存在的任务通过', () => {
+    it('dependencystoreatoftaskPassed', () => {
       const existingTask = makeTask({ id: 'task-001', status: 'passed' });
       const action = {
         type: 'create_task',
-        reason: '需要实现',
+        reason: 'Need to implement',
         task: {
-          title: '标题',
-          description: '描述',
+          title: 'Title',
+          description: 'Description',
           role: 'coder',
           dependencies: ['task-001'],
         },
@@ -165,8 +165,8 @@ describe('LeaderPlanner', () => {
     });
   });
 
-  describe('并发额度校验', () => {
-    it('已有 running 任务时不能再创建有依赖的新任务（非运行中依赖）', () => {
+  describe('- Concurrency budget validation', () => {
+    it('hashas running taskwhennotcanagaincreatehasdependencyofNew task（not run rowindependency）', () => {
       const runningTask = makeTask({
         id: 'task-001',
         status: 'running',
@@ -177,12 +177,12 @@ describe('LeaderPlanner', () => {
       });
       const action = {
         type: 'create_task',
-        reason: '需要实现',
+        reason: 'Need to implement',
         task: {
-          title: '新任务',
-          description: '描述',
+          title: 'New task',
+          description: 'Description',
           role: 'coder',
-          // 依赖已完成的 task-002（非运行中），触发并发限制
+          // dependencyhasDoneof task-002（not run rowin），trigger sendconcurrencylimit control
           dependencies: ['task-002'],
         },
       };
@@ -191,37 +191,37 @@ describe('LeaderPlanner', () => {
       expect(result.errors.some((e) => e.includes('concurrent limit'))).toBe(true);
     });
 
-    it('已有 running 任务且新任务无依赖时合法（不检查并发）', () => {
+    it('hashas running taskandNew tasknodependencywhenLegal（notcheck checkconcurrency）', () => {
       const runningTask = makeTask({
         id: 'task-001',
         status: 'running',
       });
       const action = {
         type: 'create_task',
-        reason: '需要实现',
+        reason: 'Need to implement',
         task: {
-          title: '新任务',
-          description: '描述',
+          title: 'New task',
+          description: 'Description',
           role: 'coder',
           dependencies: [],
         },
       };
-      // 无依赖时不触发并发检查（当前实现行为）
+      // nodependencywhennottrigger sendconcurrencycheck check（whenbeforeimplementrowfor）
       const result = planner.validate(action, makeState([runningTask]));
       expect(result.valid).toBe(true);
     });
 
-    it('已有 running 任务但新任务依赖它则合法', () => {
+    it('hashas running taskbutNew taskdependencyitthenLegal', () => {
       const runningTask = makeTask({
         id: 'task-001',
         status: 'running',
       });
       const action = {
         type: 'create_task',
-        reason: '需要实现',
+        reason: 'Need to implement',
         task: {
-          title: '后续任务',
-          description: '描述',
+          title: 'Follow-up task',
+          description: 'Description',
           role: 'coder',
           dependencies: ['task-001'],
         },
@@ -230,7 +230,7 @@ describe('LeaderPlanner', () => {
       expect(result.valid).toBe(true);
     });
 
-    it('maxConcurrent=2 时允许两个独立任务', () => {
+    it('maxConcurrent=2 when  two count only task', () => {
       const planner2 = new LeaderPlanner(2);
       const runningTask = makeTask({
         id: 'task-001',
@@ -238,10 +238,10 @@ describe('LeaderPlanner', () => {
       });
       const action = {
         type: 'create_task',
-        reason: '需要实现',
+        reason: 'Need to implement',
         task: {
-          title: '新任务',
-          description: '描述',
+          title: 'New task',
+          description: 'Description',
           role: 'coder',
           dependencies: [],
         },
@@ -251,31 +251,31 @@ describe('LeaderPlanner', () => {
     });
   });
 
-  describe('unblock_task 校验', () => {
-    it('合法 unblock_task 通过', () => {
+  describe('unblock_task Validation', () => {
+    it('Legal unblock_task Passed', () => {
       const blockedTask = makeTask({ id: 'task-001', status: 'blocked' });
       const action = {
         type: 'unblock_task',
-        reason: '依赖已完成',
+        reason: 'dependencyhasDone',
         taskId: 'task-001',
       };
       const result = planner.validate(action, makeState([blockedTask]));
       expect(result.valid).toBe(true);
     });
 
-    it('缺少 taskId 被拒绝', () => {
+    it('Missing taskId Rejected', () => {
       const action = {
         type: 'unblock_task',
-        reason: '需要解除',
+        reason: 'NeedUnblock',
       };
       const result = planner.validate(action, makeState());
       expect(result.valid).toBe(false);
     });
 
-    it('任务不存在被拒绝', () => {
+    it('taskdoes not existRejected', () => {
       const action = {
         type: 'unblock_task',
-        reason: '需要解除',
+        reason: 'NeedUnblock',
         taskId: 'nonexistent',
       };
       const result = planner.validate(action, makeState());
@@ -283,11 +283,11 @@ describe('LeaderPlanner', () => {
       expect(result.errors.some((e) => e.includes('not found'))).toBe(true);
     });
 
-    it('非 blocked 状态任务被拒绝', () => {
+    it('not blocked statustaskRejected', () => {
       const runningTask = makeTask({ id: 'task-001', status: 'running' });
       const action = {
         type: 'unblock_task',
-        reason: '需要解除',
+        reason: 'NeedUnblock',
         taskId: 'task-001',
       };
       const result = planner.validate(action, makeState([runningTask]));
@@ -296,23 +296,23 @@ describe('LeaderPlanner', () => {
     });
   });
 
-  describe('request_review / request_test / request_docs 校验', () => {
-    it('合法 request_review 通过', () => {
+  describe('request_review / request_test / request_docs Validation', () => {
+    it('Legal request_review Passed', () => {
       const passedTask = makeTask({ id: 'task-001', status: 'passed' });
       const action = {
         type: 'request_review',
-        reason: '需要审核',
+        reason: 'NeedReview',
         taskId: 'task-001',
       };
       const result = planner.validate(action, makeState([passedTask]));
       expect(result.valid).toBe(true);
     });
 
-    it('任务未完成时 request_test 被拒绝', () => {
+    it('tasknotDonewhen request_test Rejected', () => {
       const runningTask = makeTask({ id: 'task-001', status: 'running' });
       const action = {
         type: 'request_test',
-        reason: '需要测试',
+        reason: 'NeedTest',
         taskId: 'task-001',
       };
       const result = planner.validate(action, makeState([runningTask]));
@@ -320,89 +320,89 @@ describe('LeaderPlanner', () => {
       expect(result.errors.some((e) => e.includes('passed or failed'))).toBe(true);
     });
 
-    it('缺少 taskId 被拒绝', () => {
+    it('Missing taskId Rejected', () => {
       const action = {
         type: 'request_review',
-        reason: '需要审核',
+        reason: 'NeedReview',
       };
       const result = planner.validate(action, makeState());
       expect(result.valid).toBe(false);
     });
   });
 
-  describe('report 校验', () => {
-    it('合法 report 通过', () => {
+  describe('report Validation', () => {
+    it('Legal report Passed', () => {
       const action = {
         type: 'report',
-        reason: '汇报完成',
-        summary: '所有任务已完成',
+        reason: 'ReportDone',
+        summary: 'all hastaskhasDone',
       };
       const result = planner.validate(action, makeState());
       expect(result.valid).toBe(true);
     });
 
-    it('缺少 summary 被拒绝', () => {
+    it('Missing summary Rejected', () => {
       const action = {
         type: 'report',
-        reason: '汇报',
+        reason: 'Report',
       };
       const result = planner.validate(action, makeState());
       expect(result.valid).toBe(false);
     });
   });
 
-  describe('ask_user 校验', () => {
-    it('合法 ask_user 通过', () => {
+  describe('ask_user Validation', () => {
+    it('Legal ask_user Passed', () => {
       const action = {
         type: 'ask_user',
-        reason: '需要用户确认',
-        question: '是否使用 TypeScript？',
+        reason: 'Needuse user correct verify',
+        question: 'isotherwise use use TypeScript？',
       };
       const result = planner.validate(action, makeState());
       expect(result.valid).toBe(true);
     });
 
-    it('缺少 question 被拒绝', () => {
+    it('Missing question Rejected', () => {
       const action = {
         type: 'ask_user',
-        reason: '需要确认',
+        reason: 'Needcorrect verify',
       };
       const result = planner.validate(action, makeState());
       expect(result.valid).toBe(false);
     });
   });
 
-  describe('通用校验', () => {
-    it('缺少 type 被拒绝', () => {
-      const result = planner.validate({ reason: '描述' }, makeState());
+  describe('common useValidation', () => {
+    it('Missing type Rejected', () => {
+      const result = planner.validate({ reason: 'Description' }, makeState());
       expect(result.valid).toBe(false);
     });
 
-    it('非法 type 被拒绝', () => {
+    it('Illegal type Rejected', () => {
       const result = planner.validate(
-        { type: 'unknown_action', reason: '描述' },
+        { type: 'unknown_action', reason: 'Description' },
         makeState(),
       );
       expect(result.valid).toBe(false);
     });
 
-    it('缺少 reason 被拒绝', () => {
+    it('Missing reason Rejected', () => {
       const result = planner.validate(
-        { type: 'report', summary: '汇报' },
+        { type: 'report', summary: 'Report' },
         makeState(),
       );
       expect(result.valid).toBe(false);
     });
 
-    it('空 reason 被拒绝', () => {
+    it('empty reason Rejected', () => {
       const result = planner.validate(
-        { type: 'report', reason: '  ', summary: '汇报' },
+        { type: 'report', reason: '  ', summary: 'Report' },
         makeState(),
       );
       expect(result.valid).toBe(false);
     });
 
-    it('非对象输入被拒绝', () => {
+    it('Non-objectinputRejected', () => {
       expect(planner.validate(null, makeState()).valid).toBe(false);
       expect(planner.validate('string', makeState()).valid).toBe(false);
       expect(planner.validate(42, makeState()).valid).toBe(false);
@@ -410,13 +410,13 @@ describe('LeaderPlanner', () => {
   });
 
   describe('parseLeaderOutput', () => {
-    it('直接 JSON 输出被正确解析', async () => {
+    it('direct connect JSON outputbecorrect correctparsing', async () => {
       const raw = JSON.stringify({
         type: 'create_task',
-        reason: '需要实现',
+        reason: 'Need to implement',
         task: {
-          title: '实现登录',
-          description: '描述',
+          title: 'implementlogin',
+          description: 'Description',
           role: 'coder',
           dependencies: [],
         },
@@ -426,85 +426,85 @@ describe('LeaderPlanner', () => {
       expect(result.action!.type).toBe('create_task');
     });
 
-    it('从 markdown 代码块提取 JSON', async () => {
+    it('from markdown code blockextraction JSON', async () => {
       const raw = `Here is the action:\n\`\`\`json\n${JSON.stringify({
         type: 'report',
-        reason: '汇报',
-        summary: '完成',
+        reason: 'Report',
+        summary: 'Done',
       })}\n\`\`\`\n`;
       const result = await planner.parseLeaderOutput(raw, makeState());
       expect(result.action).not.toBeNull();
       expect(result.action!.type).toBe('report');
     });
 
-    it('从自由文本中提取 JSON', async () => {
+    it('fromfree textinextraction JSON', async () => {
       const raw = `I think we should do this:\n${JSON.stringify({
         type: 'ask_user',
-        reason: '需要确认',
-        question: '使用哪个框架？',
+        reason: 'Needcorrect verify',
+        question: 'use use which count  architect？',
       })}\nPlease advise.`;
       const result = await planner.parseLeaderOutput(raw, makeState());
       expect(result.action).not.toBeNull();
       expect(result.action!.type).toBe('ask_user');
     });
 
-    it('无效 JSON 返回 null', async () => {
+    it('invalid JSON return return null', async () => {
       const result = await planner.parseLeaderOutput('This is not JSON', makeState());
       expect(result.action).toBeNull();
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it('校验失败返回 null 和错误列表', async () => {
-      const raw = JSON.stringify({ type: 'create_task', reason: '需要' });
+    it('Validationfailedreturn return null andwrong errorlist', async () => {
+      const raw = JSON.stringify({ type: 'create_task', reason: 'Need' });
       const result = await planner.parseLeaderOutput(raw, makeState());
       expect(result.action).toBeNull();
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it('重试机制：第一次失败，第二次成功', async () => {
+    it('- Retry mechanism：firstfailed，secondsuccess', async () => {
       let callCount = 0;
       const retryFn = async () => {
         callCount++;
         if (callCount === 1) {
-          return JSON.stringify({ type: 'create_task', reason: '需要' }); // 缺少 task
+          return JSON.stringify({ type: 'create_task', reason: 'Need' }); // Missing task
         }
         return JSON.stringify({
           type: 'create_task',
-          reason: '需要',
+          reason: 'Need',
           task: {
-            title: '任务',
-            description: '描述',
+            title: 'task',
+            description: 'Description',
             role: 'coder',
             dependencies: [],
           },
         });
       };
 
-      // 第一次用无效输出
-      const raw = JSON.stringify({ type: 'create_task', reason: '需要' });
+      // firstuseinvalidoutput
+      const raw = JSON.stringify({ type: 'create_task', reason: 'Need' });
       const result = await planner.parseLeaderOutput(raw, makeState(), retryFn);
       expect(result.action).not.toBeNull();
       expect(result.retries).toBeGreaterThan(0);
     });
 
-    it('全部重试失败后返回 null', async () => {
-      const raw = JSON.stringify({ type: 'create_task', reason: '需要' });
+    it('allretryfailedafterreturn return null', async () => {
+      const raw = JSON.stringify({ type: 'create_task', reason: 'Need' });
       const result = await planner.parseLeaderOutput(raw, makeState());
       expect(result.action).toBeNull();
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it('非 JSON 输出重试后返回 null', async () => {
+    it('not JSON outputretryafterreturn return null', async () => {
       const result = await planner.parseLeaderOutput('not json at all', makeState());
       expect(result.action).toBeNull();
       expect(result.retries).toBeGreaterThan(0);
     });
 
-    it('有效 JSON 第一次就通过', async () => {
+    it('valid JSON firstthenPassed', async () => {
       const raw = JSON.stringify({
         type: 'report',
-        reason: '汇报',
-        summary: '完成',
+        reason: 'Report',
+        summary: 'Done',
       });
       const result = await planner.parseLeaderOutput(raw, makeState());
       expect(result.action).not.toBeNull();

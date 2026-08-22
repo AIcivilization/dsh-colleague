@@ -1,6 +1,6 @@
 /**
  * Colleague Plugin activityTypes.ts
- * Activity 类型定义 + lane 路由逻辑
+ * Activity type definitions + lane routing logic
  */
 
 import type { MailboxMessage, Task, MemberState } from '../../types';

@@ -1,9 +1,9 @@
 /**
- * 真实 DSH Cordis 插件加载测试
+ * Real DSH Cordis plugin load test
  *
- * 使用真实的 @deepseek-ai/cordis Context 加载 colleague-plugin，
- * 验证 apply() 在真实运行时下正常执行。
- * 编排循环使用 mock SubagentRuntime（不依赖真实 LLM）。
+ * Uses a real @deepseek-ai/cordis Context to load colleague-plugin,
+ * verifying that apply() executes correctly in a real runtime.
+ * The orchestration loop uses a mock SubagentRuntime (does not depend on a real LLM).
  */
 
 import { Context, Fiber } from '@deepseek-ai/cordis';
@@ -25,32 +25,32 @@ function createMockSubagentRuntime() {
       const promptText = request.prompt.map(b => b.text || '').join('');
       let output = '';
 
-      if (promptText.includes('你的决策') || promptText.includes('团队目标')) {
-        // Leader 决策
+      if (promptText.includes('your decision') || promptText.includes('team goal')) {
+        // Leader decision
         leaderCallCount++;
         if (leaderCallCount === 1) {
           output = JSON.stringify({
             type: 'create_task',
             task: {
-              title: '实现登录页',
-              description: '创建一个登录表单组件',
+              title: 'Implement login page',
+              description: 'Create a login form component',
               role: 'coder',
               dependencies: [],
             },
-            reason: '需要先实现登录页面',
+            reason: 'Need to implement login page first',
           });
         } else {
           output = JSON.stringify({
             type: 'report',
-            summary: '登录页面实现完成',
-            reason: '所有任务已完成',
+            summary: 'Login page implementation done',
+            reason: 'All tasks are done',
           });
         }
       } else {
-        // coder 执行
+        // Coder executes
         output = JSON.stringify({
           status: 'completed',
-          summary: '登录页实现完成',
+          summary: 'Login page implementation done',
           artifacts: ['Login.tsx'],
           issues: [],
         });
@@ -67,64 +67,64 @@ function createMockSubagentRuntime() {
   };
 }
 
-// ===== 测试 =====
+// ===== Test =====
 
 async function main() {
-  console.log('=== 真实 DSH Cordis 插件加载测试 ===\n');
+  console.log('=== Real DSH Cordis plugin load test ===\n');
 
-  // 1. 创建真实 Cordis Context
+  // 1. Create a real Cordis Context
   const ctx = new Context();
-  console.log('[1] Cordis Context 创建成功');
+  console.log('[1] Cordis Context created successfully');
 
-  // 2. 创建临时工作区
+  // 2. Create a temporary workspace
   const workspace = mkdtempSync(resolve(tmpdir(), 'colleague-e2e-'));
-  console.log('[2] 临时工作区:', workspace);
+  console.log('[2] Temporary workspace:', workspace);
 
   try {
-    // 3. 加载插件
-    console.log('[3] 加载插件 apply()...');
+    // 3. Load the plugin
+    console.log('[3] Loading plugin apply()...');
     plugin.apply(ctx, {
       configPath: 'config/team.yaml',
       workspace,
       memoryEnabled: false,
     });
-    console.log('[3] apply() 成功\n');
+    console.log('[3] apply() success\n');
 
-    // 4. 验证服务已注册
+    // 4. Verify services are registered
     const teamService = ctx['colleague-team'];
     const loopService = ctx['colleague-loop'];
-    console.log('[4] 服务验证:');
+    console.log('[4] Service verification:');
     console.log('    colleague-team:', teamService ? typeof teamService : 'MISSING');
     console.log('    colleague-loop:', loopService ? typeof loopService : 'MISSING');
 
     if (!teamService || !loopService) {
-      console.error('\n❌ 服务未注册!');
+      console.error('\n❌ Services not registered!');
       process.exit(1);
     }
-    console.log('[4] 服务已注册\n');
+    console.log('[4] Services registered\n');
 
-    // 5. 验证 TeamRuntime 状态
+    // 5. Verify TeamRuntime status
     const snapshot = teamService.getSnapshot();
-    console.log('[5] TeamRuntime 快照:');
+    console.log('[5] TeamRuntime snapshot:');
     console.log('    teamId:', snapshot.id);
     console.log('    teamName:', snapshot.name);
     console.log('    status:', snapshot.status);
-    console.log('    members:', snapshot.members.length, '人');
-    console.log('    tasks:', snapshot.tasks.length, '个');
-    console.log('[5] 状态正确\n');
+    console.log('    members:', snapshot.members.length, 'members');
+    console.log('    tasks:', snapshot.tasks.length, 'tasks');
+    console.log('[5] Status correct\n');
 
-    // 6. 绑定 mock SubagentRuntime 并启动编排循环
-    console.log('[6] 绑定 SubagentRuntime...');
+    // 6. Bind mock SubagentRuntime and start orchestration loop
+    console.log('[6] Binding SubagentRuntime...');
     loopService.bindSubagentRuntime(createMockSubagentRuntime());
-    console.log('[6] 绑定成功\n');
+    console.log('[6] Binding success\n');
 
-    // 7. 启动编排循环
-    console.log('[7] 启动编排循环...');
-    console.log('    目标: 做一个登录页面\n');
-    await loopService.start('做一个登录页面');
+    // 7. Start orchestration loop
+    console.log('[7] Starting orchestration loop...');
+    console.log('    goal: Implement a login page\n');
+    await loopService.start('Implement a login page');
 
     const finalSnapshot = teamService.getSnapshot();
-    console.log('[7] 循环结束:');
+    console.log('[7] Loop finished:');
     console.log('    loop state:', loopService.getState());
     console.log('    team status:', finalSnapshot.status);
     console.log('    tasks:', finalSnapshot.tasks.length);
@@ -134,13 +134,13 @@ async function main() {
     console.log('');
 
     if (loopService.getState() === 'completed' && finalSnapshot.status === 'completed') {
-      console.log('=== ✅ 全部通过 ===');
+      console.log('=== ✅ All passed ===');
     } else {
-      console.log('=== ⚠️ 循环未达到 completed 状态 ===');
+      console.log('=== ⚠️ Loop did not reach completed status ===');
       console.log('    loop:', loopService.getState(), 'team:', finalSnapshot.status);
     }
 
-    // 8. 清理
+    // 8. Cleanup
     loopService.dispose();
     teamService.dispose();
 
@@ -150,7 +150,7 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error('\n❌ 测试失败:', err.message);
+  console.error('\n❌ Test failed:', err.message);
   console.error(err.stack);
   process.exit(1);
 });

@@ -1,6 +1,6 @@
 /**
- * ActivityBoardLayout — 看板列布局
- * 每列对应一个成员或 fallback 列
+ * ActivityBoardLayout — board column layout
+ * Each column corresponds to a member or the fallback column
  */
 
 import React, { useEffect, useMemo, useRef } from 'react';

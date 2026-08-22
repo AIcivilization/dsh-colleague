@@ -1,13 +1,13 @@
 /**
- * 质量门禁单元测试
+ * quality amount gate gate single unitTest
  *
- * 测试覆盖：
- * - validateTaskResult：合法/非法结果校验
- * - validateQualityResult：合法/非法质量结论校验
- * - hasPassedQualityGate：门禁通过判断
- * - needsRevision：修复需求判断
- * - canFinalize：团队最终化检查
- * - validateDocsInput：文档任务输入校验
+ * Testcover cover：
+ * - validateTaskResult：Legal/Illegalconclusion resultValidation
+ * - validateQualityResult：Legal/Illegalquality amount conclusion conclusionValidation
+ * - hasPassedQualityGate：gate gatePassedjudge break
+ * - needsRevision：fix resumeneedrequest judge break
+ * - canFinalize：teammax final ize check check
+ * - validateDocsInput：text documenttaskinputValidation
  */
 
 import { describe, it, expect } from 'vitest';
@@ -24,8 +24,8 @@ import type { Task, QualityResult, TaskResult } from '../../core/runtime/types';
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'task-001',
-    title: '测试任务',
-    description: '描述',
+    title: 'Test Task',
+    description: 'Description',
     assigneeId: 'coder-01',
     role: 'coder',
     status: 'running',
@@ -40,7 +40,7 @@ function makeQuality(overrides: Partial<QualityResult> = {}): QualityResult {
   return {
     status: 'approved',
     issues: [],
-    summary: '通过',
+    summary: 'Passed',
     timestamp: Date.now(),
     ...overrides,
   };
@@ -49,7 +49,7 @@ function makeQuality(overrides: Partial<QualityResult> = {}): QualityResult {
 function makeTaskResult(overrides: Partial<TaskResult> = {}): TaskResult {
   return {
     status: 'completed',
-    summary: '完成',
+    summary: 'Done',
     artifacts: [],
     issues: [],
     ...overrides,
@@ -57,111 +57,111 @@ function makeTaskResult(overrides: Partial<TaskResult> = {}): TaskResult {
 }
 
 describe('validateTaskResult', () => {
-  it('合法结果通过校验', () => {
+  it('Legalconclusion resultPassedValidation', () => {
     const result = validateTaskResult(makeTaskResult());
     expect(result.valid).toBe(true);
     expect(result.result).toBeDefined();
     expect(result.result!.status).toBe('completed');
   });
 
-  it('非对象输入被拒绝', () => {
+  it('Non-objectinputRejected', () => {
     expect(validateTaskResult(null).valid).toBe(false);
     expect(validateTaskResult('string').valid).toBe(false);
     expect(validateTaskResult(42).valid).toBe(false);
   });
 
-  it('缺少 status 字段被拒绝', () => {
-    const result = validateTaskResult({ summary: '描述', artifacts: [], issues: [] });
+  it('Missing status fieldRejected', () => {
+    const result = validateTaskResult({ summary: 'Description', artifacts: [], issues: [] });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('status'))).toBe(true);
   });
 
-  it('非法 status 值被拒绝', () => {
-    const result = validateTaskResult({ status: 'unknown', summary: '描述' });
+  it('Illegal status valueRejected', () => {
+    const result = validateTaskResult({ status: 'unknown', summary: 'Description' });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('status'))).toBe(true);
   });
 
-  it('缺少 summary 被拒绝', () => {
+  it('Missing summary Rejected', () => {
     const result = validateTaskResult({ status: 'completed' });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('summary'))).toBe(true);
   });
 
-  it('空 summary 被拒绝', () => {
+  it('empty summary Rejected', () => {
     const result = validateTaskResult({ status: 'completed', summary: '  ' });
     expect(result.valid).toBe(false);
   });
 
-  it('artifacts 非数组被拒绝', () => {
+  it('artifacts not data groupRejected', () => {
     const result = validateTaskResult({
       status: 'completed',
-      summary: '描述',
+      summary: 'Description',
       artifacts: 'not-an-array',
     });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('artifacts'))).toBe(true);
   });
 
-  it('issues 中无效条目被拒绝', () => {
+  it('issues ininvaliditem itemRejected', () => {
     const result = validateTaskResult({
       status: 'completed',
-      summary: '描述',
+      summary: 'Description',
       issues: [
-        { severity: 'critical', description: '问题1' },
-        { description: '缺少 severity' },
+        { severity: 'critical', description: 'Issue1' },
+        { description: 'Missing severity' },
       ],
     });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('Issue 1'))).toBe(true);
   });
 
-  it('blocked 结果包含 blockedReason', () => {
+  it('blocked conclusion result include include blockedReason', () => {
     const result = validateTaskResult({
       status: 'blocked',
-      summary: '被阻塞',
-      blockedReason: '等待依赖',
+      summary: 'Blocked',
+      blockedReason: 'Waiting for dependency',
     });
     expect(result.valid).toBe(true);
-    expect(result.result!.blockedReason).toBe('等待依赖');
+    expect(result.result!.blockedReason).toBe('Waiting for dependency');
   });
 });
 
 describe('validateQualityResult', () => {
-  it('合法质量结论通过校验', () => {
+  it('Legalquality amount conclusion conclusionPassedValidation', () => {
     const result = validateQualityResult({
       status: 'approved',
-      summary: '审核通过',
+      summary: 'ReviewPassed',
       issues: [],
     });
     expect(result.valid).toBe(true);
     expect(result.result!.status).toBe('approved');
   });
 
-  it('非法 status 被拒绝', () => {
+  it('Illegal status Rejected', () => {
     const result = validateQualityResult({
       status: 'unknown',
-      summary: '描述',
+      summary: 'Description',
     });
     expect(result.valid).toBe(false);
   });
 
-  it('缺少 summary 被拒绝', () => {
+  it('Missing summary Rejected', () => {
     const result = validateQualityResult({ status: 'approved' });
     expect(result.valid).toBe(false);
   });
 
-  it('非对象输入被拒绝', () => {
+  it('Non-objectinputRejected', () => {
     expect(validateQualityResult(null).valid).toBe(false);
     expect(validateQualityResult(undefined).valid).toBe(false);
   });
 
-  it('changes_requested 状态合法', () => {
+  it('changes_requested statusLegal', () => {
     const result = validateQualityResult({
       status: 'changes_requested',
-      summary: '需要修改',
+      summary: 'Changes needed',
       issues: [
-        { severity: 'warning', description: '命名问题' },
+        { severity: 'warning', description: 'namingIssue' },
       ],
     });
     expect(result.valid).toBe(true);
@@ -169,56 +169,56 @@ describe('validateQualityResult', () => {
 });
 
 describe('hasPassedQualityGate', () => {
-  it('approved 状态通过门禁', () => {
+  it('approved statusPassedgate gate', () => {
     const task = makeTask({ quality: makeQuality({ status: 'approved' }) });
     expect(hasPassedQualityGate(task)).toBe(true);
   });
 
-  it('test_passed 状态通过门禁', () => {
+  it('test_passed statusPassedgate gate', () => {
     const task = makeTask({ quality: makeQuality({ status: 'test_passed' }) });
     expect(hasPassedQualityGate(task)).toBe(true);
   });
 
-  it('changes_requested 不通过门禁', () => {
+  it('changes_requested notPassedgate gate', () => {
     const task = makeTask({ quality: makeQuality({ status: 'changes_requested' }) });
     expect(hasPassedQualityGate(task)).toBe(false);
   });
 
-  it('test_failed 不通过门禁', () => {
+  it('test_failed notPassedgate gate', () => {
     const task = makeTask({ quality: makeQuality({ status: 'test_failed' }) });
     expect(hasPassedQualityGate(task)).toBe(false);
   });
 
-  it('无质量结论不通过门禁', () => {
+  it('no quality amount conclusion conclusionnotPassedgate gate', () => {
     const task = makeTask({ quality: undefined });
     expect(hasPassedQualityGate(task)).toBe(false);
   });
 });
 
 describe('needsRevision', () => {
-  it('changes_requested 需要修复', () => {
+  it('changes_requested Needfix resume', () => {
     const task = makeTask({ quality: makeQuality({ status: 'changes_requested' }) });
     expect(needsRevision(task)).toBe(true);
   });
 
-  it('test_failed 需要修复', () => {
+  it('test_failed Needfix resume', () => {
     const task = makeTask({ quality: makeQuality({ status: 'test_failed' }) });
     expect(needsRevision(task)).toBe(true);
   });
 
-  it('approved 不需要修复', () => {
+  it('approved notNeedfix resume', () => {
     const task = makeTask({ quality: makeQuality({ status: 'approved' }) });
     expect(needsRevision(task)).toBe(false);
   });
 
-  it('无质量结论不需要修复', () => {
+  it('no quality amount conclusion conclusionnotNeedfix resume', () => {
     const task = makeTask({ quality: undefined });
     expect(needsRevision(task)).toBe(false);
   });
 });
 
 describe('canFinalize', () => {
-  it('所有任务通过则可最终化', () => {
+  it('all hastaskPassedthencanmax final ize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -242,7 +242,7 @@ describe('canFinalize', () => {
     expect(result.blockers.length).toBe(0);
   });
 
-  it('coder 任务未通过则不可最终化', () => {
+  it('coder tasknotPassedthencannotmax final ize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -255,7 +255,7 @@ describe('canFinalize', () => {
     expect(result.blockers.length).toBe(1);
   });
 
-  it('coder 任务通过但质量门未通过则不可最终化', () => {
+  it('coder taskPassedbut quality amount gatenotPassedthencannotmax final ize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -269,7 +269,7 @@ describe('canFinalize', () => {
     expect(result.blockers.some((b) => b.includes('quality gate'))).toBe(true);
   });
 
-  it('reviewer 任务未完成则不可最终化', () => {
+  it('reviewer tasknotDonethencannotmax final ize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -288,7 +288,7 @@ describe('canFinalize', () => {
     expect(result.blockers.some((b) => b.includes('Review'))).toBe(true);
   });
 
-  it('tester 任务未完成则不可最终化', () => {
+  it('tester tasknotDonethencannotmax final ize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -307,7 +307,7 @@ describe('canFinalize', () => {
     expect(result.blockers.some((b) => b.includes('Test'))).toBe(true);
   });
 
-  it('cancelled 任务被跳过', () => {
+  it('cancelled taskbeskip', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -321,13 +321,13 @@ describe('canFinalize', () => {
 });
 
 describe('validateDocsInput', () => {
-  it('非 docs 任务被拒绝', () => {
+  it('not docs taskRejected', () => {
     const docsTask = makeTask({ role: 'coder' });
     const result = validateDocsInput(docsTask, []);
     expect(result.valid).toBe(false);
   });
 
-  it('所有 coder 任务已通过时 docs 任务合法', () => {
+  it('all has coder taskhasPassedwhen docs taskLegal', () => {
     const docsTask = makeTask({ id: 'docs-1', role: 'docs' });
     const allTasks: Task[] = [
       makeTask({
@@ -341,7 +341,7 @@ describe('validateDocsInput', () => {
     expect(result.valid).toBe(true);
   });
 
-  it('coder 任务未通过时 docs 任务非法', () => {
+  it('coder tasknotPassedwhen docs taskIllegal', () => {
     const docsTask = makeTask({ id: 'docs-1', role: 'docs' });
     const allTasks: Task[] = [
       makeTask({
@@ -355,7 +355,7 @@ describe('validateDocsInput', () => {
     expect(result.errors.some((e) => e.includes('not passed quality gate'))).toBe(true);
   });
 
-  it('cancelled coder 任务不阻塞 docs', () => {
+  it('cancelled coder tasknotblocked docs', () => {
     const docsTask = makeTask({ id: 'docs-1', role: 'docs' });
     const allTasks: Task[] = [
       makeTask({

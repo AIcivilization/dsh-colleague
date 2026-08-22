@@ -1,6 +1,6 @@
 /**
  * Colleague Plugin useTeamViewMode.ts
- * 视图模式：parallel / single / board，按团队记忆。
+ * View mode: parallel / single / board, remembered per team.
  */
 
 import { useCallback, useState } from 'react';

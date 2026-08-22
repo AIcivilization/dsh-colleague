@@ -1,13 +1,13 @@
 /**
- * 契约测试 — Bundle 安装、配置验证、DSH 服务注入和 provider 能力拒绝
+ * contract contractTest — Bundle install install、configverify verify、DSH service service register inputand provider cancapability reject reject
  *
- * 测试覆盖：
- * - dsh.bundle.json manifest 结构完整性
- * - cordis.patch.yml 依赖声明与 package.json peerDependencies 一致
- * - 插件入口 apply(ctx) 注册服务
- * - 插件配置 schema 校验
- * - provider 能力拒绝（未注册 provider 进入 blocked/failed 状态）
- * - 插件卸载后资源释放
+ * Testcover cover：
+ * - dsh.bundle.json manifest conclusion structure complete whole integrity
+ * - cordis.patch.yml dependencydeclaration brightand package.json peerDependencies one consistent
+ * - plugin component input port apply(ctx) register volume service service
+ * - plugin componentconfig schema Validation
+ * - provider cancapability reject reject（notregister volume provider enter input blocked/failed status）
+ * - plugin component uninstall loadafterresource source release release
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -19,8 +19,8 @@ import type { TeamConfig } from '../../core/runtime/types';
 
 const ROOT = process.cwd();
 
-describe('契约测试：Bundle Manifest', () => {
-  it('dsh.bundle.json 存在且可解析', () => {
+describe('contract contractTest：Bundle Manifest', () => {
+  it('dsh.bundle.json storeatandcanparsing', () => {
     const path = resolve(ROOT, 'dsh.bundle.json');
     expect(existsSync(path)).toBe(true);
     const content = readFileSync(path, 'utf-8');
@@ -30,14 +30,14 @@ describe('契约测试：Bundle Manifest', () => {
     expect(manifest.version).toBe('0.1.0');
   });
 
-  it('manifest 声明了 host 和 client 入口', () => {
+  it('manifest declaration bright host and client input port', () => {
     const path = resolve(ROOT, 'dsh.bundle.json');
     const manifest = JSON.parse(readFileSync(path, 'utf-8'));
     expect(manifest.entry.host).toBe('./dist/index.js');
     expect(manifest.entry.client).toBe('./dist/web/main.js');
   });
 
-  it('manifest 声明了 inject 和 provides', () => {
+  it('manifest declaration bright inject and provides', () => {
     const path = resolve(ROOT, 'dsh.bundle.json');
     const manifest = JSON.parse(readFileSync(path, 'utf-8'));
     expect(manifest.inject).toContain('dsh-session');
@@ -45,7 +45,7 @@ describe('契约测试：Bundle Manifest', () => {
     expect(manifest.provides).toContain('colleague-team');
   });
 
-  it('manifest peerDependencies 与 package.json 一致', () => {
+  it('manifest peerDependencies and package.json one consistent', () => {
     const bundlePath = resolve(ROOT, 'dsh.bundle.json');
     const pkgPath = resolve(ROOT, 'package.json');
     const bundle = JSON.parse(readFileSync(bundlePath, 'utf-8'));
@@ -59,7 +59,7 @@ describe('契约测试：Bundle Manifest', () => {
     }
   });
 
-  it('manifest config schema 定义了所有配置项', () => {
+  it('manifest config schema bind meaning all hasconfigitem', () => {
     const path = resolve(ROOT, 'dsh.bundle.json');
     const manifest = JSON.parse(readFileSync(path, 'utf-8'));
     const schema = manifest.config.schema;
@@ -69,13 +69,13 @@ describe('契约测试：Bundle Manifest', () => {
   });
 });
 
-describe('契约测试：cordis.patch.yml', () => {
-  it('cordis.patch.yml 存在', () => {
+describe('contract contractTest：cordis.patch.yml', () => {
+  it('cordis.patch.yml storeat', () => {
     const path = resolve(ROOT, 'cordis.patch.yml');
     expect(existsSync(path)).toBe(true);
   });
 
-  it('patch.yml 声明了插件 ID 和配置', () => {
+  it('patch.yml declaration bright plugin component ID andconfig', () => {
     const path = resolve(ROOT, 'cordis.patch.yml');
     const content = readFileSync(path, 'utf-8');
     expect(content).toContain('colleague-plugin');
@@ -84,7 +84,7 @@ describe('契约测试：cordis.patch.yml', () => {
     expect(content).toContain('memoryEnabled');
   });
 
-  it('patch.yml 声明了所有必需依赖', () => {
+  it('patch.yml declaration bright all has mustneeddependency', () => {
     const path = resolve(ROOT, 'cordis.patch.yml');
     const content = readFileSync(path, 'utf-8');
     expect(content).toContain('@deepseek-ai/cordis');
@@ -94,7 +94,7 @@ describe('契约测试：cordis.patch.yml', () => {
     expect(content).toContain('@deepseek-ai/dsh-tool-subagent');
   });
 
-  it('patch.yml 声明了可选依赖 dsh-web', () => {
+  it('patch.yml declaration brightcanselectdependency dsh-web', () => {
     const path = resolve(ROOT, 'cordis.patch.yml');
     const content = readFileSync(path, 'utf-8');
     expect(content).toContain('dsh-web');
@@ -102,27 +102,27 @@ describe('契约测试：cordis.patch.yml', () => {
   });
 });
 
-describe('契约测试：构建产物', () => {
-  it('dist/index.js 存在（Host 入口）', () => {
+describe('contract contractTest：structure create produce artifact', () => {
+  it('dist/index.js storeat（Host input port）', () => {
     const path = resolve(ROOT, 'dist', 'index.js');
     expect(existsSync(path)).toBe(true);
   });
 
-  it('dist/web/main.js 存在（Client 入口）', () => {
+  it('dist/web/main.js storeat（Client input port）', () => {
     const path = resolve(ROOT, 'dist', 'web', 'main.js');
     expect(existsSync(path)).toBe(true);
   });
 
-  it('dist/ 包含 .d.ts 类型声明文件', () => {
+  it('dist/ include include .d.ts class type declaration bright text component', () => {
     const distDir = resolve(ROOT, 'dist');
     expect(existsSync(distDir)).toBe(true);
-    // tsdown 生成 .d.ts 文件
+    // tsdown produce success .d.ts text component
     const files = readdirSync(distDir).filter((f) => f.endsWith('.d.ts'));
     expect(files.length).toBeGreaterThan(0);
   });
 });
 
-describe('契约测试：插件入口与服务注入', () => {
+describe('contract contractTest：plugin component input portandservice service register input', () => {
   let ctx: any;
   let config: TeamConfig;
   let runtime: TeamRuntime;
@@ -138,8 +138,8 @@ describe('契约测试：插件入口与服务注入', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('TeamRuntime 注册为 colleague-team 服务', () => {
-    // 验证 runtime 实例存在且有公共 API
+  it('TeamRuntime register volumefor colleague-team service service', () => {
+    // verify verify runtime actual instance storeatand has public together API
     expect(runtime).toBeDefined();
     expect(typeof runtime.getSnapshot).toBe('function');
     expect(typeof runtime.subscribe).toBe('function');
@@ -150,26 +150,26 @@ describe('契约测试：插件入口与服务注入', () => {
     expect(typeof runtime.dispose).toBe('function');
   });
 
-  it('TeamRuntime 接受 DSH subagent provider 绑定', () => {
+  it('TeamRuntime connect affected DSH subagent provider bind bind', () => {
     expect(typeof runtime.bindSubagentProvider).toBe('function');
-    // 绑定前为 null
-    // 绑定 mock provider
+    // bind bindbeforefor null
+    // bind bind mock provider
     const mockProvider = { name: 'dsh', capabilities: { tools: ['*'] } };
     expect(() => runtime.bindSubagentProvider(ctx)).not.toThrow();
   });
 
-  it('插件卸载后 dispose 释放所有资源', () => {
+  it('plugin component uninstall loadafter dispose release release all has resource source', () => {
     const rt = new TeamRuntime(ctx, config);
     let received = 0;
     rt.subscribe(() => received++);
     rt.dispose();
 
-    // dispose 后 listeners 已清空
-    expect(received).toBe(0); // 没有新事件
+    // dispose after listeners hascleanempty
+    expect(received).toBe(0); // no has newevent
   });
 });
 
-describe('契约测试：Provider 能力拒绝', () => {
+describe('contract contractTest：Provider cancapability reject reject', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -182,50 +182,50 @@ describe('契约测试：Provider 能力拒绝', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('未注册 provider 的任务进入 blocked/failed 状态', () => {
+  it('notregister volume provider oftaskenter input blocked/failed status', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    // 创建任务但没有绑定 subagent provider
-    const task = runtime.createTask('测试任务', '描述', 'coder');
+    // createtaskbut no has bind bind subagent provider
+    const task = runtime.createTask('Test Task', 'Description', 'coder');
     runtime.transitionTask(task.id, 'ready');
     runtime.transitionTask(task.id, 'running');
 
-    // 任务可以运行，但没有 provider 绑定时，实际执行会失败
-    // 验证 runtime 没有 provider 时仍能管理状态
+    // taskcanby run row，but no has provider bind bindwhen，actual actual execute row willfailed
+    // verify verify runtime no has provider whencanmanage managestatus
     expect(runtime.getSnapshot().tasks.find((t) => t.id === task.id)?.status).toBe('running');
 
     runtime.dispose();
   });
 
-  it('未知角色的任务创建被拒绝', () => {
+  it('notroleoftaskcreateRejected', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
 
     expect(() =>
-      runtime.createTask('任务', '描述', 'unknown-role' as any),
+      runtime.createTask('task', 'Description', 'unknown-role' as any),
     ).toThrow('No member with role');
 
     runtime.dispose();
   });
 
-  it('配置无效时启动失败并给出诊断', () => {
+  it('configinvalidwhenstart movefailedand give outputdiagnostics', () => {
     const badConfig = { ...config, workspace: '/nonexistent/path' };
-    // TeamRuntime 构造时不检查 workspace 存在性（延迟到 WorkspaceLock）
-    // 但 createTask 在运行时会通过 WorkspaceLock 检查
+    // TeamRuntime structure buildwhennotcheck check workspace storeatintegrity（ to WorkspaceLock）
+    // but createTask atrun rowwhenwillPassed WorkspaceLock check check
     const runtime = new TeamRuntime(ctx, badConfig);
     runtime.startPlanning();
     runtime.startRunning();
 
-    const task = runtime.createTask('任务', '描述', 'coder');
+    const task = runtime.createTask('task', 'Description', 'coder');
     runtime.transitionTask(task.id, 'ready');
-    // running 时 WorkspaceLock.acquire 会检查目录存在性
-    // 不存在时进入 blocked 状态
+    // running when WorkspaceLock.acquire will check check item record storeatintegrity
+    // does not existwhenenter input blocked status
     runtime.transitionTask(task.id, 'running');
 
-    // 由于 workspace 不存在，任务应保持 blocked 或 running
-    // （取决于 WorkspaceLock 实现）
+    // due to workspace does not exist，taskshouldkeep hold blocked or running
+    // （get decis to WorkspaceLock implement）
     const state = runtime.getSnapshot();
     const taskState = state.tasks.find((t) => t.id === task.id);
     expect(taskState).toBeDefined();
@@ -234,8 +234,8 @@ describe('契约测试：Provider 能力拒绝', () => {
   });
 });
 
-describe('契约测试：--dump-config 兼容性', () => {
-  it('cordis.yml 包含插件 ID 和配置', () => {
+describe('contract contractTest：--dump-config  content integrity', () => {
+  it('cordis.yml include include plugin component ID andconfig', () => {
     const path = resolve(ROOT, 'cordis.yml');
     const content = readFileSync(path, 'utf-8');
     expect(content).toContain('colleague-plugin');
@@ -244,7 +244,7 @@ describe('契约测试：--dump-config 兼容性', () => {
     expect(content).toContain('memoryEnabled');
   });
 
-  it('package.json exports 声明了 Host 和 Client 入口', () => {
+  it('package.json exports declaration bright Host and Client input port', () => {
     const path = resolve(ROOT, 'package.json');
     const pkg = JSON.parse(readFileSync(path, 'utf-8'));
     expect(pkg.exports['.']).toBeDefined();
@@ -253,7 +253,7 @@ describe('契约测试：--dump-config 兼容性', () => {
     expect(pkg.exports['./web'].import).toBe('./dist/web/index.js');
   });
 
-  it('package.json files 包含所有必要产物', () => {
+  it('package.json files include include all has must need produce artifact', () => {
     const path = resolve(ROOT, 'package.json');
     const pkg = JSON.parse(readFileSync(path, 'utf-8'));
     expect(pkg.files).toContain('dist');

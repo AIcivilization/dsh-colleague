@@ -1,6 +1,6 @@
 /**
- * AgentStatusBadge — 状态徽章
- * 头像右下角叠加点或内联圆点
+ * AgentStatusBadge — status badge
+ * Overlay dot on avatar bottom-right or inline dot
  */
 
 import React from 'react';

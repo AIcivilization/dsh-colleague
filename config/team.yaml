@@ -1,17 +1,17 @@
-# 团队配置：前端项目组
-# 定义团队成员名单、角色、provider 和工作区
+# Team config: Frontend Project Team
+# Define team members, roles, provider, and workspace
 
 team:
-  name: "前端项目组"
-  description: "负责前端开发的全栈团队"
+  name: "Frontend Team"
+  description: "Full-stack team for frontend development"
 
-# 团队成员配置
-# role 必须是 leader / coder / reviewer / tester / docs 之一
-# provider 指定 DSH 已注册的 subagent provider 名称
+# Team member configuration
+# role must be one of: leader / coder / reviewer / tester / docs
+# provider specifies a registered DSH subagent provider name
 members:
   - id: "leader-01"
     template: "./templates/orchestrator.yaml"
-    name: "组长"
+    name: "Lead"
     role: "leader"
     provider: "dsh"
     model: "deepseek"
@@ -19,7 +19,7 @@ members:
 
   - id: "coder-01"
     template: "./templates/coder.yaml"
-    name: "码农"
+    name: "Coder"
     role: "coder"
     provider: "dsh"
     model: "deepseek"
@@ -27,7 +27,7 @@ members:
 
   - id: "reviewer-01"
     template: "./templates/reviewer.yaml"
-    name: "审核员"
+    name: "Reviewer"
     role: "reviewer"
     provider: "dsh"
     model: "deepseek"
@@ -35,7 +35,7 @@ members:
 
   - id: "tester-01"
     template: "./templates/tester.yaml"
-    name: "测试员"
+    name: "Tester"
     role: "tester"
     provider: "dsh"
     model: "deepseek"
@@ -43,26 +43,26 @@ members:
 
   - id: "docs-01"
     template: "./templates/doc-writer.yaml"
-    name: "文档员"
+    name: "Doc Writer"
     role: "docs"
     provider: "dsh"
     model: "deepseek"
     slot_id: 4
 
-# 工作区配置
+# Workspace config
 workspace:
   path: "./workspace/"
 
-# 并发配置
+# Concurrency config
 concurrency:
-  max_writers: 1  # 首版串行写入
+  max_writers: 1  # Serial writes (first version)
 
-# 记忆配置
+# Memory config
 memory:
   enabled: true
-  persistence: true  # 持久化团队事件、架构决定、已验证命令和质量结论
+  persistence: true  # Persist team events, decisions, verified commands, and quality results
 
-# 介入控制
+# Intervention controls
 intervention:
   enabled: true
   actions:

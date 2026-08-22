@@ -1,6 +1,6 @@
-# dsh-colleague — DeepSeek Harness 插件配置
-# 安装方式: dsh plugin --profile web add file:///path/to/dsh-colleague
-# 启动方式: dsh --profile web web
+# dsh-colleague — DeepSeek Harness plugin config
+# Install: dsh plugin --profile web add file:///path/to/dsh-colleague
+# Launch: dsh --profile web web
 
 - id: dsh-colleague
   name: 'dsh-colleague'

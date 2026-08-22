@@ -1,5 +1,5 @@
 /**
- * TaskCard — 任务卡片
+ * TaskCard — task card
  */
 
 import React, { useRef, useState } from 'react';

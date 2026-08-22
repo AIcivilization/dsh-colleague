@@ -1,15 +1,15 @@
 /**
- * TeamRuntime 状态机单元测试
+ * TeamRuntime state machine unit tests
  *
- * 测试覆盖：
- * - 合法状态迁移
- * - 非法状态迁移（抛出异常 + 记录 error 事件）
- * - 任务状态迁移（含依赖检查、工作区锁）
- * - 事件追加与状态投影一致性
- * - 用户介入（pause/resume/skip/takeover/revise）
- * - 事件订阅与通知
- * - 成员受控操作（增删）
- * - 持久化与恢复
+ * Test coverage:
+ * - Legal state transitions
+ * - Illegal state transitions (throw exception + record error event)
+ * - Task state transitions (including dependency checks, workspace lock)
+ * - Event append and state projection consistency
+ * - User intervention (pause/resume/skip/takeover/revise)
+ * - Event subscription and notification
+ * - Member controlled operations (add/remove)
+ * - Persistence and recovery
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -24,7 +24,7 @@ import type { TeamConfig, TeamEvent, MemberConfig } from '../../core/runtime/typ
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-describe('TeamRuntime 状态机', () => {
+describe('TeamRuntime State Machine', () => {
   let ctx: any;
   let config: TeamConfig;
   let runtime: TeamRuntime;
@@ -40,31 +40,31 @@ describe('TeamRuntime 状态机', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  describe('团队状态迁移', () => {
-    it('idle → planning 合法迁移', () => {
+  describe('Team State Transitions', () => {
+    it('idle → planning legal transition', () => {
       runtime.startPlanning();
       const state = runtime.getSnapshot();
       expect(state.status).toBe('planning');
     });
 
-    it('idle → running 非法迁移（不能跳过 planning）', () => {
+    it('idle → running illegal transition (cannot skip planning)', () => {
       expect(() => runtime.startRunning()).toThrow(
         'Invalid team status transition: idle → running',
       );
       const state = runtime.getSnapshot();
       expect(state.status).toBe('idle');
-      // 应记录 error 事件
+      // Should record an error event
       const errors = state.events.filter((e) => e.type === 'error');
       expect(errors.length).toBeGreaterThan(0);
     });
 
-    it('idle → planning → running 合法路径', () => {
+    it('idle → planning → running legal path', () => {
       runtime.startPlanning();
       runtime.startRunning();
       expect(runtime.getSnapshot().status).toBe('running');
     });
 
-    it('running → paused → running 合法恢复', () => {
+    it('running → paused → running legal resume', () => {
       runtime.startPlanning();
       runtime.startRunning();
       runtime.pause();
@@ -73,33 +73,33 @@ describe('TeamRuntime 状态机', () => {
       expect(runtime.getSnapshot().status).toBe('running');
     });
 
-    it('running → completed 合法完成', () => {
+    it('running → completed legal completion', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      runtime.complete('全部完成');
+      runtime.complete('All done');
       expect(runtime.getSnapshot().status).toBe('completed');
     });
 
-    it('running → failed → planning 可重试', () => {
+    it('running → failed → planning can retry', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      runtime.fail('测试失败');
+      runtime.fail('Test failure');
       expect(runtime.getSnapshot().status).toBe('failed');
-      // failed → planning 合法
+      // failed → planning is legal
       runtime.startPlanning();
       expect(runtime.getSnapshot().status).toBe('planning');
     });
 
-    it('completed 是终态，不可再迁移', () => {
+    it('completed is a terminal state, no further transitions', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      runtime.complete('完成');
+      runtime.complete('Done');
       expect(() => runtime.startPlanning()).toThrow(
         'Invalid team status transition: completed → planning',
       );
     });
 
-    it('cancelled 是终态，不可再迁移', () => {
+    it('cancelled is a terminal state, no further transitions', () => {
       runtime.cancel();
       expect(runtime.getSnapshot().status).toBe('cancelled');
       expect(() => runtime.startPlanning()).toThrow(
@@ -107,21 +107,21 @@ describe('TeamRuntime 状态机', () => {
       );
     });
 
-    it('idle → cancelled 直接取消合法', () => {
+    it('idle → cancelled direct cancel is legal', () => {
       runtime.cancel();
       expect(runtime.getSnapshot().status).toBe('cancelled');
     });
   });
 
-  describe('任务创建与状态迁移', () => {
-    it('创建任务并分配角色', () => {
+  describe('Task Creation and State Transitions', () => {
+    it('Create task and assign role', () => {
       runtime.startPlanning();
       const task = runtime.createTask(
-        '实现登录',
-        '实现用户登录功能',
+        'Implement login',
+        'Implement user login feature',
         'coder',
       );
-      expect(task.title).toBe('实现登录');
+      expect(task.title).toBe('Implement login');
       expect(task.role).toBe('coder');
       expect(task.status).toBe('planned');
       expect(task.assigneeId).toBe('coder-01');
@@ -131,19 +131,19 @@ describe('TeamRuntime 状态机', () => {
       expect(state.tasks[0].id).toBe(task.id);
     });
 
-    it('创建任务时角色不存在应抛出', () => {
-      // 先移除 tester 成员，使 tester 角色不可用
+    it('Create task with non-existent role should throw', () => {
+      // First remove tester member to make tester role unavailable
       runtime.removeMember('tester-01');
       runtime.startPlanning();
       expect(() =>
-        runtime.createTask('任务', '描述', 'tester'),
+        runtime.createTask('Task', 'Description', 'tester'),
       ).toThrow('No member with role "tester" available');
     });
 
-    it('任务迁移 planned → ready → running → passed', () => {
+    it('Task transition planned → ready → running → passed', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('任务A', '描述', 'coder');
+      const task = runtime.createTask('Task A', 'Description', 'coder');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
       runtime.transitionTask(task.id, 'passed');
@@ -152,10 +152,10 @@ describe('TeamRuntime 状态机', () => {
       expect(updated?.status).toBe('passed');
     });
 
-    it('任务非法迁移 running → planned 抛出', () => {
+    it('Task illegal transition running → planned throws', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('任务', '描述', 'coder');
+      const task = runtime.createTask('Task', 'Description', 'coder');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
       expect(() => runtime.transitionTask(task.id, 'planned')).toThrow(
@@ -163,35 +163,35 @@ describe('TeamRuntime 状态机', () => {
       );
     });
 
-    it('passed 只能迁移到 failed（审核退回），不可迁移到其他状态', () => {
+    it('passed can only transition to failed (review rejection), not other states', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('任务', '描述', 'coder');
+      const task = runtime.createTask('Task', 'Description', 'coder');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
       runtime.transitionTask(task.id, 'passed');
-      // passed → running 不合法
+      // passed → running is illegal
       expect(() => runtime.transitionTask(task.id, 'running')).toThrow(
         'Invalid task status transition: passed → running',
       );
-      // passed → failed 合法（审核退回）
+      // passed → failed is legal (review rejection)
       runtime.transitionTask(task.id, 'failed');
       expect(runtime.getSnapshot().tasks.find((t) => t.id === task.id)?.status).toBe('failed');
     });
 
-    it('cancelled 是终态不可再迁移', () => {
+    it('cancelled is a terminal state, no further transitions', () => {
       runtime.startPlanning();
-      const task = runtime.createTask('任务', '描述', 'coder');
+      const task = runtime.createTask('Task', 'Description', 'coder');
       runtime.transitionTask(task.id, 'cancelled');
       expect(() => runtime.transitionTask(task.id, 'ready')).toThrow(
         'Invalid task status transition: cancelled → ready',
       );
     });
 
-    it('failed → ready 可修复重试', () => {
+    it('failed → ready can fix and retry', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('任务', '描述', 'coder');
+      const task = runtime.createTask('Task', 'Description', 'coder');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
       runtime.transitionTask(task.id, 'failed');
@@ -201,110 +201,110 @@ describe('TeamRuntime 状态机', () => {
     });
   });
 
-  describe('任务依赖检查', () => {
-    it('依赖未完成时不能 ready', () => {
+  describe('Task Dependency Checks', () => {
+    it('Cannot ready when dependencies are not complete', () => {
       runtime.startPlanning();
-      const task1 = runtime.createTask('任务1', '描述', 'coder');
-      const task2 = runtime.createTask('任务2', '描述', 'coder', [task1.id]);
+      const task1 = runtime.createTask('Task 1', 'Description', 'coder');
+      const task2 = runtime.createTask('Task 2', 'Description', 'coder', [task1.id]);
       runtime.startRunning();
 
-      // task2 依赖 task1，task1 还未完成
+      // task2 depends on task1, task1 not yet complete
       expect(() => runtime.transitionTask(task2.id, 'ready')).toThrow(
         `dependency ${task1.id} not passed`,
       );
     });
 
-    it('依赖完成后可以 ready', () => {
+    it('Can ready when dependencies are complete', () => {
       runtime.startPlanning();
-      const task1 = runtime.createTask('任务1', '描述', 'coder');
-      const task2 = runtime.createTask('任务2', '描述', 'coder', [task1.id]);
+      const task1 = runtime.createTask('Task 1', 'Description', 'coder');
+      const task2 = runtime.createTask('Task 2', 'Description', 'coder', [task1.id]);
       runtime.startRunning();
 
-      // 完成 task1
+      // Complete task1
       runtime.transitionTask(task1.id, 'ready');
       runtime.transitionTask(task1.id, 'running');
       runtime.transitionTask(task1.id, 'passed');
 
-      // 现在 task2 可以 ready
+      // Now task2 can be ready
       runtime.transitionTask(task2.id, 'ready');
       expect(runtime.getSnapshot().tasks.find((t) => t.id === task2.id)?.status).toBe('ready');
     });
 
-    it('创建任务时依赖不存在应抛出', () => {
+    it('Create task with non-existent dependency should throw', () => {
       runtime.startPlanning();
       expect(() =>
-        runtime.createTask('任务', '描述', 'coder', ['nonexistent-id']),
+        runtime.createTask('Task', 'Description', 'coder', ['nonexistent-id']),
       ).toThrow('Dependency task not found: nonexistent-id');
     });
 
-    it('循环依赖检测', () => {
+    it('Circular dependency detection', () => {
       runtime.startPlanning();
-      const task1 = runtime.createTask('任务1', '描述', 'coder');
-      const task2 = runtime.createTask('任务2', '描述', 'coder', [task1.id]);
-      // 尝试创建 task3 依赖 task2，而 task2 依赖 task1
-      // 再尝试让 task1 依赖 task3 → 循环
-      // 但 createTask 不支持修改已有依赖，所以直接测试 checkCircularDependency 的间接路径
-      // 通过创建链式依赖来验证
-      const task3 = runtime.createTask('任务3', '描述', 'coder', [task2.id]);
+      const task1 = runtime.createTask('Task 1', 'Description', 'coder');
+      const task2 = runtime.createTask('Task 2', 'Description', 'coder', [task1.id]);
+      // Try creating task3 depending on task2, which depends on task1
+      // Then attempt to make task1 depend on task3 → loop
+      // But createTask doesn't support modifying existing dependencies, so test checkCircularDependency indirectly
+      // Verify via creating a chain dependency
+      const task3 = runtime.createTask('Task 3', 'Description', 'coder', [task2.id]);
       expect(task3.id).toBeDefined();
-      // 验证链：task3 → task2 → task1（合法，无循环）
+      // Verify chain: task3 → task2 → task1 (legal, no cycle)
     });
   });
 
-  describe('工作区锁集成', () => {
-    it('coder 任务 running 时获取锁', () => {
+  describe('Workspace Lock Integration', () => {
+    it('coder task acquires lock when running', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('编码任务', '描述', 'coder');
+      const task = runtime.createTask('Coding Task', 'Description', 'coder');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
-      // 工作区锁应被持有
+      // Workspace lock should be held
       expect(runtime.getWorkspaceLock().isLocked()).toBe(true);
       expect(runtime.getWorkspaceLock().getLockHolder()).toBe(task.id);
     });
 
-    it('coder 任务 passed 后释放锁', () => {
+    it('coder task releases lock after passed', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('编码任务', '描述', 'coder');
+      const task = runtime.createTask('Coding Task', 'Description', 'coder');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
       runtime.transitionTask(task.id, 'passed');
       expect(runtime.getWorkspaceLock().isLocked()).toBe(false);
     });
 
-    it('coder 任务 failed 后释放锁', () => {
+    it('coder task releases lock after failed', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('编码任务', '描述', 'coder');
+      const task = runtime.createTask('Coding Task', 'Description', 'coder');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
       runtime.transitionTask(task.id, 'failed');
       expect(runtime.getWorkspaceLock().isLocked()).toBe(false);
     });
 
-    it('reviewer 任务不需要获取写锁', () => {
+    it('reviewer task does not need write lock', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('审核任务', '描述', 'reviewer');
+      const task = runtime.createTask('Review Task', 'Description', 'reviewer');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
-      // reviewer 不获取写锁
+      // reviewer does not acquire write lock
       expect(runtime.getWorkspaceLock().isLocked()).toBe(false);
     });
   });
 
-  describe('质量结论与修复闭环', () => {
-    it('approved 质量结论使任务迁移到 passed', () => {
+  describe('Quality Conclusions and Fix Loop', () => {
+    it('approved quality conclusion transitions task to passed', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('编码任务', '描述', 'coder');
+      const task = runtime.createTask('Coding Task', 'Description', 'coder');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
 
       runtime.recordQuality(task.id, {
         status: 'approved',
-        summary: '审核通过',
+        summary: 'Review passed',
         issues: [],
       });
 
@@ -313,18 +313,18 @@ describe('TeamRuntime 状态机', () => {
       expect(state.tasks.find((t) => t.id === task.id)?.quality?.status).toBe('approved');
     });
 
-    it('changes_requested 质量结论使任务迁移到 failed', () => {
+    it('changes_requested quality conclusion transitions task to failed', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('编码任务', '描述', 'coder');
+      const task = runtime.createTask('Coding Task', 'Description', 'coder');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
 
       runtime.recordQuality(task.id, {
         status: 'changes_requested',
-        summary: '需要修改',
+        summary: 'Changes needed',
         issues: [
-          { severity: 'warning', description: '变量命名不规范' },
+          { severity: 'warning', description: 'Variable naming non-standard' },
         ],
       });
 
@@ -332,34 +332,34 @@ describe('TeamRuntime 状态机', () => {
       expect(state.tasks.find((t) => t.id === task.id)?.status).toBe('failed');
     });
 
-    it('test_passed 质量结论使任务迁移到 passed', () => {
+    it('test_passed quality conclusion transitions task to passed', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('测试任务', '描述', 'tester');
+      const task = runtime.createTask('Test Task', 'Description', 'tester');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
 
       runtime.recordQuality(task.id, {
         status: 'test_passed',
-        summary: '全部通过',
+        summary: 'All passed',
         issues: [],
       });
 
       expect(runtime.getSnapshot().tasks.find((t) => t.id === task.id)?.status).toBe('passed');
     });
 
-    it('test_failed 质量结论使任务迁移到 failed', () => {
+    it('test_failed quality conclusion transitions task to failed', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('测试任务', '描述', 'tester');
+      const task = runtime.createTask('Test Task', 'Description', 'tester');
       runtime.transitionTask(task.id, 'ready');
       runtime.transitionTask(task.id, 'running');
 
       runtime.recordQuality(task.id, {
         status: 'test_failed',
-        summary: '2 个失败',
+        summary: '2 failures',
         issues: [
-          { severity: 'critical', description: 'test_login 失败' },
+          { severity: 'critical', description: 'test_login failed' },
         ],
       });
 
@@ -367,19 +367,19 @@ describe('TeamRuntime 状态机', () => {
     });
   });
 
-  describe('用户介入', () => {
-    it('pause 暂停团队', () => {
+  describe('User Intervention', () => {
+    it('pause pauses team', () => {
       runtime.startPlanning();
       runtime.startRunning();
       runtime.pause();
       expect(runtime.getSnapshot().status).toBe('paused');
-      // 应记录 user_intervention 事件
+      // Should record a user_intervention event
       const events = runtime.getEvents();
       const interventions = events.filter((e) => e.type === 'user_intervention');
       expect(interventions.some((e) => e.data.type === 'pause')).toBe(true);
     });
 
-    it('resume 恢复团队', () => {
+    it('resume resumes team', () => {
       runtime.startPlanning();
       runtime.startRunning();
       runtime.pause();
@@ -390,23 +390,23 @@ describe('TeamRuntime 状态机', () => {
       expect(interventions.some((e) => e.data.type === 'resume')).toBe(true);
     });
 
-    it('skip 跳过任务', () => {
+    it('skip skips a task', () => {
       runtime.startPlanning();
-      const task = runtime.createTask('任务', '描述', 'coder');
+      const task = runtime.createTask('Task', 'Description', 'coder');
       runtime.handleIntervention({ type: 'skip', taskId: task.id });
       expect(runtime.getSnapshot().tasks.find((t) => t.id === task.id)?.status).toBe('cancelled');
     });
 
-    it('skip 不带 taskId 应抛出', () => {
+    it('skip without taskId should throw', () => {
       expect(() => runtime.handleIntervention({ type: 'skip' })).toThrow(
         'Skip intervention requires a taskId',
       );
     });
 
-    it('takeover 暂停团队并记录', () => {
+    it('takeover pauses team and records', () => {
       runtime.startPlanning();
       runtime.startRunning();
-      const task = runtime.createTask('任务', '描述', 'coder');
+      const task = runtime.createTask('Task', 'Description', 'coder');
       runtime.handleIntervention({ type: 'takeover', taskId: task.id });
       expect(runtime.getSnapshot().status).toBe('paused');
       const events = runtime.getEvents();
@@ -416,19 +416,19 @@ describe('TeamRuntime 状态机', () => {
       expect(interventions.length).toBe(1);
     });
 
-    it('revise 记录修正指令', () => {
-      runtime.handleIntervention({ type: 'revise', message: '请修改登录方式' });
+    it('revise records revision instructions', () => {
+      runtime.handleIntervention({ type: 'revise', message: 'Please change the login method' });
       const events = runtime.getEvents();
       const interventions = events.filter(
         (e) => e.type === 'user_intervention' && e.data.type === 'revise',
       );
       expect(interventions.length).toBe(1);
-      expect(interventions[0].data.message).toBe('请修改登录方式');
+      expect(interventions[0].data.message).toBe('Please change the login method');
     });
   });
 
-  describe('事件流与订阅', () => {
-    it('subscribe 接收实时事件', () => {
+  describe('Event Stream and Subscription', () => {
+    it('subscribe receives real-time events', () => {
       const received: TeamEvent[] = [];
       const unsub = runtime.subscribe((event) => received.push(event));
 
@@ -437,43 +437,43 @@ describe('TeamRuntime 状态机', () => {
       expect(received.some((e) => e.type === 'team_status_changed')).toBe(true);
 
       unsub();
-      // 取消订阅后不再接收
+      // After unsubscribing, no more events received
       const beforeLen = received.length;
       runtime.startRunning();
       expect(received.length).toBe(beforeLen);
     });
 
-    it('getEvents 返回全部历史事件', () => {
-      // 构造函数会自动追加 team_created + member_added 事件
+    it('getEvents returns all historical events', () => {
+      // Constructor automatically appends team_created + member_added events
       const events = runtime.getEvents();
       expect(events.length).toBeGreaterThan(0);
       expect(events[0].type).toBe('team_created');
     });
 
-    it('getEvents(since) 按时间戳过滤', () => {
+    it('getEvents(since) filters by timestamp', () => {
       runtime.startPlanning();
       const ts = Date.now();
-      // 确保后续事件时间戳 > ts
+      // Ensure subsequent event timestamps > ts
       const wait = () => new Promise<void>((r) => setTimeout(r, 5));
-      // 同步操作没法等待，直接用较早的时间戳
+      // Synchronous operations can't wait, just use an earlier timestamp
       const events = runtime.getEvents(0);
       expect(events.length).toBeGreaterThan(0);
     });
 
-    it('监听器异常不影响主流程', () => {
+    it('Listener exception does not affect main flow', () => {
       runtime.subscribe(() => {
         throw new Error('listener error');
       });
-      // 不应抛出
+      // Should not throw
       expect(() => runtime.startPlanning()).not.toThrow();
     });
   });
 
-  describe('成员受控操作', () => {
-    it('addMember 添加新成员', () => {
+  describe('Member Controlled Operations', () => {
+    it('addMember adds a new member', () => {
       const newMember: MemberConfig = {
         id: 'coder-02',
-        name: '码农2号',
+        name: 'Coder 2',
         role: 'coder',
         provider: 'dsh',
         slotId: 5,
@@ -483,11 +483,11 @@ describe('TeamRuntime 状态机', () => {
       expect(state.members.find((m) => m.id === 'coder-02')).toBeDefined();
     });
 
-    it('addMember 重复 ID 抛出', () => {
+    it('addMember throws on duplicate ID', () => {
       expect(() =>
         runtime.addMember({
           id: 'coder-01',
-          name: '重复码农',
+          name: 'Duplicate Coder',
           role: 'coder',
           provider: 'dsh',
           slotId: 9,
@@ -495,27 +495,27 @@ describe('TeamRuntime 状态机', () => {
       ).toThrow('Member with id "coder-01" already exists');
     });
 
-    it('removeMember 移除非 leader 成员', () => {
+    it('removeMember removes a non-leader member', () => {
       runtime.removeMember('coder-01');
       const state = runtime.getSnapshot();
       expect(state.members.find((m) => m.id === 'coder-01')).toBeUndefined();
     });
 
-    it('removeMember 不能移除 leader', () => {
+    it('removeMember cannot remove leader', () => {
       expect(() => runtime.removeMember('leader-01')).toThrow(
         'Cannot remove leader member',
       );
     });
 
-    it('removeMember 不存在的成员抛出', () => {
+    it('removeMember throws for non-existent member', () => {
       expect(() => runtime.removeMember('nonexistent')).toThrow(
         'Member not found: nonexistent',
       );
     });
   });
 
-  describe('持久化与恢复', () => {
-    it('启用 memoryEnabled 后事件持久化到文件', () => {
+  describe('Persistence and Recovery', () => {
+    it('With memoryEnabled, events persist to file', () => {
       const persistedConfig = createPersistedMockTeamConfig();
       const persistedRuntime = new TeamRuntime(ctx, persistedConfig);
 
@@ -528,7 +528,7 @@ describe('TeamRuntime 状态机', () => {
       const lines = content.split('\n').filter((l: string) => l.trim());
       expect(lines.length).toBeGreaterThan(0);
 
-      // 每行是合法 JSON
+      // Each line is valid JSON
       for (const line of lines) {
         const event = JSON.parse(line);
         expect(event.type).toBeDefined();
@@ -539,31 +539,31 @@ describe('TeamRuntime 状态机', () => {
       cleanupWorkspace(persistedConfig.workspace);
     });
 
-    it('重启后从事件流恢复状态', () => {
+    it('Recovers state from event stream after restart', () => {
       const persistedConfig = createPersistedMockTeamConfig();
 
-      // 第一阶段：创建团队并添加状态
+      // Phase 1: Create team and add state
       const rt1 = new TeamRuntime(ctx, persistedConfig);
       rt1.startPlanning();
       rt1.startRunning();
-      const task = rt1.createTask('恢复测试', '描述', 'coder');
+      const task = rt1.createTask('Recovery Test', 'Description', 'coder');
       rt1.transitionTask(task.id, 'ready');
       rt1.dispose();
 
-      // 第二阶段：重新创建 runtime，应从持久化恢复
+      // Phase 2: Recreate runtime, should recover from persistence
       const rt2 = new TeamRuntime(ctx, persistedConfig);
       const state = rt2.getSnapshot();
       expect(state.status).toBe('running');
       expect(state.tasks.length).toBe(1);
-      expect(state.tasks[0].title).toBe('恢复测试');
+      expect(state.tasks[0].title).toBe('Recovery Test');
       expect(state.tasks[0].status).toBe('ready');
       rt2.dispose();
       cleanupWorkspace(persistedConfig.workspace);
     });
   });
 
-  describe('getSnapshot 返回安全副本', () => {
-    it('修改快照不影响内部状态', () => {
+  describe('getSnapshot Returns Safe Copy', () => {
+    it('Modifying snapshot does not affect internal state', () => {
       const snap1 = runtime.getSnapshot();
       snap1.status = 'completed';
       snap1.tasks.push({

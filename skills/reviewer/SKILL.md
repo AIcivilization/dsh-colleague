@@ -1,91 +1,91 @@
-# Skill: Review (代码审核)
+# Skill: Review (Code Review)
 
-> 审核员的核心技能 — 负责 code review、安全审计、质量把关
+> Core skill of the Reviewer — responsible for code review, security audits, and quality control
 
-## 能力定义
+## Capability Definition
 
 ```yaml
 skill_id: review
-name: "代码审核"
-description: "对码农产出的代码进行 review，检查质量、安全、逻辑错误"
+name: "Code Review"
+description: "Review code produced by the Coder, checking quality, security, and logic errors"
 category: quality
 complexity: medium
 ```
 
-## 审核维度
+## Review Dimensions
 
-### 1. 代码质量
+### 1. Code Quality
 
-| 检查项 | 说明 |
-|--------|------|
-| 可读性 | 命名是否清晰、逻辑是否容易理解 |
-| 可维护性 | 是否容易修改和扩展 |
-| 命名规范 | 变量/函数/类命名是否符合规范 |
-| 注释完整性 | 复杂逻辑是否有注释 |
+| Check Item | Description |
+|------------|-------------|
+| Readability | Are names clear, is logic easy to understand |
+| Maintainability | Is it easy to modify and extend |
+| Naming conventions | Do variable/function/class names follow conventions |
+| Comment completeness | Do complex logic sections have comments |
 
-### 2. 安全风险
+### 2. Security Risks
 
-| 检查项 | 说明 |
-|--------|------|
-| 注入漏洞 | SQL 注入、命令注入 |
-| XSS | 跨站脚本攻击 |
-| CSRF | 跨站请求伪造 |
-| 敏感信息泄露 | 密钥、密码硬编码 |
+| Check Item | Description |
+|------------|-------------|
+| Injection vulnerabilities | SQL injection, command injection |
+| XSS | Cross-site scripting |
+| CSRF | Cross-site request forgery |
+| Sensitive data leakage | Hardcoded secrets, passwords |
 
-### 3. 逻辑错误
+### 3. Logic Errors
 
-| 检查项 | 说明 |
-|--------|------|
-| 空指针 | 未做 null/undefined 检查 |
-| 边界条件 | 数组越界、整数溢出 |
-| 异常处理 | try-catch 是否完整 |
+| Check Item | Description |
+|------------|-------------|
+| Null pointer | Missing null/undefined checks |
+| Boundary conditions | Array out of bounds, integer overflow |
+| Exception handling | Is try-catch complete |
 
-### 4. 性能问题
+### 4. Performance Issues
 
-| 检查项 | 说明 |
-|--------|------|
-| N+1 查询 | 循环中的数据库查询 |
-| 内存泄漏 | 未清理的监听器/定时器 |
-| 不必要计算 | 可缓存但每次重算 |
+| Check Item | Description |
+|------------|-------------|
+| N+1 queries | Database queries in loops |
+| Memory leaks | Unremoved listeners/timers |
+| Unnecessary computation | Cacheable but recalculated each time |
 
-## 严重级别
+## Severity Levels
 
-| 级别 | 说明 | 处理 |
-|------|------|------|
-| `critical` | 必须修复才能通过 | 阻断 |
-| `warning` | 建议修复 | 不阻断但标注 |
-| `suggestion` | 改进建议 | 不阻断 |
+| Level | Description | Action |
+|-------|-------------|--------|
+| `critical` | Must fix before approval | Blocks |
+| `warning` | Recommended fix | Does not block but flagged |
+| `suggestion` | Improvement suggestion | Does not block |
 
-## 工作流程
+## Workflow
 
 ```
-接收审核任务（从 mailbox）
-    │
-    ▼
-阅读码农的产出物
-    │
-    ▼
-逐文件 review
-    │
-    ├── 发现问题 → 记录 issue
-    │
-    └── 没问题 → 标记通过
-    │
-    ▼
-黑板更新审核结果
-    │
-    ├── approved → 通知组织者通过
-    │
-    ├── changes_requested → 通知组织者退回码农
-    │
-    └── rejected → 通知组织者严重问题
-    │
-    ▼
-mailbox 通知组织者
+Receive review task (from mailbox)
+    |
+    v
+Read Coder's artifacts
+    |
+    v
+Review file by file
+    |
+    +-- Found issues -> record issue
+    |
+    +-- No issues -> mark approved
+    |
+    v
+Update blackboard with review result
+    |
+    +-- approved -> notify Lead of pass
+    |
+    +-- changes_requested -> notify Lead to send back to Coder
+    |
+    +-- rejected -> notify Lead of critical issues
+    |
+    v
+Notify Lead via mailbox
 ```
 
-## 禁止事项
+## Prohibitions
 
-- ❌ 不要直接改代码（改代码是码农的事）
-- ❌ 不要只说"不好"不说具体问题
-- ❌ 不要审核超出分派范围的文件
+- Do not modify code directly (fixing is the Coder's job)
+- Do not just say "bad" without specific issues
+- Do not review files outside the assigned scope

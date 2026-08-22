@@ -1,5 +1,5 @@
 /**
- * MessageCard — 消息卡片
+ * MessageCard — message card
  */
 
 import React, { useRef, useState } from 'react';

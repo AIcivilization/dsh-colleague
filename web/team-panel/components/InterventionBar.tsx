@@ -1,5 +1,5 @@
 /**
- * InterventionBar — 介入控制栏
+ * InterventionBar — intervention control bar
  */
 
 import React, { useState } from 'react';
@@ -62,7 +62,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
   return (
     <div className='cp-intervention-bar'>
       <div className='cp-intervention-row'>
-        {/* 暂停/恢复 */}
+        {/* Pause/Resume */}
         {paused ? (
           <button onClick={onResume} className='cp-intervention-btn cp-intervention-btn-resume'>
             <IconPlay />
@@ -75,7 +75,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
           </button>
         )}
 
-        {/* 修正 */}
+        {/* Revise */}
         <button
           onClick={() => setShowReviseInput(!showReviseInput)}
           className='cp-intervention-btn cp-intervention-btn-ghost cp-intervention-btn-ghost-revise'
@@ -84,7 +84,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
           {t('intervention.revise')}
         </button>
 
-        {/* 接管 */}
+        {/* Takeover */}
         <button
           onClick={onTakeover}
           className='cp-intervention-btn cp-intervention-btn-ghost cp-intervention-btn-ghost-takeover'
@@ -93,7 +93,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
           {t('intervention.takeover')}
         </button>
 
-        {/* 跳过 */}
+        {/* Skip */}
         <button
           onClick={onSkip}
           className='cp-intervention-btn cp-intervention-btn-ghost cp-intervention-btn-ghost-skip'
@@ -102,11 +102,11 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
           {t('intervention.skip')}
         </button>
 
-        {/* 右侧标签 */}
+        {/* Right-side label */}
         <span className='cp-intervention-label'>{t('intervention.label')}</span>
       </div>
 
-      {/* 修正输入框 */}
+      {/* Revise input */}
       {showReviseInput && (
         <div className='cp-intervention-input-row'>
           <input

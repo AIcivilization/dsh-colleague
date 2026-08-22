@@ -1,6 +1,6 @@
 /**
- * ActivityControlBar — 控制条
- * 排序方向、内容过滤、成员选择、系统消息/已完成任务开关
+ * ActivityControlBar — control bar
+ * Sort direction, content filter, member selection, system messages/finished tasks toggles
  */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';

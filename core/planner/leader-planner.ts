@@ -1,18 +1,18 @@
 /**
- * Leader 计划器 — 受约束的输出 schema 校验
+ * Leader planner — constrained output schema validation
  *
- * Leader 不直接输出任意 JSON；只允许输出经过 schema 校验的动作：
- * create_task、unblock_task、request_review、request_test、
- * request_docs、report、ask_user。
+ * The Leader does not output arbitrary JSON; it only outputs schema-validated actions:
+ * create_task, unblock_task, request_review, request_test,
+ * request_docs, report, ask_user.
  *
- * 计划器输出必须校验角色、依赖、任务数量、并发额度和预算。
- * 无效输出最多自动重试两次，仍失败则把团队置为 blocked。
+ * Planner output must validate role, dependencies, task count, concurrency limits, and budget.
+ * Invalid output retries up to 2 times automatically. If still failing, the team is set to blocked.
  */
 
 import type { LeaderAction, LeaderActionType, RoleId } from '../runtime/types';
 import type { TeamState, Task } from '../runtime/types';
 
-// ===== 常量 =====
+// ===== Constants =====
 
 const MAX_RETRIES = 2;
 const MAX_TASKS_PER_PLAN = 20;
@@ -28,14 +28,14 @@ const VALID_ACTIONS: LeaderActionType[] = [
 
 const VALID_ROLES: RoleId[] = ['coder', 'reviewer', 'tester', 'docs'];
 
-// ===== 校验结果 =====
+// ===== Validation result =====
 
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
 }
 
-// ===== 计划器 =====
+// ===== Planner =====
 
 export class LeaderPlanner {
   private maxConcurrent: number;
@@ -45,19 +45,19 @@ export class LeaderPlanner {
   }
 
   /**
-   * 校验 Leader 输出
+   * Validate Leader output
    */
   validate(action: unknown, state: TeamState): ValidationResult {
     const errors: string[] = [];
 
-    // 基本结构校验
+    // Basic structure validation
     if (!action || typeof action !== 'object') {
       return { valid: false, errors: ['Action must be a JSON object'] };
     }
 
     const a = action as Record<string, unknown>;
 
-    // type 字段
+    // type field
     const type = a.type as LeaderActionType;
     if (!type) {
       errors.push('Missing required field "type"');
@@ -70,12 +70,12 @@ export class LeaderPlanner {
       return { valid: false, errors };
     }
 
-    // reason 字段
+    // reason field
     if (typeof a.reason !== 'string' || !a.reason.trim()) {
       errors.push('Missing or empty "reason" field');
     }
 
-    // 按类型校验
+    // Validate by type
     switch (type) {
       case 'create_task':
         this.validateCreateTask(a, state, errors);
@@ -114,17 +114,17 @@ export class LeaderPlanner {
       return;
     }
 
-    // 标题
+    // Title
     if (typeof task.title !== 'string' || !task.title.trim()) {
       errors.push('Task title is required and must be non-empty');
     }
 
-    // 描述
+    // Description
     if (typeof task.description !== 'string' || !task.description.trim()) {
       errors.push('Task description is required and must be non-empty');
     }
 
-    // 角色
+    // Role
     const role = task.role as RoleId;
     if (!role || !VALID_ROLES.includes(role)) {
       errors.push(
@@ -132,7 +132,7 @@ export class LeaderPlanner {
       );
     }
 
-    // 检查角色对应成员是否存在
+    // Check that a member with the role exists
     if (role && VALID_ROLES.includes(role)) {
       const hasMember = state.members.some((m) => m.role === role);
       if (!hasMember) {
@@ -140,7 +140,7 @@ export class LeaderPlanner {
       }
     }
 
-    // 依赖
+    // Dependencies
     const deps = task.dependencies as string[] | undefined;
     if (deps) {
       if (!Array.isArray(deps)) {
@@ -159,19 +159,19 @@ export class LeaderPlanner {
       }
     }
 
-    // 任务数量限制
+    // Task count limit
     if (state.tasks.length >= MAX_TASKS_PER_PLAN) {
       errors.push(
         `Maximum task count (${MAX_TASKS_PER_PLAN}) reached`,
       );
     }
 
-    // 并发额度检查 — 不能同时派发有依赖关系的任务
+    // Concurrency limit check — cannot dispatch tasks with dependency relationships simultaneously
     const runningTasks = state.tasks.filter(
       (t) => t.status === 'running' || t.status === 'ready',
     );
     if (runningTasks.length >= this.maxConcurrent) {
-      // 检查新任务是否依赖正在运行的任务
+      // Check if new task depends on a running task
       if (deps && deps.length > 0) {
         const runningIds = new Set(runningTasks.map((t) => t.id));
         const hasRunningDep = deps.some((d) => runningIds.has(d));
@@ -221,7 +221,7 @@ export class LeaderPlanner {
       errors.push(`Task not found: ${taskId}`);
       return;
     }
-    // 请求审核/测试的任务必须是已完成的
+    // Tasks requesting review/test must be completed
     if (task.status !== 'passed' && task.status !== 'failed') {
       errors.push(
         `Task ${taskId} must be passed or failed to request review/test (status: ${task.status})`,
@@ -230,8 +230,8 @@ export class LeaderPlanner {
   }
 
   /**
-   * 尝试解析 Leader 的 LLM 输出
-   * 最多重试 MAX_RETRIES 次，仍失败则返回 null
+   * Attempt to parse the Leader's LLM output
+   * Retries up to MAX_RETRIES times. Returns null if still failing.
    */
   async parseLeaderOutput(
     raw: string,
@@ -243,14 +243,14 @@ export class LeaderPlanner {
     let currentRaw = raw;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      // 尝试提取 JSON
+      // Attempt to extract JSON
       const jsonStr = this.extractJSON(currentRaw);
       if (!jsonStr) {
         errors.push(
           `Attempt ${attempt + 1}: Output is not valid JSON`,
         );
         retries++;
-        // 如果有重试函数，获取新输出继续循环
+        // If retry function available, get new output and continue
         if (retryFn && attempt < MAX_RETRIES) {
           currentRaw = await retryFn();
         }
@@ -282,7 +282,7 @@ export class LeaderPlanner {
 
       errors = result.errors;
       retries++;
-      // 如果有重试函数，获取新输出继续下一轮
+      // If retry function available, get new output for next iteration
       if (retryFn && attempt < MAX_RETRIES) {
         currentRaw = await retryFn();
       }
@@ -294,18 +294,18 @@ export class LeaderPlanner {
   private extractJSON(text: string): string | null {
     const trimmed = text.trim();
 
-    // 直接 JSON
+    // Direct JSON
     if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
       return trimmed;
     }
 
-    // 从 markdown 代码块中提取
+    // Extract from markdown code block
     const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
       return codeBlockMatch[1].trim();
     }
 
-    // 尝试找到第一个 { 到最后一个 }
+    // Try to find first { to last }
     const firstBrace = trimmed.indexOf('{');
     const lastBrace = trimmed.lastIndexOf('}');
     if (firstBrace >= 0 && lastBrace > firstBrace) {

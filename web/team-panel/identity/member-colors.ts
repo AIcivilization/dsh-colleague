@@ -1,28 +1,34 @@
 /**
- * 团队成员身份色 —— Colleague Plugin teamMemberColors.ts
+ * Team member identity colors — Colleague Plugin teamMemberColors.ts
  *
- * 用途：多成员并行、且同一助手可被拉多次（多个独立成员实例）时，用一套低饱和色帮用户
- * 一眼区分「某个胶囊 / 某条消息气泡 / 某列对话」属于哪个成员实例。
+ * Purpose: When multiple members work in parallel and the same assistant can be
+ * instantiated multiple times, use a set of low-saturation colors to help users
+ * visually distinguish which "chip / message bubble / conversation column" belongs
+ * to which member instance.
  *
- * 真源是一张 `slot_id -> 色号` 映射（成员实例级），按增量维护：
- * - Leader 恒定色号 0（品牌色）。
- * - 已分配过的成员沿用原色号（钉死）——其他成员的新增/删除/重排都不改它的颜色。
- * - 新成员取「当前未占用的最小非 0 色号」，优先复用被移除成员释放出的空档。
- * - 成员数超出色板容量时对长度取模循环（罕见，循环项相隔远、不易混淆）。
+ * The source of truth is a `slot_id -> color index` map (member-instance level),
+ * maintained incrementally:
+ * - Leader always gets color index 0 (brand color).
+ * - Previously assigned members keep their original color index (pinned) — adding,
+ *   removing, or reordering other members does not change their color.
+ * - New members get the smallest unoccupied non-zero color index, prioritizing
+ *   reuse of slots freed by removed members.
+ * - When member count exceeds palette capacity, colors cycle modulo length
+ *   (rare; cycled items are far apart and not easily confused).
  *
- * 颜色不落库，仅存 localStorage（见 useTeamMemberColors）。
+ * Colors are not persisted to a database — only stored in localStorage (see useTeamMemberColors).
  */
 
-/** 身份色板：品牌 slate 邻近的低饱和色。索引 0 固定给 Leader（品牌色）。 */
+/** Identity color palette: low-saturation colors near brand slate. Index 0 is fixed for Leader (brand color). */
 export const TEAM_MEMBER_PALETTE = [
   'var(--brand)', // 0 = Leader
-  '#5c9ea4', // 雾青
-  '#b58a5e', // 暖褐
-  '#9481bf', // 藕紫
-  '#c07d97', // 豆沙玫
-  '#6ba07e', // 灰绿
-  '#4f8ac9', // 雾蓝
-  '#c99a4b', // 琥珀
+  '#5c9ea4', // Mist Teal
+  '#b58a5e', // Warm Brown
+  '#9481bf', // Lotus Purple
+  '#c07d97', // Rose Sand
+  '#6ba07e', // Sage Green
+  '#4f8ac9', // Mist Blue
+  '#c99a4b', // Amber
 ] as const;
 
 export const LEADER_COLOR_INDEX = 0;
@@ -30,22 +36,23 @@ export const LEADER_COLOR_INDEX = 0;
 type MemberLike = { slot_id: string; role: string };
 
 /**
- * 增量分配成员色号：给定上一版映射与当前成员列表，返回新映射。
- * 纯函数、无副作用，便于单测。
+ * Incrementally assign member color indices: given the previous mapping and the
+ * current member list, return the new mapping.
+ * Pure function, no side effects, suitable for unit testing.
  */
 export function assignMemberColors(prev: Record<string, number>, assistants: MemberLike[]): Record<string, number> {
   const next: Record<string, number> = {};
   const used = new Set<number>();
   const paletteLen = TEAM_MEMBER_PALETTE.length;
 
-  // 1) Leader 固定色号 0
+  // 1) Leader gets fixed color index 0
   const leader = assistants.find((a) => a.role === 'leader');
   if (leader) {
     next[leader.slot_id] = LEADER_COLOR_INDEX;
     used.add(LEADER_COLOR_INDEX);
   }
 
-  // 2) 已分配过的成员沿用原色号（钉死）
+  // 2) Previously assigned members keep their original color index (pinned)
   for (const a of assistants) {
     if (a.slot_id in next) continue;
     const previous = prev[a.slot_id];
@@ -55,16 +62,16 @@ export function assignMemberColors(prev: Record<string, number>, assistants: Mem
     }
   }
 
-  // 3) 新成员取未占用的最小非 0 色号；色板占满后对长度取模循环
+  // 3) New members get the smallest unoccupied non-zero color index; cycle modulo length when palette is full
   let cursor = 1;
   const nextFreeIndex = (): number => {
-    // 仍有非 0 空档：返回最小的未占用色号
+    // Still has non-zero slots available: return smallest unoccupied color index
     if (used.size < paletteLen - 1) {
       let idx = 1;
       while (used.has(idx)) idx++;
       return idx;
     }
-    // 色板已满：循环复用（跳过 0，保留给 Leader）
+    // Palette full: cycle reuse (skip 0, reserved for Leader)
     const idx = cursor % paletteLen || 1;
     cursor++;
     return idx;
@@ -79,7 +86,7 @@ export function assignMemberColors(prev: Record<string, number>, assistants: Mem
   return next;
 }
 
-/** 取某个成员实例的身份色 CSS 值。未知 slot 回退到 Leader 色（安全兜底）。 */
+/** Get the identity color CSS value for a member instance. Unknown slot falls back to Leader color (safe default). */
 export function memberColorValue(colorMap: Record<string, number>, slot_id: string | undefined): string {
   const idx: number = (slot_id != null && colorMap[slot_id] != null) ? colorMap[slot_id] : LEADER_COLOR_INDEX;
   return TEAM_MEMBER_PALETTE[idx % TEAM_MEMBER_PALETTE.length];

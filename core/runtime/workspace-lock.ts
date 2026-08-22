@@ -1,9 +1,9 @@
 /**
- * 工作区锁 — 串行写入机制
+ * WorkspaceLock — serial write mechanism
  *
- * 首版采用串行写入：coder 与 coder、coder 与 docs 不可并发写；
- * review/test 仅在依赖完成后并发读取。
- * 产出物通过任务前后的 Git diff 归属。
+ * First version uses serial writes: coder-coder and coder-docs cannot write concurrently.
+ * Review/test can read concurrently once dependencies are met.
+ * Artifacts are attributed via Git diff before/after the task.
  */
 
 import { execSync } from 'node:child_process';
@@ -13,9 +13,9 @@ import { resolve } from 'node:path';
 export interface WorkspaceSnapshot {
   /** Git HEAD commit */
   head: string;
-  /** 工作区脏标记 */
+  /** Workspace dirty flag */
   isDirty: boolean;
-  /** 变更文件列表 */
+  /** Changed file list */
   changedFiles: string[];
 }
 
@@ -29,11 +29,11 @@ export class WorkspaceLock {
     this.workspace = workspace;
   }
 
-  /** 预检工作区 */
+  /** Pre-check workspace */
   precheck(): { ok: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    // 目录存在
+    // Directory exists
     if (!existsSync(this.workspace)) {
       errors.push(`Workspace directory does not exist: ${this.workspace}`);
       return { ok: false, errors };
@@ -45,7 +45,7 @@ export class WorkspaceLock {
       return { ok: false, errors };
     }
 
-    // Git 状态可读
+    // Git state readable
     try {
       execSync('git rev-parse HEAD', {
         cwd: this.workspace,
@@ -62,14 +62,14 @@ export class WorkspaceLock {
     return { ok: errors.length === 0, errors };
   }
 
-  /** 获取工作区快照（任务前） */
+  /** Take workspace snapshot (before task) */
   snapshotBefore(taskId: string): WorkspaceSnapshot {
     const snapshot = this.takeSnapshot();
     this.snapshots.set(taskId, snapshot);
     return snapshot;
   }
 
-  /** 获取工作区快照（任务后）并计算 diff */
+  /** Take workspace snapshot (after task) and compute diff */
   snapshotAfter(taskId: string): { before: WorkspaceSnapshot; after: WorkspaceSnapshot; diff: string[] } {
     const before = this.snapshots.get(taskId);
     if (!before) {
@@ -80,7 +80,7 @@ export class WorkspaceLock {
     return { before, after, diff };
   }
 
-  /** 获取写锁 */
+  /** Acquire write lock */
   acquire(taskId: string): boolean {
     if (this.lockedBy !== null) {
       return false;
@@ -90,7 +90,7 @@ export class WorkspaceLock {
     return true;
   }
 
-  /** 释放写锁 */
+  /** Release write lock */
   release(taskId: string): void {
     if (this.lockedBy === taskId) {
       this.lockedBy = null;
@@ -98,17 +98,17 @@ export class WorkspaceLock {
     }
   }
 
-  /** 检查是否被锁定 */
+  /** Check if locked */
   isLocked(): boolean {
     return this.lockedBy !== null;
   }
 
-  /** 获取当前锁持有者 */
+  /** Get current lock holder */
   getLockHolder(): string | null {
     return this.lockedBy;
   }
 
-  /** 取当前快照 */
+  /** Take current snapshot */
   private takeSnapshot(): WorkspaceSnapshot {
     let head = '';
     let isDirty = false;
@@ -122,7 +122,7 @@ export class WorkspaceLock {
         stdio: ['pipe', 'pipe', 'ignore'],
       }).trim();
     } catch {
-      // 非 Git 仓库
+      // Not a Git repo
     }
 
     try {
@@ -138,25 +138,25 @@ export class WorkspaceLock {
         .filter((line) => line.trim())
         .map((line) => line.slice(3).trim());
     } catch {
-      // 非 Git 仓库
+      // Not a Git repo
     }
 
     return { head, isDirty, changedFiles };
   }
 
-  /** 计算两个快照之间的 diff */
+  /** Compute diff between two snapshots */
   private computeDiff(
     before: WorkspaceSnapshot,
     after: WorkspaceSnapshot,
   ): string[] {
-    // 如果 HEAD 没变，比较工作区状态
+    // If HEAD unchanged, compare workspace status
     if (before.head === after.head) {
-      // 找出新增的变更文件
+      // Find newly changed files
       const beforeSet = new Set(before.changedFiles);
       return after.changedFiles.filter((f) => !beforeSet.has(f));
     }
 
-    // HEAD 变了，用 git diff 获取变更
+    // HEAD changed — use git diff to get changes
     try {
       const diff = execSync(
         `git diff --name-only ${before.head}..${after.head}`,
@@ -174,7 +174,7 @@ export class WorkspaceLock {
     }
   }
 
-  /** 清理快照 */
+  /** Clear snapshot */
   clearSnapshot(taskId: string): void {
     this.snapshots.delete(taskId);
   }

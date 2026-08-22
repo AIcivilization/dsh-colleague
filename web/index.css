@@ -1,6 +1,6 @@
 /* ==================== Colleague Plugin Theme System ==================== */
-/* 自有设计规范 — 基于低饱和色板和 CSS 变量 */
-/* 设计灵感来源：现代 IDE 面板设计模式 */
+/* Custom design system — based on low-saturation palette and CSS variables */
+/* Design inspiration: modern IDE panel design patterns */
 
 /* ===== Default Color Scheme - Purple Brand Theme ===== */
 
@@ -256,7 +256,7 @@ body {
 }
 .animate-pulse { animation: pulse 2s ease-in-out infinite; }
 
-/* ===== 暗色模式自动检测 ===== */
+/* ===== Dark mode auto-detection ===== */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) { color-scheme: dark; }
 }
@@ -264,7 +264,7 @@ body {
   :root:not([data-theme='dark']) { color-scheme: light; }
 }
 
-/* ===== 全局过渡 — 颜色变化平滑 ===== */
+/* ===== Global transitions — smooth color changes ===== */
 button, input, textarea, select, a {
   transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
@@ -274,10 +274,10 @@ button, input, textarea, select, a {
   html { -webkit-text-size-adjust: 100%; }
 }
 
-/* ==================== CSS 设计系统类 ==================== */
-/* 替代 Tailwind 工具类，按设计规范精确定义 */
+/* ==================== CSS Design System Classes ==================== */
+/* Replaces Tailwind utility classes, precisely defined per design system */
 
-/* --- 布局工具 --- */
+/* --- Layout utilities --- */
 .flex { display: flex; }
 .inline-flex { display: inline-flex; }
 .flex-col { flex-direction: column; }
@@ -319,7 +319,7 @@ button, input, textarea, select, a {
 .border-none { border: none; }
 .outline-none { outline: none; }
 
-/* --- 间距工具 --- */
+/* --- Spacing utilities --- */
 .gap-2px { gap: 2px; }
 .gap-4px { gap: 4px; }
 .gap-6px { gap: 6px; }
@@ -353,7 +353,7 @@ button, input, textarea, select, a {
 .ms-auto { margin-inline-start: auto; }
 .mb-0 { margin-bottom: 0; }
 
-/* --- 尺寸工具 --- */
+/* --- Size utilities --- */
 .w-8px { width: 8px; } .h-8px { height: 8px; }
 .w-12px { width: 12px; } .h-12px { height: 12px; }
 .w-14px { width: 14px; } .h-14px { height: 14px; }
@@ -390,14 +390,14 @@ button, input, textarea, select, a {
 .min-w-240px { min-width: 240px; }
 .w-288px { width: 288px; }
 
-/* --- 圆角 --- */
+/* --- Border radius --- */
 .rounded-2px { border-radius: 2px; }
 .rounded-4px { border-radius: 4px; }
 .rounded-6px { border-radius: 6px; }
 .rounded-8px { border-radius: 8px; }
 .rounded-full, .rounded-999px { border-radius: 9999px; }
 
-/* --- 字号 --- */
+/* --- Font size --- */
 .text-9px { font-size: 9px; }
 .text-10px { font-size: 10px; }
 .text-11px { font-size: 11px; }
@@ -407,7 +407,7 @@ button, input, textarea, select, a {
 .text-15px { font-size: 15px; }
 .text-16px { font-size: 16px; }
 
-/* --- 颜色工具（用 CSS 变量） --- */
+/* --- Color utilities (using CSS variables) --- */
 .text-white { color: #ffffff; }
 .text-primary { color: var(--text-primary); }
 .text-secondary { color: var(--text-secondary); }
@@ -439,15 +439,15 @@ button, input, textarea, select, a {
 .border-t { border-top-width: 1px; }
 .border-x { border-left-width: 1px; border-right-width: 1px; }
 
-/* --- 过渡 --- */
+/* --- Transitions --- */
 .transition-colors { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s; }
 .duration-150 { transition-duration: 0.15s; }
 .transition-all { transition: all 0.15s; }
 .transition-transform { transition: transform 0.15s; }
 
-/* ==================== 组件级样式 ==================== */
+/* ==================== Component-level styles ==================== */
 
-/* --- 页面标题栏 --- */
+/* --- Page title bar --- */
 .cp-titlebar {
   display: flex;
   align-items: center;
@@ -459,7 +459,7 @@ button, input, textarea, select, a {
   background: var(--bg-1);
 }
 
-/* --- 成员胶囊栏 --- */
+/* --- Member chip bar --- */
 .cp-tab-bar {
   position: relative;
   flex-shrink: 0;
@@ -488,7 +488,7 @@ button, input, textarea, select, a {
 }
 .cp-tab-list::-webkit-scrollbar { display: none; }
 
-/* --- 成员胶囊 --- */
+/* --- Member chip --- */
 .cp-tab {
   position: relative;
   display: flex;
@@ -507,7 +507,7 @@ button, input, textarea, select, a {
 }
 .cp-tab:hover { background: var(--bg-3); }
 
-/* --- 胶囊内头像 --- */
+/* --- Chip avatar --- */
 .cp-tab-avatar {
   position: relative;
   flex-shrink: 0;
@@ -528,7 +528,7 @@ button, input, textarea, select, a {
   white-space: nowrap;
 }
 
-/* --- 胶囊内成员名 --- */
+/* --- Chip member name --- */
 .cp-tab-name {
   font-size: 13px;
   font-weight: 600;
@@ -538,7 +538,7 @@ button, input, textarea, select, a {
   user-select: none;
 }
 
-/* --- 胶囊 hover 操作按钮 --- */
+/* --- Chip hover action buttons --- */
 .cp-tab-action {
   flex-shrink: 0;
   display: flex;
@@ -555,7 +555,7 @@ button, input, textarea, select, a {
 .cp-tab-action-edit:hover { color: var(--text-primary); }
 .cp-tab-action-remove:hover { color: var(--danger); }
 
-/* --- 状态徽章 overlay --- */
+/* --- Status badge overlay --- */
 .cp-status-badge-overlay {
   position: absolute;
   bottom: -1px;
@@ -572,7 +572,7 @@ button, input, textarea, select, a {
   border-radius: 9999px;
 }
 
-/* --- warmup 失败角标 --- */
+/* --- Warmup failure badge --- */
 .cp-warmup-fail-badge {
   position: absolute;
   inset-inline-end: -2px;
@@ -590,7 +590,7 @@ button, input, textarea, select, a {
   border: 1.5px solid var(--bg-base);
 }
 
-/* --- 两侧渐隐提示 --- */
+/* --- Edge fade indicators --- */
 .cp-tab-fade {
   position: absolute;
   top: 0;
@@ -600,7 +600,7 @@ button, input, textarea, select, a {
   pointer-events: none;
 }
 
-/* --- 添加成员按钮 --- */
+/* --- Add member button --- */
 .cp-tab-add {
   display: flex;
   align-items: center;
@@ -628,7 +628,7 @@ button, input, textarea, select, a {
   cursor: not-allowed;
 }
 
-/* --- 视图切换分段控件 --- */
+/* --- View toggle segmented control --- */
 .cp-view-toggle {
   display: flex;
   align-items: center;
@@ -671,7 +671,7 @@ button, input, textarea, select, a {
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 
-/* --- 控制栏 --- */
+/* --- Control bar --- */
 .cp-control-bar {
   display: flex;
   flex-wrap: wrap;
@@ -705,7 +705,7 @@ button, input, textarea, select, a {
   color: var(--inverse);
 }
 
-/* --- 控制栏下拉 --- */
+/* --- Control bar dropdown --- */
 .cp-dropdown {
   position: relative;
 }
@@ -747,7 +747,7 @@ button, input, textarea, select, a {
 }
 .cp-dropdown-item:hover { background: var(--bg-2); }
 
-/* --- Toggle 开关 --- */
+/* --- Toggle switch --- */
 .cp-toggle {
   display: flex;
   align-items: center;
@@ -776,7 +776,7 @@ button, input, textarea, select, a {
   transition: transform 0.15s;
 }
 
-/* --- 看板列 --- */
+/* --- Board columns --- */
 .cp-board {
   display: flex;
   height: 100%;
@@ -816,7 +816,7 @@ button, input, textarea, select, a {
   padding: 12px 0;
 }
 
-/* --- 任务/消息卡片 --- */
+/* --- Task/message cards --- */
 .cp-card {
   border-radius: 8px;
   border: 1px solid var(--border-base);
@@ -890,7 +890,7 @@ button, input, textarea, select, a {
   flex-shrink: 0;
 }
 
-/* --- 成员 chip --- */
+/* --- Member chip --- */
 .cp-member-chip {
   display: inline-flex;
   align-items: center;
@@ -912,7 +912,7 @@ button, input, textarea, select, a {
   color: var(--color-text-1);
 }
 
-/* --- 依赖 chip --- */
+/* --- Dependency chip --- */
 .cp-dep-chip {
   display: inline-flex;
   align-items: center;
@@ -925,7 +925,7 @@ button, input, textarea, select, a {
   cursor: pointer;
 }
 
-/* --- 广播标签 --- */
+/* --- Broadcast tag --- */
 .cp-broadcast-tag {
   display: inline-flex;
   align-items: center;
@@ -938,7 +938,7 @@ button, input, textarea, select, a {
   background: var(--primary);
 }
 
-/* --- 已读/未读标签 --- */
+/* --- Read/unread tag --- */
 .cp-read-tag {
   display: inline-flex;
   align-items: center;
@@ -949,7 +949,7 @@ button, input, textarea, select, a {
   color: white;
 }
 
-/* --- 系统消息标签 --- */
+/* --- System message tag --- */
 .cp-sysmsg-tag {
   display: inline-flex;
   align-items: center;
@@ -961,7 +961,7 @@ button, input, textarea, select, a {
   color: var(--inverse);
 }
 
-/* --- 介入控制栏 --- */
+/* --- Intervention control bar --- */
 .cp-intervention-bar {
   border-top: 1px solid var(--border-base);
   background: var(--bg-1);
@@ -1024,7 +1024,7 @@ button, input, textarea, select, a {
   white-space: nowrap;
 }
 
-/* --- warmup 遮罩 --- */
+/* --- Warmup overlay --- */
 .cp-warmup-overlay {
   position: absolute;
   inset-inline-start: 0;
@@ -1139,7 +1139,7 @@ button, input, textarea, select, a {
   border-radius: 9999px;
 }
 
-/* --- clamp 工具 --- */
+/* --- Clamp utilities --- */
 .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1153,7 +1153,7 @@ button, input, textarea, select, a {
   overflow: hidden;
 }
 
-/* --- 链接/按钮通用 --- */
+/* --- Generic link/button --- */
 .cp-link {
   color: var(--brand);
   cursor: pointer;

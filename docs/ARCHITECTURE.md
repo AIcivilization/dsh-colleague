@@ -1,170 +1,171 @@
-# 架构设计文档
+# Architecture Design Document
 
-## 1. 总体架构
+## 1. Overall Architecture
 
-### 1.1 分层架构
+### 1.1 Layered Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  用户交互层 (Web UI)                                      │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ 团队面板（Colleague Plugin 自有设计）              │   │
-│  │  - 顶部成员栏 + 状态指示灯                         │   │
-│  │  - 活动看板（TaskCard + MessageCard）              │   │
-│  │  - 控制栏（筛选/排序）                             │   │
-│  │  - 视图切换（并行/单聊/看板）                      │   │
-│  │  - Warmup 初始化遮罩                               │   │
-│  │  - 介入控制栏（暂停/修正/接管/跳过）               │   │
-│  └──────────────────────────────────────────────────┘   │
+│  User Interaction Layer (Web UI)                          │
+│  ┌──────────────────────────────────────────────────┐     │
+│  │ Team Panel (Colleague Plugin custom design)     │     │
+│  │  - Top member bar + status indicators           │     │
+│  │  - Activity board (TaskCard + MessageCard)      │     │
+│  │  - Control bar (filter/sort)                    │     │
+│  │  - View toggle (parallel/single/board)          │     │
+│  │  - Warmup initialization overlay                │     │
+│  │  - Intervention bar (pause/revise/takeover/skip)│     │
+│  └──────────────────────────────────────────────────┘     │
 ├──────────────────────────────────────────────────────────┤
-│  团队运行时层 (TeamRuntime)                               │
+│  Team Runtime Layer (TeamRuntime)                        │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
-│  │ Leader    │  │ 事件投影  │  │ 状态机    │              │
-│  │ (计划器)   │  │ (reducer) │  │ (迁移校验) │              │
+│  │ Leader    │  │ Event    │  │ State    │              │
+│  │ (planner) │  │ Project  │  │ Machine │              │
+│  │           │  │ (reducer)│  │ (transit)│              │
 │  └──────────┘  └──────────┘  └──────────┘              │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
-│  │ 质量门禁  │  │ 工作区锁  │  │ 记忆服务  │              │
-│  │ (gates)   │  │ (串行写入) │  │ (检索注入) │              │
+│  │ Quality  │  │Workspace │  │ Memory   │              │
+│  │ Gates    │  │ Lock     │  │ Service  │              │
 │  └──────────┘  └──────────┘  └──────────┘              │
 ├──────────────────────────────────────────────────────────┤
-│  DSH Subagent 适配层                                      │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ ctx.subagents — DSH 原生 provider 管理             │   │
-│  │ acp / codex / claude-code / dsh                    │   │
-│  └──────────────────────────────────────────────────┘   │
+│  DSH Subagent Adapter Layer                              │
+│  ┌──────────────────────────────────────────────────┐     │
+│  │ ctx.subagents — DSH native provider management   │     │
+│  │ acp / codex / claude-code / dsh                  │     │
+│  └──────────────────────────────────────────────────┘     │
 ├──────────────────────────────────────────────────────────┤
-│  DSH 基础设施                                             │
-│  Cordis bundle | 会话管理 | 任务生命周期 | 权限机制       │
+│  DSH Infrastructure                                      │
+│  Cordis bundle | Session mgmt | Task lifecycle | Perms  │
 └──────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 核心设计决策
+### 1.2 Core Design Decisions
 
-1. **DSH 原生 Subagent**：每个同事通过 `ctx.subagents` 使用已注册的 DSH provider，不自管理子进程。
-2. **追加事件 + 状态投影**：所有状态变更通过 `appendEvent` 完成，状态由事件投影（reducer）得出。任务与事件使用稳定 UUID。
-3. **Leader 受约束的计划器**：Leader 输出经过 schema 校验（7 种 action 类型），无效输出最多重试 2 次。
-4. **质量门禁**：统一结构化结果协议，`changes_requested` 和 `test_failed` 阻止最终交付。
-5. **工作区串行写入锁**：coder 与 coder、coder 与 docs 不可并发写；review/test 仅在依赖完成后并发读取。
-6. **事件驱动 UI**：移除轮询，通过 `subscribe` 实时响应后端事件流。
-7. **事件持久化**：事件流写入 `events.jsonl`，重启后可恢复完整团队状态。
+1. **DSH Native Subagent**: Each colleague uses registered DSH providers via `ctx.subagents`; no self-managed child processes.
+2. **Append-event + State Projection**: All state changes go through `appendEvent`; state is derived from event projection (reducer). Tasks and events use stable UUIDs.
+3. **Leader Bounded Planner**: Leader output is schema-validated (7 action types); invalid output retries up to 2 times.
+4. **Quality Gates**: Unified structured result protocol; `changes_requested` and `test_failed` block final delivery.
+5. **Workspace Serial Write Lock**: coder vs coder, coder vs docs cannot write concurrently; review/test only reads concurrently after dependencies complete.
+6. **Event-Driven UI**: Polling removed; real-time response to backend event stream via `subscribe`.
+7. **Event Persistence**: Event stream written to `events.jsonl`; full team state recoverable after restart.
 
-## 2. 团队配置格式
+## 2. Team Configuration Format
 
 ### 2.1 team.yaml
 
 ```yaml
-# config/team.yaml — 团队配置文件
+# config/team.yaml — Team configuration file
 teamId: "frontend-team"
-teamName: "前端项目组"
+teamName: "Frontend Team"
 workspace: "/path/to/workspace"
 maxConcurrentWriters: 1
 memoryEnabled: true
 
 members:
   - id: "leader-01"
-    name: "组长"
+    name: "Lead"
     role: "leader"
     provider: "dsh"
     model: "deepseek-v3"
     slotId: 0
 
   - id: "coder-01"
-    name: "码农"
+    name: "Coder"
     role: "coder"
     provider: "dsh"
     model: "deepseek-v3"
     slotId: 1
 
   - id: "reviewer-01"
-    name: "审核员"
+    name: "Reviewer"
     role: "reviewer"
     provider: "dsh"
     model: "deepseek-v3"
     slotId: 2
 
   - id: "tester-01"
-    name: "测试员"
+    name: "Tester"
     role: "tester"
     provider: "dsh"
     model: "deepseek-v3"
     slotId: 3
 
   - id: "docs-01"
-    name: "文档员"
+    name: "Doc Writer"
     role: "docs"
     provider: "dsh"
     model: "deepseek-v3"
     slotId: 4
 ```
 
-### 2.2 角色定义
+### 2.2 Role Definitions
 
-| 角色 | 职责 | 可用 Action |
-|------|------|-------------|
-| `leader` | 拆解任务、分派、流转决策 | `create_task`, `unblock_task`, `request_review`, `request_test`, `request_docs`, `report`, `ask_user` |
-| `coder` | 编写代码、修复 bug | 接收 `create_task` |
-| `reviewer` | 审核代码、提出修改 | 接收 `request_review` |
-| `tester` | 编写测试、执行测试 | 接收 `request_test` |
-| `docs` | 编写文档 | 接收 `request_docs` |
+| Role | Responsibilities | Available Actions |
+|------|------------------|-------------------|
+| `leader` | Decompose tasks, assign, orchestrate decisions | `create_task`, `unblock_task`, `request_review`, `request_test`, `request_docs`, `report`, `ask_user` |
+| `coder` | Write code, fix bugs | Receives `create_task` |
+| `reviewer` | Code review, suggest changes | Receives `request_review` |
+| `tester` | Write tests, execute tests | Receives `request_test` |
+| `docs` | Write documentation | Receives `request_docs` |
 
-## 3. 状态模型
+## 3. State Model
 
-### 3.1 团队状态
-
-```
-idle → planning → running → paused → running（恢复）
-                         → completed（完成）
-                         → failed（失败）
-                         → cancelled（取消）
-```
-
-### 3.2 任务状态
+### 3.1 Team State
 
 ```
-planned → ready → running → passed（通过）
-                          → failed（失败）→ ready（修复重试）
-                          → blocked（阻塞）→ ready（解除）
-                          → cancelled（取消）
-        → cancelled（直接取消）
-
-passed → failed（审核退回）
+idle → planning → running → paused → running (resumed)
+                         → completed (done)
+                         → failed (failure)
+                         → cancelled (cancelled)
 ```
 
-### 3.3 质量状态
+### 3.2 Task State
 
 ```
-pending → approved（审核通过）
-        → changes_requested（要求修改）
-        → test_passed（测试通过）
-        → test_failed（测试失败）
+planned → ready → running → passed (passed)
+                          → failed (failed) → ready (fix retry)
+                          → blocked (blocked) → ready (unblocked)
+                          → cancelled (cancelled)
+        → cancelled (direct cancel)
+
+passed → failed (review rejection)
 ```
 
-## 4. 编排循环（OrchestrationLoop）
-
-### 4.0 恢复说明
-
-编排循环是插件的"心脏"——它把 Leader 计划器、TeamRuntime 状态机、质量门禁和工作区锁串联为自动运行的闭环。
-
-最初的架构文档（commit `1243a53`）包含 `leaderDecisionLoop` 伪代码设计，但在 commit `82472b3`（"清除旧架构残留"）中被连同旧黑板/mailbox 概念一起删除。此后插件有所有零件但缺少发动机。
-
-当前实现（`core/orchestrator/orchestration-loop.ts`）基于原始伪代码设计，但重写为使用 DSH 原生 `SubagentRuntime` API。
-
-### 4.1 循环流程
+### 3.3 Quality State
 
 ```
-用户目标
+pending → approved (review passed)
+        → changes_requested (changes requested)
+        → test_passed (test passed)
+        → test_failed (test failed)
+```
+
+## 4. Orchestration Loop (OrchestrationLoop)
+
+### 4.0 Recovery Note
+
+The orchestration loop is the plugin's "heart" — it chains the Leader planner, TeamRuntime state machine, quality gates, and workspace lock into an automated closed loop.
+
+The original architecture document (commit `1243a53`) contained `leaderDecisionLoop` pseudocode design, but was deleted along with the old blackboard/mailbox concepts in commit `82472b3` ("clear old architecture residue"). After that, the plugin had all the parts but no engine.
+
+The current implementation (`core/orchestrator/orchestration-loop.ts`) is based on the original pseudocode design but rewritten to use DSH's native `SubagentRuntime` API.
+
+### 4.1 Loop Flow
+
+```
+User goal
     │
     ▼
 ┌──────────────────────────────────────────────────┐
 │  OrchestrationLoop                                │
 │                                                   │
 │  while (status !== completed/failed/cancelled): │
-│    1. 构建 Leader prompt（团队状态 + 目标 + 记忆）  │
-│    2. ctx.subagents.start() → Leader 输出          │
+│    1. Build Leader prompt (team state + goal + memory)│
+│    2. ctx.subagents.start() → Leader output       │
 │    3. LeaderPlanner.parseLeaderOutput() → action  │
-│    4. 执行 action:                                │
+│    4. Execute action:                              │
 │       create_task → TeamRuntime.createTask()       │
-│         → ctx.subagents.start(coder) → 结果       │
+│         → ctx.subagents.start(coder) → result     │
 │         → TeamRuntime.transitionTask(passed)       │
 │       request_review → ctx.subagents.start(reviewer)│
 │         → TeamRuntime.recordQuality(approved/changes)│
@@ -173,63 +174,63 @@ pending → approved（审核通过）
 │       request_docs → ctx.subagents.start(docs)     │
 │         → TeamRuntime.transitionTask(passed)       │
 │       unblock_task → TeamRuntime.transitionTask(ready)│
-│       report → TeamRuntime.complete() → 退出循环   │
-│       ask_user → 暂停，等待 answerUser()           │
-│    5. 循环回到第 1 步                              │
+│       report → TeamRuntime.complete() → exit loop │
+│       ask_user → pause, wait for answerUser()     │
+│    5. Loop back to step 1                          │
 └──────────────────────────────────────────────────┘
     │
     ▼
 ┌──────────────────────────────────────────────────┐
-│  TeamRuntime（被动状态机）                         │
-│  - 状态管理、事件投影、持久化                       │
-│  - 质量门禁、工作区锁                               │
-│  - 记忆服务                                         │
+│  TeamRuntime (passive state machine)              │
+│  - State management, event projection, persistence│
+│  - Quality gates, workspace lock                   │
+│  - Memory service                                  │
 └──────────────────────────────────────────────────┘
 ```
 
-### 4.2 编排循环 API
+### 4.2 Orchestration Loop API
 
 ```typescript
 class OrchestrationLoop {
-  // 绑定 DSH SubagentRuntime（由 index.ts 在 ctx.inject 时绑定）
+  // Bind DSH SubagentRuntime (bound in index.ts during ctx.inject)
   bindSubagentRuntime(rt: SubagentRuntimeLike): void;
 
-  // 启动循环（接收用户目标）
+  // Start loop (receive user goal)
   async start(goal: string): Promise<void>;
 
-  // 暂停/恢复/取消
+  // Pause/resume/cancel
   pause(): void;
   resume(): void;
   cancel(): void;
 
-  // 回答 Leader 的问题（ask_user 后调用）
+  // Answer Leader's question (called after ask_user)
   answerUser(response: string): void;
 
-  // 订阅循环事件
+  // Subscribe to loop events
   subscribe(listener: (event: LoopEvent) => void): () => void;
 }
 ```
 
-### 4.3 事件类型
+### 4.3 Event Types
 
-| 事件 | 触发时机 |
-|------|----------|
-| `loop_started` | 循环启动 |
-| `leader_called` | 调用 Leader subagent 前 |
-| `leader_output_received` | Leader 返回输出后 |
-| `leader_action_validated` | LeaderPlanner 校验通过 |
-| `task_dispatched` | 任务派发给 subagent |
-| `task_completed` | subagent 返回结果 |
-| `task_failed` | subagent 执行失败 |
-| `quality_recorded` | 审核或测试结论记录 |
-| `user_question` | Leader 向用户提问 |
-| `loop_paused` | 循环暂停 |
-| `loop_resumed` | 循环恢复 |
-| `loop_completed` | 循环完成 |
-| `loop_failed` | 循环失败 |
-| `loop_cancelled` | 循环取消 |
+| Event | Trigger |
+|------|---------|
+| `loop_started` | Loop starts |
+| `leader_called` | Before calling Leader subagent |
+| `leader_output_received` | After Leader returns output |
+| `leader_action_validated` | LeaderPlanner validation passed |
+| `task_dispatched` | Task dispatched to subagent |
+| `task_completed` | Subagent returns result |
+| `task_failed` | Subagent execution failed |
+| `quality_recorded` | Review or test conclusion recorded |
+| `user_question` | Leader asks user a question |
+| `loop_paused` | Loop paused |
+| `loop_resumed` | Loop resumed |
+| `loop_completed` | Loop completed |
+| `loop_failed` | Loop failed |
+| `loop_cancelled` | Loop cancelled |
 
-### 4.4 插件入口集成
+### 4.4 Plugin Entry Integration
 
 ```typescript
 // index.ts
@@ -238,16 +239,16 @@ export function apply(ctx: Context, config: ColleaguePluginConfig) {
   const planner = new LeaderPlanner(config.maxConcurrentWriters);
   const loop = new OrchestrationLoop(runtime, planner);
 
-  // 注册为 DSH 服务（注意：传值，不传工厂函数）
+  // Register as DSH services (note: pass value, not factory function)
   ctx.provide('colleague-team', runtime);
   ctx.provide('colleague-loop', loop);
 
-  // 绑定 SubagentRuntime
+  // Bind SubagentRuntime
   ctx.inject(['dsh-subagent'], (ctx) => {
     loop.bindSubagentRuntime(ctx.subagents);
   });
 
-  // 注册 Web 面板
+  // Register Web panel
   ctx.inject(['dsh-web'], (ctx) => {
     import('./web/main').then(({ registerPanel }) => {
       ctx['dsh-web'].mountPanel('colleague-team', (mount) => {
@@ -260,38 +261,38 @@ export function apply(ctx: Context, config: ColleaguePluginConfig) {
 }
 ```
 
-## 5. Leader 计划器
+## 5. Leader Planner
 
-### 4.1 Leader Action Schema
+### 5.1 Leader Action Schema
 
-Leader 只允许输出以下 7 种 action：
+Leader only allows the following 7 actions:
 
-| Action | 用途 | 必填字段 |
-|--------|------|----------|
-| `create_task` | 创建子任务 | `title`, `description`, `role`, `dependencies` |
-| `unblock_task` | 解除任务阻塞 | `taskId` |
-| `request_review` | 请求审核 | `taskId` |
-| `request_test` | 请求测试 | `taskId` |
-| `request_docs` | 请求文档 | `taskId` |
-| `report` | 汇报完成 | `summary` |
-| `ask_user` | 询问用户 | `question` |
+| Action | Purpose | Required Fields |
+|--------|---------|-----------------|
+| `create_task` | Create subtask | `title`, `description`, `role`, `dependencies` |
+| `unblock_task` | Unblock a task | `taskId` |
+| `request_review` | Request review | `taskId` |
+| `request_test` | Request testing | `taskId` |
+| `request_docs` | Request documentation | `taskId` |
+| `report` | Report completion | `summary` |
+| `ask_user` | Ask user a question | `question` |
 
-### 4.2 校验规则
+### 5.2 Validation Rules
 
-- `reason` 字段必须非空
-- `role` 必须是已定义角色
-- `dependencies` 中的任务 ID 必须存在
-- 循环依赖被拒绝
-- 并发额度不超过配置上限
-- 初始计划不得同时派发存在依赖关系的任务
+- `reason` field must be non-empty
+- `role` must be a defined role
+- Task IDs in `dependencies` must exist
+- Circular dependencies are rejected
+- Concurrency budget must not exceed configured limit
+- Initial plan must not dispatch tasks with dependency relationships simultaneously
 
-### 4.3 重试机制
+### 5.3 Retry Mechanism
 
-无效输出最多自动重试 2 次，仍失败则把团队置为 `blocked` 并要求用户处理。
+Invalid output retries up to 2 times automatically; if still failing, team is set to `blocked` and user intervention is required.
 
-## 5. 质量门禁
+## 6. Quality Gates
 
-### 5.1 结构化结果协议
+### 6.1 Structured Result Protocol
 
 ```typescript
 interface TaskResult {
@@ -310,39 +311,39 @@ interface QualityResult {
 }
 ```
 
-### 5.2 质量门禁规则
+### 6.2 Quality Gate Rules
 
-- `changes_requested` → 任务状态变为 `failed`，需修复后重新审核
-- `test_failed` → 任务状态变为 `failed`，需修复后重新测试
-- `approved` + `test_passed` → 任务状态变为 `passed`
-- 没有通过审核和测试的代码不能触发 `team completed`
-- 文档任务只读取已通过质量门的产出物
+- `changes_requested` → Task status becomes `failed`; fix required, then re-review
+- `test_failed` → Task status becomes `failed`; fix required, then re-test
+- `approved` + `test_passed` → Task status becomes `passed`
+- Code that hasn't passed review and testing cannot trigger `team completed`
+- Documentation tasks only read deliverables that passed quality gates
 
-## 6. 工作区与并发安全
+## 7. Workspace & Concurrency Safety
 
-### 6.1 串行写入锁
+### 7.1 Serial Write Lock
 
-- coder 与 coder、coder 与 docs 不可并发写
-- review/test 仅在依赖完成后并发读取
-- 产出物通过任务前后的 Git diff 归属
+- coder vs coder, coder vs docs cannot write concurrently
+- review/test only reads concurrently after dependencies complete
+- Deliverables attributed via Git diff before and after tasks
 
-### 6.2 预检
+### 7.2 Pre-checks
 
-- 目录存在
-- Git 状态可读
-- 允许写入范围明确
-- 当前变更基线已记录
+- Directory exists
+- Git status is readable
+- Write scope is clear
+- Current change baseline is recorded
 
-### 6.3 异常处理
+### 7.3 Exception Handling
 
-- 取消、超时、权限拒绝和 provider 崩溃 → 回收后台运行，任务标为 `blocked` 或 `failed`
-- 不允许暴露无认证的本地 HTTP 控制接口
+- Cancel, timeout, permission denial, and provider crashes → background cleanup, task marked `blocked` or `failed`
+- No unauthenticated local HTTP control interface exposed
 
-## 7. 事件持久化与恢复
+## 8. Event Persistence & Recovery
 
-### 7.1 事件流
+### 8.1 Event Stream
 
-所有状态变更追加到 `events.jsonl`，每行一个 JSON 事件。事件类型包括：
+All state changes are appended to `events.jsonl`, one JSON event per line. Event types include:
 
 - `team_created` / `team_status_changed`
 - `member_added` / `member_removed`
@@ -350,26 +351,26 @@ interface QualityResult {
 - `quality_recorded` / `artifact_added`
 - `message_sent` / `user_intervention` / `error`
 
-### 7.2 恢复流程
+### 8.2 Recovery Flow
 
-1. 读取 `events.jsonl`
-2. 验证团队 ID 匹配
-3. 按顺序重放所有事件
-4. 通过 reducer 投影出当前状态
+1. Read `events.jsonl`
+2. Verify team ID matches
+3. Replay all events in order
+4. Project current state through reducer
 
-## 8. 记忆系统
+## 9. Memory System
 
-### 8.1 记忆类型
+### 9.1 Memory Types
 
-首版实现为持久化以下内容：
+First version persists the following:
 
-- 团队事件（`team_status_changed` 等）
-- 架构决定（`team_status_changed` 中的决策记录）
-- 已验证命令
-- 质量结论（`quality_recorded`）
+- Team events (`team_status_changed`, etc.)
+- Architectural decisions (decision records in `team_status_changed`)
+- Verified commands
+- Quality conclusions (`quality_recorded`)
 
-### 8.2 检索与注入
+### 9.2 Retrieval & Injection
 
-- 按任务 ID 检索相关记忆
-- 注入到 Leader 或执行角色的 prompt 中
-- 有数量上限（默认 5 条）和字符上限（默认 4000 字符），避免无限增长
+- Retrieve relevant memories by task ID
+- Inject into Leader or executing role's prompt
+- Count limit (default 5 entries) and character limit (default 4000 characters) to prevent unbounded growth

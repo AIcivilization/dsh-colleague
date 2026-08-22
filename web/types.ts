@@ -1,8 +1,8 @@
 /**
- * UI 适配类型 — 将新的 runtime 类型适配为 UI 组件期望的格式
+ * UI adapter types — adapts new runtime types to the format expected by UI components
  *
- * 现有 UI 组件使用旧 Blackboard/MemberState/Task/MailboxMessage 类型，
- * 这里提供结构兼容的适配层，避免大改 UI 组件代码。
+ * Existing UI components use old Blackboard/MemberState/Task/MailboxMessage types.
+ * This provides a structurally compatible adapter layer to avoid major UI refactoring.
  */
 
 import type {
@@ -12,7 +12,7 @@ import type {
   TaskStatus,
 } from '../core/runtime/types';
 
-// ===== 兼容类型 =====
+// ===== Compatibility types =====
 
 export interface MemberState {
   colleague_id: string;
@@ -89,7 +89,7 @@ export interface MailboxMessage {
   created_at: number;
 }
 
-// ===== 转换函数 =====
+// ===== Conversion functions =====
 
 export function teamStateToBlackboard(state: TeamState): Blackboard {
   const members: MemberState[] = state.members.map((m) => {

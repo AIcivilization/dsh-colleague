@@ -1,7 +1,7 @@
 {
   "name": "dsh-colleague",
   "version": "0.1.0",
-  "description": "有记忆、有角色的长期 AI 团队 — 基于 DeepSeek Harness 的多 agent 协作插件",
+  "description": "Persistent, role-based AI teams — a multi-agent collaboration plugin for DeepSeek Harness",
   "license": "MIT",
   "repository": {
     "type": "git",

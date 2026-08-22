@@ -1,11 +1,11 @@
 /**
- * 团队运行时类型定义 — 追加事件 + 状态投影模型
+ * Team runtime type definitions — append-event + state projection model
  *
- * 所有状态变更通过事件追加完成，状态由事件投影得出。
- * 任务和事件使用稳定 UUID，不再以标题作为依赖标识。
+ * All state changes are made through event appending. State is derived from event projection.
+ * Tasks and events use stable UUIDs; titles are not used as dependency identifiers.
  */
 
-// ===== 团队状态机 =====
+// ===== Team state machine =====
 
 export type TeamStatus =
   | 'idle'
@@ -32,77 +32,77 @@ export type QualityStatus =
   | 'test_passed'
   | 'test_failed';
 
-// ===== 角色定义 =====
+// ===== Role definitions =====
 
 export type RoleId = 'leader' | 'coder' | 'reviewer' | 'tester' | 'docs';
 
 export interface MemberConfig {
-  /** 稳定 UUID */
+  /** Stable UUID */
   id: string;
   name: string;
   role: RoleId;
-  /** DSH subagent provider 名称 */
+  /** DSH subagent provider name */
   provider: string;
-  /** 模型标识 */
+  /** Model identifier */
   model?: string;
-  /** 权限模式 */
+  /** Permission mode */
   permission?: 'reject' | 'allow' | 'ask';
-  /** 技能 prompt 内容（从模板文件加载） */
+  /** Skill prompt content (loaded from template file) */
   skillPrompt?: string;
-  /** 模板文件路径 */
+  /** Template file path */
   templatePath?: string;
-  /** 身份色 slot（固定不变） */
+  /** Identity color slot (fixed) */
   slotId: number;
 }
 
-// ===== 任务定义 =====
+// ===== Task definitions =====
 
 export interface Task {
-  /** 稳定 UUID */
+  /** Stable UUID */
   id: string;
   title: string;
   description: string;
-  /** 被分派的成员 ID */
+  /** Assigned member ID */
   assigneeId: string;
-  /** 角色要求 */
+  /** Role requirement */
   role: RoleId;
   status: TaskStatus;
-  /** 依赖的其他任务 ID 列表 */
+  /** List of dependency task IDs */
   dependencies: string[];
-  /** 任务结果 */
+  /** Task result */
   result?: TaskResult;
-  /** 质量结论 */
+  /** Quality result */
   quality?: QualityResult;
-  /** 创建时间 */
+  /** Creation timestamp */
   createdAt: number;
-  /** 更新时间 */
+  /** Update timestamp */
   updatedAt: number;
 }
 
 export interface TaskResult {
   status: 'completed' | 'failed' | 'blocked';
   summary: string;
-  /** 产出文件路径列表 */
+  /** Artifact file paths */
   artifacts: string[];
-  /** 发现的问题列表 */
+  /** Issues found */
   issues: Issue[];
-  /** 测试命令 */
+  /** Test command */
   testCommand?: string;
-  /** 测试输出 */
+  /** Test output */
   testOutput?: string;
-  /** 阻塞原因 */
+  /** Block reason */
   blockedReason?: string;
 }
 
 export interface QualityResult {
   status: QualityStatus;
-  /** 审核者 ID */
+  /** Reviewer ID */
   reviewerId?: string;
-  /** 具体问题 */
+  /** Specific issues */
   issues: Issue[];
-  /** 结论摘要 */
+  /** Conclusion summary */
   summary: string;
-  /** 时间戳 */
+  /** Timestamp */
   timestamp: number;
 }
 
@@ -114,7 +114,7 @@ export interface Issue {
   suggestion?: string;
 }
 
-// ===== 事件定义 =====
+// ===== Event definitions =====
 
 export type TeamEventType =
   | 'team_created'
@@ -136,23 +136,23 @@ export type TeamEventType =
   | 'error';
 
 export interface TeamEvent {
-  /** 事件 UUID */
+  /** Event UUID */
   id: string;
-  /** 事件类型 */
+  /** Event type */
   type: TeamEventType;
-  /** 团队 ID */
+  /** Team ID */
   teamId: string;
-  /** 关联任务 ID（可选） */
+  /** Associated task ID (optional) */
   taskId?: string;
-  /** 关联成员 ID（可选） */
+  /** Associated member ID (optional) */
   memberId?: string;
-  /** 事件数据 */
+  /** Event data */
   data: Record<string, unknown>;
-  /** 时间戳 */
+  /** Timestamp */
   timestamp: number;
 }
 
-// ===== 团队状态投影 =====
+// ===== Team state projection =====
 
 export interface TeamState {
   id: string;
@@ -161,13 +161,13 @@ export interface TeamState {
   members: MemberConfig[];
   tasks: Task[];
   events: TeamEvent[];
-  /** 工作区路径 */
+  /** Workspace path */
   workspace: string;
   createdAt: number;
   updatedAt: number;
 }
 
-// ===== 团队配置 =====
+// ===== Team configuration =====
 
 export interface TeamConfig {
   teamId: string;
@@ -178,7 +178,7 @@ export interface TeamConfig {
   memoryEnabled: boolean;
 }
 
-// ===== 用户介入指令 =====
+// ===== User intervention commands =====
 
 export type InterventionType =
   | 'pause'
@@ -189,13 +189,13 @@ export type InterventionType =
 
 export interface InterventionCommand {
   type: InterventionType;
-  /** 目标任务 ID（skip/takeover 使用） */
+  /** Target task ID (for skip/takeover) */
   taskId?: string;
-  /** 修正指令内容（revise 使用） */
+  /** Revision instruction content (for revise) */
   message?: string;
 }
 
-// ===== Leader 计划器输出 =====
+// ===== Leader planner output =====
 
 export type LeaderActionType =
   | 'create_task'
@@ -208,19 +208,19 @@ export type LeaderActionType =
 
 export interface LeaderAction {
   type: LeaderActionType;
-  /** 创建任务时的任务定义 */
+  /** Task definition (for create_task) */
   task?: {
     title: string;
     description: string;
     role: RoleId;
     dependencies: string[];
   };
-  /** 解除阻塞的任务 ID */
+  /** Task ID to unblock */
   taskId?: string;
-  /** 原因说明 */
+  /** Reason */
   reason: string;
-  /** 完成报告 */
+  /** Completion report */
   summary?: string;
-  /** 向用户提问 */
+  /** Question to user */
   question?: string;
 }

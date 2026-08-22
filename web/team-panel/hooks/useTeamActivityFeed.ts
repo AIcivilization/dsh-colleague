@@ -1,8 +1,8 @@
 /**
- * 活动流 hook — 纯事件驱动，不再轮询
+ * Activity feed hook — pure event-driven, no polling
  *
- * 从 TeamRuntime 的 subscribe 获取事件流，
- * 通过事件投影计算 messages 和 tasks。
+ * Gets event stream from TeamRuntime's subscribe,
+ * computes messages and tasks via event projection.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -27,8 +27,8 @@ export type TeamActivityFeed = {
 };
 
 /**
- * 纯事件驱动的活动流 hook。
- * 从 runtime subscribe 获取事件，投影出 blackboard 和 messages。
+ * Pure event-driven activity feed hook.
+ * Gets events from runtime subscribe, projects blackboard and messages.
  */
 export function useTeamActivityFeed(
   teamId: string,
@@ -47,18 +47,18 @@ export function useTeamActivityFeed(
   const [error, setError] = useState<unknown>(null);
   const eventsRef = useRef<TeamEvent[]>([]);
 
-  // 稳定化 runtime 引用
+  // Stabilize runtime reference
   const runtimeRef = useRef(runtime);
   runtimeRef.current = runtime;
 
   useEffect(() => {
     if (!active) return;
 
-    // 初始快照
+    // Initial snapshot
     try {
       const snapshot = runtimeRef.current.getSnapshot();
       setState(snapshot);
-      // 获取历史事件（最近 200 条）
+      // Get historical events (most recent 200)
       const history = runtimeRef.current.getEvents
         ? runtimeRef.current.getEvents()
         : [];
@@ -71,11 +71,11 @@ export function useTeamActivityFeed(
       setIsLoading(false);
     }
 
-    // 订阅事件流（替代 500ms 轮询）
+    // Subscribe to event stream (replaces 500ms polling)
     const unsubscribe = runtimeRef.current.subscribe((event) => {
       eventsRef.current = [...eventsRef.current, event].slice(-200);
       setEvents([...eventsRef.current]);
-      // 每次事件后刷新状态快照
+      // Refresh state snapshot after each event
       try {
         setState(runtimeRef.current.getSnapshot());
         setError(null);
@@ -90,7 +90,7 @@ export function useTeamActivityFeed(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, teamId]);
 
-  // 从 state 投影 blackboard 和 messages
+  // Project blackboard and messages from state
   const blackboard = useMemo(() => {
     if (!state) return null;
     return teamStateToBlackboard(state);

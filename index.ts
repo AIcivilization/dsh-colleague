@@ -1,14 +1,14 @@
 /**
- * Colleague Plugin — DSH (DeepSeek Harness) Cordis 插件入口
+ * Colleague Plugin — DSH (DeepSeek Harness) Cordis plugin entry
  *
- * 提供多 Agent 软件交付闭环：Leader 拆解目标 → Coder/Reviewer/Tester/Docs 执行 → 质量门禁。
+ * Provides a multi-agent software delivery loop: Leader decomposes goals → Coder/Reviewer/Tester/Docs execute → quality gates.
  *
- * 安装方式：
- *   dsh plugin --profile colleague-dev add ./colleague-plugin
+ * Install:
+ *   dsh plugin --profile colleague-dev add ./dsh-colleague
  *
- * 使用方式：
+ * Usage:
  *   dsh --profile colleague-dev web
- *   → 在 DSH Web 内看到团队面板
+ *   → View the team panel inside DSH Web
  */
 
 import type { Context } from '@deepseek-ai/cordis';
@@ -21,15 +21,15 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 
 export interface ColleaguePluginConfig {
-  /** 团队配置文件路径（默认 config/team.yaml） */
+  /** Team config file path (default: config/team.yaml) */
   configPath?: string;
-  /** 工作区根目录（默认使用 DSH session 工作区） */
+  /** Workspace root (default: DSH session workspace) */
   workspace?: string;
-  /** 最大并发写任务数（首版固定为 1，串行写入） */
+  /** Max concurrent write tasks (first version: 1, serial writes) */
   maxConcurrentWriters?: number;
-  /** 是否启用记忆注入 */
+  /** Enable memory injection */
   memoryEnabled?: boolean;
-  /** Leader 的 decision prompt 文件路径（可选，默认从模板加载） */
+  /** Leader decision prompt file path (optional, default: loaded from template) */
   leaderPromptPath?: string;
 }
 
@@ -38,7 +38,7 @@ export const inject = [] as const;
 
 import { fileURLToPath } from 'node:url';
 
-/** 从 HTTP 请求体读取 JSON */
+/** Read JSON from HTTP request body */
 function readJsonBody(req: any): Promise<string> {
   return new Promise((resolve) => {
     let data = '';
@@ -49,17 +49,17 @@ function readJsonBody(req: any): Promise<string> {
 }
 
 export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
-  // 插件根目录 — dist/index.js → ..
+  // Plugin root directory — dist/index.js → ..
   const pluginDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-  // 加载团队配置 — 默认相对于插件自身位置解析
+  // Load team config — resolved relative to plugin location by default
   let configPath = config.configPath;
   if (!configPath) {
     configPath = resolve(pluginDir, 'config/team.yaml');
   }
   const teamConfig = loadTeamConfig(configPath);
 
-  // 创建团队运行时服务
+  // Create team runtime service
   const runtime = new TeamRuntime(ctx, {
     ...teamConfig,
     workspace: config.workspace || process.cwd(),
@@ -67,50 +67,50 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
     memoryEnabled: config.memoryEnabled ?? true,
   });
 
-  // 创建 Leader 计划器
+  // Create Leader planner
   const planner = new LeaderPlanner(config.maxConcurrentWriters ?? 1);
 
-  // 加载 Leader decision prompt
+  // Load Leader decision prompt
   let leaderDecisionPrompt = '';
   const promptPath = config.leaderPromptPath || resolve(pluginDir, 'templates/orchestrator.yaml');
   try {
     const templateContent = readFileSync(promptPath, 'utf-8');
-    // 从 YAML 模板中提取 decision_prompt（简单提取，不引入完整 YAML 解析器）
+    // Extract decision_prompt from YAML template (simple extraction, no full YAML parser)
     const match = templateContent.match(/decision_prompt:\s*\|\n([\s\S]*?)(\n[a-z_]+:|\n\.\.\.|$)/);
     if (match) {
       leaderDecisionPrompt = match[1];
     }
   } catch {
-    // 模板加载失败不阻塞启动
+    // Template load failure does not block startup
   }
 
-  // 创建编排循环
+  // Create orchestration loop
   const loop = new OrchestrationLoop(runtime, planner, {
     maxIterations: 50,
     taskTimeoutMs: 300_000,
     leaderDecisionPrompt,
   });
 
-  // 注册为 DSH 服务，供其他插件和 UI 访问
-  // 注意：ctx.provide 接收值，不接收工厂函数
+  // Register as DSH services for other plugins and UI to access
+  // Note: ctx.provide accepts values, not factory functions
   ctx.provide('colleague-team', runtime);
   ctx.provide('colleague-loop', loop);
 
-  // 注册团队面板为 DSH Web 嵌入面板
-  // DSH 使用 webServer.register({ kind, path, method, handler }) 注册 HTTP 路由
-  // 前端通过 /plugins/colleague-plugin/state 获取团队状态
+  // Register team panel as DSH Web embedded panel
+  // DSH uses webServer.register({ kind, path, method, handler }) for HTTP routes
+  // Frontend fetches team state via /plugins/colleague-plugin/state
   const registerWebPanel = () => {
-    // 安全读取 ctx 属性 — 绕过 Cordis inject 白名单拦截
+    // Safely read ctx properties — bypass Cordis inject whitelist interception
     const safeGet = (name: string): any => {
       if (!ctx) return undefined;
-      // 路径 0: proxy 后端对象
+      // Path 0: proxy backend object
       try {
         const raw: any = (ctx as any).internal ?? (ctx as any).raw ?? (ctx as any).root ?? undefined;
         if (raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, name)) return raw[name];
         const svc: any = (ctx as any).service;
         if (svc && typeof svc === 'object' && Object.prototype.hasOwnProperty.call(svc, name)) return svc[name];
       } catch {}
-      // 路径 1: ctx.get(name, false)
+      // Path 1: ctx.get(name, false)
       try {
         const c: any = ctx;
         if (typeof c.get === 'function') {
@@ -118,7 +118,7 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
           if (v !== undefined) return v;
         }
       } catch {}
-      // 路径 2: ctx.reflect.get(name, false)
+      // Path 2: ctx.reflect.get(name, false)
       try {
         const ref: any = (ctx as any).reflect;
         if (ref && typeof ref.get === 'function') {
@@ -126,7 +126,7 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
           if (v !== undefined) return v;
         }
       } catch {}
-      // 路径 3: runtime.services map
+      // Path 3: runtime.services map
       try {
         const c: any = ctx;
         let rts: any = undefined;
@@ -143,7 +143,7 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
           }
         }
       } catch {}
-      // 路径 4: 裸读
+      // Path 4: direct read
       try {
         const v = (ctx as any)[name];
         if (v !== undefined) return v;
@@ -154,7 +154,7 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
     const webServer = safeGet('webServer');
     const settings = safeGet('settings');
 
-    // 路径 1: webServer.register — 注册 HTTP API 路由
+    // Path 1: webServer.register — register HTTP API routes
     if (webServer && typeof webServer.register === 'function') {
       const send = (res: any, status: number, body: any) => {
         try {
@@ -194,13 +194,15 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
       }
     }
 
-    // 路径 2: settings.registerSection — 在 DSH 设置页注册团队面板卡片
+    // Path 2: settings.registerSection — register team panel card in DSH settings page
+    // UI text is bilingual: auto-detected from system language
     if (settings && typeof settings.registerSection === 'function') {
+      const isZh = typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('zh');
       try {
         settings.registerSection({
           id: 'colleague-team',
-          title: '团队面板',
-          description: '多 Agent 协作团队状态与控制',
+          title: isZh ? '团队面板' : 'Team Panel',
+          description: isZh ? '多 Agent 协作团队状态与控制' : 'Multi-agent collaboration team status & control',
           icon: 'users',
           render: {
             async refresh() {
@@ -221,22 +223,22 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
               return {
                 sections: [
                   {
-                    title: '团队成员',
-                    description: '当前团队中的所有 AI 代理',
+                    title: isZh ? '团队成员' : 'Team Members',
+                    description: isZh ? '当前团队中的所有 AI 代理' : 'All AI agents in the current team',
                     columns: [
-                      { key: 'name', label: '名称' },
-                      { key: 'role', label: '角色' },
-                      { key: 'status', label: '状态' },
+                      { key: 'name', label: isZh ? '名称' : 'Name' },
+                      { key: 'role', label: isZh ? '角色' : 'Role' },
+                      { key: 'status', label: isZh ? '状态' : 'Status' },
                     ],
                     rows: members,
                   },
                   {
-                    title: '任务看板',
-                    description: '当前正在执行和待执行的任务',
+                    title: isZh ? '任务看板' : 'Task Board',
+                    description: isZh ? '当前正在执行和待执行的任务' : 'Currently executing and pending tasks',
                     columns: [
-                      { key: 'title', label: '任务' },
-                      { key: 'assignee', label: '负责人' },
-                      { key: 'status', label: '状态' },
+                      { key: 'title', label: isZh ? '任务' : 'Task' },
+                      { key: 'assignee', label: isZh ? '负责人' : 'Assignee' },
+                      { key: 'status', label: isZh ? '状态' : 'Status' },
                     ],
                     rows: tasks,
                   },
@@ -254,13 +256,13 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
     }
   };
 
-  // 立即尝试注册
+  // Attempt registration immediately
   registerWebPanel();
-  // 延迟重试（webServer/settings 可能比本插件激活得晚）
+  // Delayed retry (webServer/settings may activate after this plugin)
   {
     let retries = 0;
     const safeHas = (name: string): boolean => {
-      // 用和 safeGet 一样的逻辑检测
+      // Use the same logic as safeGet to detect
       try {
         const raw: any = (ctx as any).internal ?? (ctx as any).raw ?? (ctx as any).root;
         if (raw?.[name]) return true;
@@ -271,15 +273,15 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
       return false;
     };
     const tick = () => {
-      if (retries++ > 40) return; // 最多 ~6 秒
+      if (retries++ > 40) return; // Max ~6 seconds
       if (!safeHas('webServer') || !safeHas('settings')) { setTimeout(tick, 150); return; }
       registerWebPanel();
     };
     setTimeout(tick, 150);
   }
 
-  // 注册 Subagent 委托 — 绑定 DSH SubagentRuntime 到编排循环
-  // 使用 try/catch 保护，dsh-subagent 不存在时不阻塞加载
+  // Register subagent delegation — bind DSH SubagentRuntime to orchestration loop
+  // Protected with try/catch: if dsh-subagent is unavailable, binding is deferred
   try {
     ctx.inject(['dsh-subagent'] as const, (ctx: Context) => {
       const subagentRuntime = (ctx as Context & { subagents: import('./core/orchestrator/orchestration-loop').SubagentRuntimeLike }).subagents;
@@ -288,10 +290,10 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
       }
     });
   } catch {
-    // dsh-subagent 服务不可用，编排循环的 subagent 绑定延迟到服务就绪
+    // dsh-subagent service unavailable — subagent binding deferred until service is ready
   }
 
-  // 插件卸载时清理资源
+  // Clean up resources on plugin unload
   ctx.effect(() => {
     return () => {
       loop.dispose();
@@ -300,7 +302,7 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
   });
 }
 
-// 导出公共 API
+// Public API exports
 export { TeamRuntime } from './core/runtime/team-runtime';
 export { OrchestrationLoop } from './core/orchestrator/orchestration-loop';
 export { LeaderPlanner } from './core/planner/leader-planner';

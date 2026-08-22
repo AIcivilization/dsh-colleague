@@ -1,6 +1,6 @@
 /**
  * Colleague Plugin useIsClamped.ts
- * 检测元素是否被 CSS line-clamp 截断。
+ * Detect whether an element is truncated by CSS line-clamp.
  */
 
 import { useLayoutEffect, useState } from 'react';

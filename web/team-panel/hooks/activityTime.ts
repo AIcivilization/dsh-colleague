@@ -1,6 +1,6 @@
 /**
  * Colleague Plugin activityTime.ts
- * 格式化活动卡片时间戳。
+ * Format activity card timestamps.
  */
 
 /**

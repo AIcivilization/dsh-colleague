@@ -1,5 +1,5 @@
 /**
- * 测试辅助工具 — 创建 mock Context 和最小团队配置
+ * Test helpers — create mock Context and minimal team config
  */
 
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import type { TeamConfig, MemberConfig } from '../../core/runtime/types';
 
 /**
- * 创建 mock Cordis Context
+ * Create a mock Cordis Context
  */
 export function createMockContext(): any {
   return {
@@ -27,14 +27,14 @@ export function createMockContext(): any {
 }
 
 /**
- * 创建临时目录作为工作区
+ * Create a temporary directory as workspace
  */
 export function createTempWorkspace(): string {
   return mkdtempSync(join(tmpdir(), 'colleague-test-'));
 }
 
 /**
- * 清理临时目录
+ * Clean up temporary directory
  */
 export function cleanupWorkspace(dir: string): void {
   try {
@@ -45,41 +45,41 @@ export function cleanupWorkspace(dir: string): void {
 }
 
 /**
- * 创建最小成员列表
+ * Create a minimal member list
  */
 export function createMockMembers(): MemberConfig[] {
   return [
     {
       id: 'leader-01',
-      name: '组长',
+      name: 'Lead',
       role: 'leader',
       provider: 'dsh',
       slotId: 0,
     },
     {
       id: 'coder-01',
-      name: '码农',
+      name: 'Coder',
       role: 'coder',
       provider: 'dsh',
       slotId: 1,
     },
     {
       id: 'reviewer-01',
-      name: '审核员',
+      name: 'Reviewer',
       role: 'reviewer',
       provider: 'dsh',
       slotId: 2,
     },
     {
       id: 'tester-01',
-      name: '测试员',
+      name: 'Tester',
       role: 'tester',
       provider: 'dsh',
       slotId: 3,
     },
     {
       id: 'docs-01',
-      name: '文档员',
+      name: 'Doc Writer',
       role: 'docs',
       provider: 'dsh',
       slotId: 4,
@@ -88,12 +88,12 @@ export function createMockMembers(): MemberConfig[] {
 }
 
 /**
- * 创建最小团队配置（不启用持久化）
+ * Create a minimal team config (persistence disabled)
  */
 export function createMockTeamConfig(workspace?: string): TeamConfig {
   return {
     teamId: 'test-team',
-    teamName: '测试团队',
+    teamName: 'Test Team',
     members: createMockMembers(),
     workspace: workspace || createTempWorkspace(),
     maxConcurrentWriters: 1,
@@ -102,12 +102,12 @@ export function createMockTeamConfig(workspace?: string): TeamConfig {
 }
 
 /**
- * 创建带持久化的团队配置
+ * Create a team config with persistence enabled
  */
 export function createPersistedMockTeamConfig(workspace?: string): TeamConfig {
   return {
     teamId: 'test-team-persisted',
-    teamName: '测试团队（持久化）',
+    teamName: 'Test Team (Persisted)',
     members: createMockMembers(),
     workspace: workspace || createTempWorkspace(),
     maxConcurrentWriters: 1,

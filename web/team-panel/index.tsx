@@ -1,11 +1,11 @@
 /**
- * 团队面板主入口 —— 组装所有组件。
+ * Team panel main entry — assembles all components.
  *
- * 1. Warmup 初始化遮罩
- * 2. 顶部成员栏 (TeamTabs)
- * 3. 视图切换 (TeamViewToggle)
- * 4. 活动看板 (ActivityBoardLayout + ActivityControlBar)
- * 5. 介入控制栏 (InterventionBar)
+ * 1. Warmup initialization overlay
+ * 2. Top member bar (TeamTabs)
+ * 3. View toggle (TeamViewToggle)
+ * 4. Activity board (ActivityBoardLayout + ActivityControlBar)
+ * 5. Intervention control bar (InterventionBar)
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -237,7 +237,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
 
   return (
     <div className='flex flex-col h-full bg-base'>
-      {/* 顶部标题栏 */}
+      {/* Top title bar */}
       <div className='cp-titlebar'>
         <div className='flex items-center' style={{ gap: '8px' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--brand)' }}>
@@ -248,28 +248,28 @@ const TeamPage: React.FC<TeamPageProps> = ({
         {assistants.length > 1 ? <TeamViewToggle value={viewMode} onChange={setViewMode} /> : null}
       </div>
 
-      {/* 顶部成员栏 */}
+      {/* Top member bar */}
       <TeamTabs
         assistants={assistants}
         activeSlotId={activeSlotId}
         onSwitchTab={setActiveSlotId}
         onRenameAssistant={(slot_id, new_name) => {
-          // 成员重命名通过 runtime 受控操作
+          // Member rename via runtime controlled operation
         }}
         onRemoveAssistant={(slot_id) => {
-          // 成员移除通过 runtime 受控操作
+          // Member removal via runtime controlled operation
         }}
         onAddMember={() => {
-          // 添加成员通过 runtime 受控操作
+          // Add member via runtime controlled operation
         }}
         colorOf={colorOf}
         warmingUp={isWarmingUp}
         failedSlotIds={warmupFailedSlotIds}
       />
 
-      {/* 主区域 */}
+      {/* Main area */}
       <div className='relative flex flex-1 min-h-0'>
-        {/* Warmup 遮罩 */}
+        {/* Warmup overlay */}
         <TeamWarmupOverlay
           phase={warmupPhase}
           assistants={assistants}
@@ -279,7 +279,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
         />
 
         {viewMode === 'board' ? (
-          // 看板视图
+          // Board view
           <div className='flex flex-col flex-1 h-full min-w-0'>
             <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
             <div className='flex-1 min-h-0'>
@@ -293,7 +293,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
             </div>
           </div>
         ) : viewMode === 'parallel' ? (
-          // 并行视图
+          // Parallel view
           <div className='flex flex-col flex-1 h-full min-w-0'>
             <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
             <div className='cp-board'>
@@ -325,7 +325,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
             </div>
           </div>
         ) : (
-          // 单聊视图
+          // Single chat view
           <div className='flex flex-col flex-1 h-full min-w-0'>
             <ActivityControlBar value={controls} onChange={setControls} members={memberOptions} />
             <div className='flex-1 min-h-0 overflow-auto' style={{ padding: '8px' }}>
@@ -346,7 +346,7 @@ const TeamPage: React.FC<TeamPageProps> = ({
         )}
       </div>
 
-      {/* 介入控制栏 */}
+      {/* Intervention control bar */}
       <InterventionBar
         onPause={handlePause}
         onResume={handleResume}

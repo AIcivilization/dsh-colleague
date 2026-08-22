@@ -1,16 +1,16 @@
 /**
- * 端到端测试 — 团队全流程场景
+ * endtoendTest — teamall flow process scenario scenario
  *
- * 测试覆盖：
- * - 正常交付流程（规划→编码→审核→测试→报告）
- * - 审核退回 + 修复 + 重新审核
- * - 测试失败 + 修复 + 重新测试
- * - 暂停恢复
- * - 跳过任务
- * - 接管
- * - 插件重载（dispose + 重建）
- * - 空计划终态
- * - 部分取消终态
+ * Testcover cover：
+ * - correct normal submit delivery flow process（regulation plan→orchestrat code→Review→Test→report report）
+ * - Reviewreject return + fix resume + heavy newReview
+ * - Testfailed + fix resume + heavy newTest
+ * - pause stoprecovery
+ * - skiptask
+ * - connect manage
+ * - plugin component heavy load（dispose + heavy create）
+ * - emptycount planterminal state
+ * - part minute get cancelterminal state
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -27,7 +27,7 @@ import {
 } from '../unit/helpers';
 import type { TeamConfig } from '../../core/runtime/types';
 
-describe('E2E: 正常交付流程', () => {
+describe('E2E: correct normal submit delivery flow process', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -40,61 +40,61 @@ describe('E2E: 正常交付流程', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('完整交付：规划→编码→审核→测试→最终化', () => {
+  it('complete whole submit delivery：regulation plan→orchestrat code→Review→Test→max final ize', () => {
     const runtime = new TeamRuntime(ctx, config);
 
-    // 规划阶段
+    // regulation planphase
     runtime.startPlanning();
     runtime.startRunning();
 
-    // Coder 实现功能
-    const codeTask = runtime.createTask('实现功能', '描述', 'coder');
+    // Coder implementsuccesscan
+    const codeTask = runtime.createTask('implementsuccesscan', 'Description', 'coder');
     runtime.transitionTask(codeTask.id, 'ready');
     runtime.transitionTask(codeTask.id, 'running');
     runtime.transitionTask(codeTask.id, 'passed', {
       status: 'completed',
-      summary: '功能实现完成',
+      summary: 'successcanimplementDone',
       artifacts: ['src/feature.ts'],
       issues: [],
     });
 
-    // Reviewer 审核
+    // Reviewer Review
     runtime.recordQuality(codeTask.id, {
       status: 'approved',
-      summary: '审核通过',
+      summary: 'Review passed',
       issues: [],
     });
 
-    // Tester 测试
-    const testTask = runtime.createTask('测试功能', '描述', 'tester', [codeTask.id]);
+    // Tester Test
+    const testTask = runtime.createTask('Testsuccesscan', 'Description', 'tester', [codeTask.id]);
     runtime.transitionTask(testTask.id, 'ready');
     runtime.transitionTask(testTask.id, 'running');
     runtime.transitionTask(testTask.id, 'passed', {
       status: 'completed',
-      summary: '全部测试通过',
+      summary: 'allTestPassed',
       artifacts: ['tests/feature.test.ts'],
       issues: [],
     });
     runtime.recordQuality(testTask.id, {
       status: 'test_passed',
-      summary: '测试通过',
+      summary: 'TestPassed',
       issues: [],
     });
 
-    // 验证可以最终化
+    // verify verifycanby max final ize
     const state = runtime.getSnapshot();
     const finalizeResult = canFinalize(state.tasks);
     expect(finalizeResult.canFinalize).toBe(true);
 
-    // 团队完成
-    runtime.complete('交付完成');
+    // teamDone
+    runtime.complete('submit deliveryDone');
     expect(runtime.getSnapshot().status).toBe('completed');
 
     runtime.dispose();
   });
 });
 
-describe('E2E: 审核退回与修复', () => {
+describe('E2E: Reviewreject returnandfix resume', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -107,43 +107,43 @@ describe('E2E: 审核退回与修复', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('审核退回 → 修复 → 重新审核通过', () => {
+  it('Reviewreject return → fix resume → heavy newReview passed', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    const task = runtime.createTask('功能', '描述', 'coder');
+    const task = runtime.createTask('successcan', 'Description', 'coder');
     runtime.transitionTask(task.id, 'ready');
     runtime.transitionTask(task.id, 'running');
     runtime.transitionTask(task.id, 'passed', {
       status: 'completed',
-      summary: '完成',
+      summary: 'Done',
       artifacts: ['src/feat.ts'],
       issues: [],
     });
 
-    // 审核退回
+    // Reviewreject return
     runtime.recordQuality(task.id, {
       status: 'changes_requested',
-      summary: '需要修改',
-      issues: [{ severity: 'warning', description: '命名问题' }],
+      summary: 'Changes needed',
+      issues: [{ severity: 'warning', description: 'namingIssue' }],
     });
     expect(runtime.getSnapshot().tasks.find((t) => t.id === task.id)?.status).toBe('failed');
 
-    // 修复
+    // fix resume
     runtime.transitionTask(task.id, 'ready');
     runtime.transitionTask(task.id, 'running');
     runtime.transitionTask(task.id, 'passed', {
       status: 'completed',
-      summary: '已修复',
+      summary: 'hasfix resume',
       artifacts: ['src/feat.ts'],
       issues: [],
     });
 
-    // 重新审核通过
+    // heavy newReview passed
     runtime.recordQuality(task.id, {
       status: 'approved',
-      summary: '修复后通过',
+      summary: 'fix resumeafterPassed',
       issues: [],
     });
 
@@ -152,7 +152,7 @@ describe('E2E: 审核退回与修复', () => {
   });
 });
 
-describe('E2E: 测试失败与修复', () => {
+describe('E2E: Testfailedandfix resume', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -165,57 +165,57 @@ describe('E2E: 测试失败与修复', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('测试失败 → 修复 → 重新测试通过', () => {
+  it('Testfailed → fix resume → heavy newTestPassed', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    const codeTask = runtime.createTask('编码', '描述', 'coder');
+    const codeTask = runtime.createTask('orchestrat code', 'Description', 'coder');
     runtime.transitionTask(codeTask.id, 'ready');
     runtime.transitionTask(codeTask.id, 'running');
     runtime.transitionTask(codeTask.id, 'passed', {
       status: 'completed',
-      summary: '完成',
+      summary: 'Done',
       artifacts: ['src/app.ts'],
       issues: [],
     });
     runtime.recordQuality(codeTask.id, {
       status: 'approved',
-      summary: '审核通过',
+      summary: 'Review passed',
       issues: [],
     });
 
-    // 测试任务
-    const testTask = runtime.createTask('测试', '描述', 'tester', [codeTask.id]);
+    // Test Task
+    const testTask = runtime.createTask('Test', 'Description', 'tester', [codeTask.id]);
     runtime.transitionTask(testTask.id, 'ready');
     runtime.transitionTask(testTask.id, 'running');
     runtime.transitionTask(testTask.id, 'passed', {
       status: 'completed',
-      summary: '测试执行完成',
+      summary: 'Testexecute rowDone',
       artifacts: [],
       issues: [],
     });
 
-    // 测试失败
+    // Testfailed
     runtime.recordQuality(testTask.id, {
       status: 'test_failed',
-      summary: '2 个测试失败',
-      issues: [{ severity: 'critical', description: 'test_login 失败' }],
+      summary: '2 countTestfailed',
+      issues: [{ severity: 'critical', description: 'test_login failed' }],
     });
     expect(runtime.getSnapshot().tasks.find((t) => t.id === testTask.id)?.status).toBe('failed');
 
-    // 修复后重新测试
+    // fix resumeafterheavy newTest
     runtime.transitionTask(testTask.id, 'ready');
     runtime.transitionTask(testTask.id, 'running');
     runtime.transitionTask(testTask.id, 'passed', {
       status: 'completed',
-      summary: '修复后重新测试',
+      summary: 'fix resumeafterheavy newTest',
       artifacts: [],
       issues: [],
     });
     runtime.recordQuality(testTask.id, {
       status: 'test_passed',
-      summary: '全部通过',
+      summary: 'All passed',
       issues: [],
     });
 
@@ -224,7 +224,7 @@ describe('E2E: 测试失败与修复', () => {
   });
 });
 
-describe('E2E: 暂停恢复', () => {
+describe('E2E: pause stoprecovery', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -237,21 +237,21 @@ describe('E2E: 暂停恢复', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('暂停后不再派发新任务，恢复后可继续', () => {
+  it('pause stopafternotagain dispatch sendNew task，recoveryaftercancontinue continue', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    // 暂停
+    // pause stop
     runtime.pause();
     expect(runtime.getSnapshot().status).toBe('paused');
 
-    // 暂停后创建任务不应该阻止（但实际执行应等恢复）
-    // 这里验证暂停状态本身正确
-    const task = runtime.createTask('新任务', '描述', 'coder');
+    // pause stopaftercreatetasknotshouldtheblock stop（but actual actual execute rowshouldwaitrecovery）
+    // Here here verify verify pause stopstatusbook itself correct correct
+    const task = runtime.createTask('New task', 'Description', 'coder');
     expect(task.status).toBe('planned');
 
-    // 恢复
+    // recovery
     runtime.resume();
     expect(runtime.getSnapshot().status).toBe('running');
 
@@ -259,7 +259,7 @@ describe('E2E: 暂停恢复', () => {
   });
 });
 
-describe('E2E: 跳过任务', () => {
+describe('E2E: skiptask', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -272,19 +272,19 @@ describe('E2E: 跳过任务', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('跳过任务后其他任务不受影响', () => {
+  it('skiptaskafteritsothertasknotaffectedaffect', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    const task1 = runtime.createTask('任务1', '描述', 'coder');
-    const task2 = runtime.createTask('任务2', '描述', 'reviewer');
+    const task1 = runtime.createTask('task1', 'Description', 'coder');
+    const task2 = runtime.createTask('task2', 'Description', 'reviewer');
 
-    // 跳过 task1
+    // skip task1
     runtime.handleIntervention({ type: 'skip', taskId: task1.id });
     expect(runtime.getSnapshot().tasks.find((t) => t.id === task1.id)?.status).toBe('cancelled');
 
-    // task2 不受影响
+    // task2 notaffectedaffect
     runtime.transitionTask(task2.id, 'ready');
     expect(runtime.getSnapshot().tasks.find((t) => t.id === task2.id)?.status).toBe('ready');
 
@@ -292,7 +292,7 @@ describe('E2E: 跳过任务', () => {
   });
 });
 
-describe('E2E: 接管', () => {
+describe('E2E: connect manage', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -305,12 +305,12 @@ describe('E2E: 接管', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('接管操作暂停团队并记录', () => {
+  it('connect manageoperationpause stopteamand record record', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    const task = runtime.createTask('任务', '描述', 'coder');
+    const task = runtime.createTask('task', 'Description', 'coder');
     runtime.handleIntervention({ type: 'takeover', taskId: task.id });
 
     expect(runtime.getSnapshot().status).toBe('paused');
@@ -325,7 +325,7 @@ describe('E2E: 接管', () => {
   });
 });
 
-describe('E2E: 插件重载', () => {
+describe('E2E: plugin component heavy load', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -338,40 +338,40 @@ describe('E2E: 插件重载', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('dispose 后重建 runtime 可恢复状态', () => {
+  it('dispose afterheavy create runtime canrecoverystatus', () => {
     const rt1 = new TeamRuntime(ctx, config);
     rt1.startPlanning();
     rt1.startRunning();
-    const task = rt1.createTask('持久化任务', '描述', 'coder');
+    const task = rt1.createTask('persistencetask', 'Description', 'coder');
     rt1.transitionTask(task.id, 'ready');
     rt1.transitionTask(task.id, 'running');
     rt1.dispose();
 
-    // 重建
+    // heavy create
     const rt2 = new TeamRuntime(ctx, config);
     const state = rt2.getSnapshot();
     expect(state.status).toBe('running');
     expect(state.tasks.length).toBe(1);
-    expect(state.tasks[0].title).toBe('持久化任务');
+    expect(state.tasks[0].title).toBe('persistencetask');
     expect(state.tasks[0].status).toBe('running');
     rt2.dispose();
   });
 
-  it('dispose 后事件订阅全部清除', () => {
+  it('dispose aftereventsubscribeallclean remove', () => {
     const rt = new TeamRuntime(ctx, config);
     let received = 0;
     rt.subscribe(() => received++);
     rt.dispose();
 
-    // dispose 后不应再收到事件
-    // 由于 dispose 清空 listeners，即使触发也不通知
+    // dispose afternotshouldagain receivetoevent
+    // due to dispose cleanempty listeners，namely use trigger send alsonotnotification
     const before = received;
-    // 直接调用 dispose 已清除 listeners
+    // direct connect adjust use dispose hasclean remove listeners
     expect(received).toBe(before);
   });
 });
 
-describe('E2E: 空计划与终态', () => {
+describe('E2E: emptycount planandterminal state', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -384,51 +384,51 @@ describe('E2E: 空计划与终态', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('空计划直接完成产生明确终态', () => {
+  it('emptycount plan direct connectDoneproduce produce bright correctterminal state', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    // 没有任何任务，直接完成
+    // no has any whattask，direct connectDone
     const tasks = runtime.getSnapshot().tasks;
     expect(tasks.length).toBe(0);
 
     const finalizeResult = canFinalize(tasks);
     expect(finalizeResult.canFinalize).toBe(true);
 
-    runtime.complete('空计划完成');
+    runtime.complete('emptycount planDone');
     expect(runtime.getSnapshot().status).toBe('completed');
 
     runtime.dispose();
   });
 
-  it('部分取消后剩余任务可最终化', () => {
+  it('part minute get cancelafterremaining extrataskcanmax final ize', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    const task1 = runtime.createTask('任务1', '描述', 'coder');
-    const task2 = runtime.createTask('任务2', '描述', 'coder');
+    const task1 = runtime.createTask('task1', 'Description', 'coder');
+    const task2 = runtime.createTask('task2', 'Description', 'coder');
 
-    // 取消 task2
+    // get cancel task2
     runtime.transitionTask(task2.id, 'cancelled');
 
-    // task1 完成并通过审核
+    // task1 DoneandPassedReview
     runtime.transitionTask(task1.id, 'ready');
     runtime.transitionTask(task1.id, 'running');
     runtime.transitionTask(task1.id, 'passed', {
       status: 'completed',
-      summary: '完成',
+      summary: 'Done',
       artifacts: [],
       issues: [],
     });
     runtime.recordQuality(task1.id, {
       status: 'approved',
-      summary: '通过',
+      summary: 'Passed',
       issues: [],
     });
 
-    // 验证最终化
+    // verify verify max final ize
     const tasks = runtime.getSnapshot().tasks;
     const finalizeResult = canFinalize(tasks);
     expect(finalizeResult.canFinalize).toBe(true);
@@ -436,29 +436,29 @@ describe('E2E: 空计划与终态', () => {
     runtime.dispose();
   });
 
-  it('全失败计划产生明确终态', () => {
+  it('allfailedcount plan produce produce bright correctterminal state', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    const task = runtime.createTask('任务', '描述', 'coder');
+    const task = runtime.createTask('task', 'Description', 'coder');
     runtime.transitionTask(task.id, 'ready');
     runtime.transitionTask(task.id, 'running');
     runtime.transitionTask(task.id, 'failed', {
       status: 'failed',
-      summary: '实现失败',
+      summary: 'implementfailed',
       artifacts: [],
-      issues: [{ severity: 'critical', description: '严重错误' }],
+      issues: [{ severity: 'critical', description: 'strict heavy wrong error' }],
     });
 
-    // 修复后取消
+    // fix resumeafterget cancel
     runtime.transitionTask(task.id, 'cancelled');
 
-    // 可以最终化（唯一任务已取消）
+    // canby max final ize（only onetaskhasget cancel）
     const finalizeResult = canFinalize(runtime.getSnapshot().tasks);
     expect(finalizeResult.canFinalize).toBe(true);
 
-    runtime.fail('全部任务失败');
+    runtime.fail('alltaskfailed');
     expect(runtime.getSnapshot().status).toBe('failed');
 
     runtime.dispose();

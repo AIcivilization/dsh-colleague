@@ -1,88 +1,88 @@
-# Skill: Testing (测试)
+# Skill: Testing
 
-> 测试员的核心技能 — 负责编写测试、执行测试、验证结果
+> Core skill of the Tester — responsible for writing tests, executing tests, and validating results
 
-## 能力定义
+## Capability Definition
 
 ```yaml
 skill_id: testing
-name: "测试验证"
-description: "针对码农实现的功能编写测试用例，执行测试并验证正确性"
+name: "Test Validation"
+description: "Write test cases for features implemented by the Coder, execute tests, and validate correctness"
 category: quality
 complexity: medium
 ```
 
-## 测试类型
+## Test Types
 
-### 1. 单元测试
+### 1. Unit Tests
 
-针对单个函数/组件的测试：
-
-```
-- 正常路径：输入合法数据 → 验证输出正确
-- 异常路径：输入非法数据 → 验证错误处理
-- 边界条件：空值、极端值、边界值
-```
-
-### 2. 集成测试
-
-针对多个模块协作的测试：
+Tests for individual functions/components:
 
 ```
-- 模块间数据传递正确
-- 接口调用符合预期
-- 组件组合后的行为正确
+- Happy path: input valid data -> verify correct output
+- Error path: input invalid data -> verify error handling
+- Boundary conditions: null, extreme values, edge cases
 ```
 
-### 3. 回归测试
+### 2. Integration Tests
 
-修复 bug 后确保没有引入新问题：
-
-```
-- 原来的 bug 已修复
-- 原来能跑的功能还能跑
-- 没有引入新的 bug
-```
-
-## 工作流程
+Tests for multi-module collaboration:
 
 ```
-接收测试任务（从 mailbox）
-    │
-    ▼
-阅读码农的产出物
-    │
-    ▼
-编写测试用例
-    │
-    ├── 单元测试
-    ├── 集成测试
-    └── 边界测试
-    │
-    ▼
-执行测试
-    │
-    ├── 全部通过 → 通知组织者通过
-    │
-    └── 有失败 → 记录失败详情
-    │           → 通知组织者退回码农
-    │
-    ▼
-黑板更新测试结果
-    │
-    ▼
-mailbox 通知组织者
+- Data passing between modules is correct
+- Interface calls match expectations
+- Behavior after component composition is correct
 ```
 
-## 测试用例规范
+### 3. Regression Tests
 
-- 测试文件命名：`{源文件名}.test.{ext}`（如 `Login.test.tsx`）
-- 测试描述要清晰：`should submit form with valid credentials`
-- 每个测试只验证一个行为
-- 使用项目已有的测试框架（Jest/Vitest/Playwright）
+Ensure no new issues are introduced after bug fixes:
 
-## 禁止事项
+```
+- Original bug is fixed
+- Previously working functionality still works
+- No new bugs introduced
+```
 
-- ❌ 不要自己修代码（修代码是码农的事）
-- ❌ 不要只测"能跑"，要测"正确性"
-- ❌ 不要写没有断言的测试
+## Workflow
+
+```
+Receive test task (from mailbox)
+    |
+    v
+Read Coder's artifacts
+    |
+    v
+Write test cases
+    |
+    +-- Unit tests
+    +-- Integration tests
+    +-- Boundary tests
+    |
+    v
+Execute tests
+    |
+    +-- All pass -> notify Lead of pass
+    |
+    +-- Failures -> record failure details
+    |              -> notify Lead to send back to Coder
+    |
+    v
+Update blackboard with test results
+    |
+    v
+Notify Lead via mailbox
+```
+
+## Test Case Standards
+
+- Test file naming: `{source-file-name}.test.{ext}` (e.g., `Login.test.tsx`)
+- Test descriptions should be clear: `should submit form with valid credentials`
+- Each test should verify only one behavior
+- Use the project's existing test framework (Jest/Vitest/Playwright)
+
+## Prohibitions
+
+- Do not fix code yourself (fixing is the Coder's job)
+- Do not just test "it runs" — test "it's correct"
+- Do not write tests without assertions

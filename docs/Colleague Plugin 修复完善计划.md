@@ -1,173 +1,173 @@
-# Colleague Plugin 修复完善计划
+# Colleague Plugin Refinement Plan
 
-## 目标与默认决策
+## Goals & Default Decisions
 
-将项目从独立 Express + Vite 原型重构为可安装、可运行的 DeepSeek Harness（DSH）插件。首个可发布版本只承诺“可控的多 Agent 软件交付闭环”，不承诺 L0–L3 自动蒸馏记忆、混合 CLI 团队或多团队协作。
+Refactor the project from a standalone Express + Vite prototype into an installable, runnable DeepSeek Harness (DSH) plugin. The first releasable version only promises a "controllable multi-agent software delivery loop"; it does not promise L0–L3 automatic memory distillation, mixed-CLI teams, or multi-team collaboration.
 
-默认约束：
+Default constraints:
 
-- 使用 DSH 的 Cordis bundle、`ctx.subagents`、会话和任务生命周期；删除自写 ACP 客户端、CLI shell fallback、独立 Express API。
-- 首版每个团队绑定一个 DSH 会话和一个工作区；同一工作区中同一时刻最多一个代码写入任务。
-- 默认拒绝高风险权限；用户需通过 DSH 的既有权限机制确认。
-- “长期记忆”首版实现为持久化团队事件、任务结果和检索注入；L0–L3 蒸馏移入后续版本。
-- 所有 DSH 依赖固定到一个已验证版本，并用契约测试防止预览版升级破坏集成。
+- Use DSH's Cordis bundle, `ctx.subagents`, session and task lifecycle; remove the custom ACP client, CLI shell fallback, and standalone Express API.
+- First version: each team binds to one DSH session and one workspace; at most one code write task in the same workspace at any time.
+- Deny high-risk permissions by default; users must confirm through DSH's existing permission mechanism.
+- "Long-term memory" first version implements persistent team events, task results, and retrieval injection; L0–L3 distillation deferred to later versions.
+- All DSH dependencies pinned to a verified version, with contract tests to prevent pre-release upgrade breakage.
 
-## 实施项目与验收目标
+## Implementation Items & Acceptance Criteria
 
-### 1. 建立可安装的 DSH Bundle
+### 1. Establish an Installable DSH Bundle
 
-将入口改为 Cordis 插件，提供 `apply(ctx)`；补齐 `dsh.bundle` manifest、`cordis.patch.yml`、构建产物和 peer dependencies。Host 端注册团队运行时服务，Client 端注册 DSH 内嵌团队面板。
+Change the entry to a Cordis plugin providing `apply(ctx)`; complete `dsh.bundle` manifest, `cordis.patch.yml`, build artifacts, and peer dependencies. Host side registers the team runtime service; Client side registers the DSH-embedded team panel.
 
-移除独立端口、CORS、`/api/*`、Vite 代理和 `execSync` CLI fallback。保留现有 UI 组件，仅迁移其数据源。
+Remove standalone ports, CORS, `/api/*`, Vite proxy, and `execSync` CLI fallback. Retain existing UI components, only migrating their data sources.
 
-验收目标：
+Acceptance criteria:
 
-- `dsh plugin --profile colleague-dev add ./colleague-plugin` 成功。
-- `dsh --profile colleague-dev --dump-config` 能看到插件层与所有依赖行。
-- 启动 DSH Web 后，插件面板在宿主内可见，不再需要 `npm run server` 或 `npm run dev`。
-- 卸载插件后，团队服务、事件监听和后台任务全部释放。
+- `dsh plugin --profile colleague-dev add ./colleague-plugin` succeeds.
+- `dsh --profile colleague-dev --dump-config` shows the plugin layer and all dependency lines.
+- After launching DSH Web, the plugin panel is visible in the host; no `npm run server` or `npm run dev` needed.
+- After uninstalling the plugin, team service, event listeners, and background tasks are all released.
 
-### 2. 用 DSH 原生 Subagent 替换自写 ACP 层
+### 2. Replace Custom ACP Layer with DSH Native Subagent
 
-删除 `ACPSessionManager`、PATH 扫描和自定义 JSON-RPC 生命周期。通过 `ctx.subagents` 使用已注册的 `acp`、`codex` 或 `claude-code` provider；角色配置只能选择已注册且能力满足要求的 provider。
+Delete `ACPSessionManager`, PATH scanning, and custom JSON-RPC lifecycle. Use `ctx.subagents` with registered `acp`, `codex`, or `claude-code` providers; role config can only select registered providers whose capabilities meet requirements.
 
-“可用 Agent”定义改为“当前 profile 已配置的 provider”，而非“PATH 中存在二进制”。保留 provider 名称、模型、权限模式和能力摘要供 UI 展示。
+"Available Agent" is redefined as "providers configured in the current profile," not "binaries present in PATH." Retain provider name, model, permission mode, and capability summary for UI display.
 
-验收目标：
+Acceptance criteria:
 
-- 不再直接 `spawn()`、`execSync()` 或手工发送 ACP JSON-RPC。
-- 未注册 provider、provider 不支持请求能力、启动失败时，任务进入明确的 `blocked` 或 `failed` 状态并显示原因。
-- 使用一个真实 DSH provider 完成一次最小 coder 任务，运行结束后无残留子进程。
-- 发现/选择界面不会展示未经 DSH provider 验证的 CLI。
+- No direct `spawn()`, `execSync()`, or manual ACP JSON-RPC.
+- When a provider is unregistered, lacks requested capabilities, or fails to start, the task enters a clear `blocked` or `failed` state with reason displayed.
+- Complete a minimal coder task with a real DSH provider; no residual child processes after execution.
+- Discovery/selection UI does not show CLIs not verified by DSH providers.
 
-### 3. 重建团队运行时与状态模型
+### 3. Rebuild Team Runtime & State Model
 
-新增 `TeamRuntime` 服务，采用“追加事件 + 状态投影”管理团队、成员、任务、产出物、质量结论和用户指令。任务与事件使用稳定 UUID，不再以标题作为依赖标识。
+Add a `TeamRuntime` service using "append-event + state projection" to manage team, members, tasks, deliverables, quality conclusions, and user instructions. Tasks and events use stable UUIDs; titles are no longer used as dependency identifiers.
 
-定义固定状态：
+Define fixed states:
 
-- Team：`idle → planning → running → paused → completed | failed | cancelled`
-- Task：`planned → ready → running → blocked | passed | failed | cancelled`
-- Quality：`pending → approved | changes_requested | test_passed | test_failed`
+- Team: `idle → planning → running → paused → completed | failed | cancelled`
+- Task: `planned → ready → running → blocked | passed | failed | cancelled`
+- Quality: `pending → approved | changes_requested | test_passed | test_failed`
 
-所有状态迁移通过单一 reducer 校验；未知任务、非法迁移、重复完成和过期事件必须拒绝并记录审计事件。
+All state transitions go through a single reducer for validation; unknown tasks, illegal transitions, duplicate completions, and stale events must be rejected with audit events recorded.
 
-验收目标：
+Acceptance criteria:
 
-- 暂停、恢复、修正、接管、跳过全部按真实 `teamId` 和 `taskId` 路由，不再出现 `leader`/`leader-01` 不一致。
-- 刷新 Web、重新加载插件后，团队状态、任务、消息和事件可恢复。
-- 单元测试覆盖合法迁移、非法迁移、重复事件、取消运行中任务与失败恢复。
-- 每个任务可从 UI 回溯到输入、执行者、结果、产出物、测试结果和最终结论。
+- Pause, resume, revise, takeover, skip all route by real `teamId` and `taskId`; no more `leader`/`leader-01` inconsistency.
+- After refreshing Web or reloading the plugin, team state, tasks, messages, and events are recoverable.
+- Unit tests cover legal transitions, illegal transitions, duplicate events, canceling running tasks, and failure recovery.
+- Each task can be traced from UI back to input, executor, result, deliverables, test results, and final conclusion.
 
-### 4. 将 Leader 改为受约束的计划器
+### 4. Constrain Leader as a Bounded Planner
 
-Leader 不直接输出任意 JSON；只允许输出经过 schema 校验的动作：`create_task`、`unblock_task`、`request_review`、`request_test`、`request_docs`、`report`、`ask_user`。
+Leader does not output arbitrary JSON directly; only schema-validated actions are allowed: `create_task`, `unblock_task`, `request_review`, `request_test`, `request_docs`, `report`, `ask_user`.
 
-计划器输出必须校验角色、依赖、任务数量、并发额度和预算。无效输出最多自动重试两次，仍失败则把团队置为 `blocked` 并要求用户处理。初始计划不得同时派发存在依赖关系的任务。
+Planner output must validate roles, dependencies, task count, concurrency budget, and resource budget. Invalid output retries up to twice automatically; if still failing, team is set to `blocked` and user intervention is required. Initial plan must not dispatch tasks with dependency relationships simultaneously.
 
-验收目标：
+Acceptance criteria:
 
-- 非 JSON、缺字段、未知角色、循环依赖、超额并发均不会启动子任务。
-- 审核要求修改时自动创建修复任务，修复后必须重新审核。
-- 测试失败时自动创建修复任务，修复后必须重新测试。
-- 所有任务通过后才允许文档任务和最终报告。
-- 空计划、全失败计划、部分取消计划都产生明确的终态报告，而不是静默结束。
+- Non-JSON, missing fields, unknown roles, circular dependencies, and exceeded concurrency do not start subtasks.
+- Review change requests automatically create fix tasks; fixes must be re-reviewed.
+- Test failures automatically create fix tasks; fixes must be re-tested.
+- Documentation tasks and final reports are only allowed after all tasks pass.
+- Empty plans, all-failed plans, and partially canceled plans produce clear terminal reports instead of silent endings.
 
-### 5. 建立真实的角色结果与质量门禁
+### 5. Establish Real Role Results & Quality Gates
 
-为 coder、reviewer、tester、docs 定义统一结构化结果协议。结果包含：状态、摘要、产出文件、问题列表、测试命令、测试结果和阻塞原因。
+Define a unified structured result protocol for coder, reviewer, tester, and docs. Results include: status, summary, output files, issue list, test commands, test results, and blocking reasons.
 
-不能再以“子进程成功退出”视为任务完成。Reviewer 的 `changes_requested`、Tester 的 `failed` 必须阻止最终交付；Docs 任务只读取已通过质量门的产出物。
+"Subprocess exited successfully" no longer counts as task completion. Reviewer's `changes_requested` and Tester's `failed` must block final delivery; Docs tasks only read deliverables that passed quality gates.
 
-验收目标：
+Acceptance criteria:
 
-- 单独模拟 coder 成功、reviewer 拒绝、coder 修复、reviewer 通过、tester 失败、coder 修复、tester 通过的完整闭环。
-- 每个质量结论在 UI 中展示具体问题、文件、行号和建议。
-- 没有通过审核和测试的代码不能触发 `team completed`。
-- Agent 返回非结构化内容时，任务不会被误标记为通过。
+- Simulate the full loop: coder succeeds → reviewer rejects → coder fixes → reviewer approves → tester fails → coder fixes → tester passes.
+- Each quality conclusion displays specific issues, files, line numbers, and suggestions in the UI.
+- Code that hasn't passed review and testing cannot trigger `team completed`.
+- When an agent returns unstructured content, the task is not incorrectly marked as passed.
 
-### 6. 工作区、并发与权限安全
+### 6. Workspace, Concurrency & Permission Security
 
-工作区由父 DSH session 提供，启动前执行预检：目录存在、Git 状态可读、允许写入范围明确、当前变更基线已记录。
+The workspace is provided by the parent DSH session; pre-checks run before startup: directory exists, Git status is readable, write scope is clear, and current change baseline is recorded.
 
-首版采用串行写入：coder 与 coder、coder 与 docs 不可并发写；review/test 仅在依赖完成后并发读取。产出物通过任务前后的 Git diff 归属，不依赖 ACP 工具调用事件。
+First version uses serial writes: coder vs coder, coder vs docs cannot write concurrently; review/test only reads concurrently after dependencies complete. Deliverables are attributed via Git diff before and after tasks, not relying on ACP tool call events.
 
-取消、超时、权限拒绝和 provider 崩溃必须回收后台运行，并将任务标为 `blocked` 或 `failed`。不允许暴露无认证的本地 HTTP 控制接口。
+Cancel, timeout, permission denial, and provider crashes must be cleaned up in the background, marking tasks as `blocked` or `failed`. No unauthenticated local HTTP control interface is exposed.
 
-验收目标：
+Acceptance criteria:
 
-- 两个写任务同时准备时，第二个保持 `blocked`，直到第一个释放工作区锁。
-- 每个完成任务的产出文件与 Git diff 一致。
-- 超时、取消和 provider 崩溃后没有孤儿任务或子进程。
-- 默认权限策略下，未经用户确认的高风险操作不能执行。
+- When two write tasks are ready simultaneously, the second stays `blocked` until the first releases the workspace lock.
+- Each completed task's output files are consistent with Git diff.
+- No orphan tasks or child processes after timeout, cancel, or provider crash.
+- Under default permission policy, high-risk operations cannot execute without user confirmation.
 
-### 7. 修复并迁移团队面板
+### 7. Fix & Migrate Team Panel
 
-面板改订阅 `TeamRuntime` 的真实事件流，不再采用 500ms/1s 双重轮询。任务、消息、流输出、错误和成员状态都来自同一事件投影。
+The panel subscribes to `TeamRuntime`'s real event stream, replacing 500ms/1s dual polling. Tasks, messages, stream output, errors, and member status all come from the same event projection.
 
-暂停、恢复、修正、接管、跳过必须等待服务端确认后更新 UI；跳过操作要求用户选择具体任务。成员重命名、增加、删除改为受控团队配置操作，不允许只修改前端数组。
+Pause, resume, revise, takeover, skip must wait for server confirmation before updating UI; skip requires the user to select a specific task. Member rename, add, delete are controlled team config operations; front-end array-only modifications are not allowed.
 
-并行、单聊、看板三种视图必须展示不同信息，流式输出需有截断、展开和错误状态。
+Parallel, single-chat, and board views must display different information; streaming output needs truncation, expansion, and error states.
 
-验收目标：
+Acceptance criteria:
 
-- 普通任务分派与完成消息能出现在看板，不只显示广播消息。
-- 点击暂停后不再派发新任务；恢复后可继续调度。
-- 点击跳过能准确取消选中任务，不影响其他任务。
-- 网络或运行时错误在界面可见，不能被静默吞掉。
-- 三种视图有可观察的不同布局与交互行为。
+- Normal task dispatch and completion messages appear on the board, not just broadcast messages.
+- After clicking pause, no new tasks are dispatched; after resume, scheduling continues.
+- Clicking skip accurately cancels the selected task without affecting others.
+- Network or runtime errors are visible in the UI, not silently swallowed.
+- The three views have observable different layouts and interaction behaviors.
 
-### 8. 让配置、模板、技能和记忆真正生效
+### 8. Make Config, Templates, Skills & Memory Actually Work
 
-用 DSH 插件配置 schema 替换当前未解析的 YAML。团队配置必须真正决定成员、角色、provider、模型、并发、预算、权限、工作区和记忆开关。
+Replace the currently unparsed YAML with the DSH plugin config schema. Team config must actually determine members, roles, providers, models, concurrency, budget, permissions, workspace, and memory toggle.
 
-角色模板和技能文件加载为实际 prompt/skill 资源；缺失文件、未知模型族或无效角色在插件启动时失败并给出诊断。
+Role templates and skill files are loaded as actual prompt/skill resources; missing files, unknown model families, or invalid roles fail at plugin startup with diagnostics.
 
-首版记忆实现为持久化团队事件、架构决定、已验证命令和质量结论；按任务检索少量相关内容注入 Leader 或执行角色。删除“已实现四层记忆”的产品表述。
+First version memory implements persistent team events, architectural decisions, verified commands, and quality conclusions; retrieves and injects a small amount of relevant content per task into the Leader or executing role. Remove the "four-level memory implemented" product description.
 
-验收目标：
+Acceptance criteria:
 
-- 修改团队配置后，创建团队所得成员、provider 与并发策略发生对应变化。
-- 模板缺失或配置无效时，启动失败且错误定位到字段或文件。
-- 重启后可检索到上一任务的架构决定和测试结论。
-- 单次任务注入的记忆内容有数量与字符上限，避免无限增长。
+- After modifying team config, the members, providers, and concurrency strategy of created teams change accordingly.
+- When a template is missing or config is invalid, startup fails with error pinpointing the field or file.
+- After restart, architectural decisions and test conclusions from previous tasks are retrievable.
+- Memory content injected per task has count and character limits to prevent unbounded growth.
 
-### 9. 补齐自动化测试与发布门禁
+### 9. Add Automated Tests & Release Gates
 
-增加单元、契约、集成和端到端测试：
+Add unit, contract, integration, and end-to-end tests:
 
-- 单元：状态机、消息路由、依赖 DAG、结果校验、锁和取消。
-- 契约：bundle 安装、`--dump-config`、DSH 服务注入和 provider 能力拒绝。
-- 集成：mock provider、真实 DSH provider 最小任务、事件持久化与恢复。
-- 端到端：正常交付、审核退回、测试失败、暂停恢复、接管、跳过、超时、插件重载。
+- Unit: state machine, message routing, dependency DAG, result validation, lock and cancel.
+- Contract: bundle installation, `--dump-config`, DSH service injection, and provider capability rejection.
+- Integration: mock provider, real DSH provider minimal task, event persistence and recovery.
+- End-to-end: normal delivery, review rejection, test failure, pause/resume, takeover, skip, timeout, plugin reload.
 
-构建脚本必须检查 Host、Client 和配置；新增 `test`、`test:integration`、`test:e2e`、`check`。`check` 是合并与发布前的唯一门禁。
+Build scripts must check Host, Client, and config; add `test`, `test:integration`, `test:e2e`, `check`. `check` is the sole gate before merge and release.
 
-验收目标：
+Acceptance criteria:
 
-- `npm run check` 覆盖服务端、客户端、配置和类型，不能再遗漏 Host 代码。
-- 所有 P0/P1 流程都有自动化回归用例。
-- 真实 provider E2E 使用隔离测试仓库，运行后验证 diff、测试结果和进程清理。
-- 发布前生成兼容矩阵：DSH 版本、Node 版本、provider、平台与结果。
+- `npm run check` covers server, client, config, and types; no Host code is skipped.
+- All P0/P1 flows have automated regression test cases.
+- Real provider E2E uses an isolated test repository; after execution, diff, test results, and process cleanup are verified.
+- A compatibility matrix is generated before release: DSH version, Node version, provider, platform, and results.
 
-### 10. 更新产品文档与发布说明
+### 10. Update Product Docs & Release Notes
 
-重写 README、PRODUCT、ARCHITECTURE 和配置示例，明确安装方式、权限模型、工作区规则、费用/并发预算、支持的 provider 和已知限制。
+Rewrite README, PRODUCT, ARCHITECTURE, and config examples to clarify installation, permission model, workspace rules, cost/concurrency budget, supported providers, and known limitations.
 
-删除旧设计系统引用、"v1.0 已完成"及尚未实现的记忆/流式/配置描述。将视觉设计改述为自有设计规范。
+Remove old design system references, "v1.0 completed," and unimplemented memory/streaming/config descriptions. Reframe visual design as a custom design system.
 
-验收目标：
+Acceptance criteria:
 
-- 新用户仅按 README 可完成安装、配置、启动一个测试团队并运行示例目标。
-- 功能清单与自动化测试覆盖一致，不宣称未实现能力。
-- CHANGELOG 包含破坏性迁移、旧独立服务的移除方式和回滚步骤。
+- New users can install, configure, launch a test team, and run an example goal using only the README.
+- Feature list is consistent with automated test coverage; no unimplemented capabilities are claimed.
+- CHANGELOG includes breaking migrations, old standalone service removal, and rollback steps.
 
-## 交付顺序
+## Delivery Order
 
-1. Bundle 与原生 DSH 集成。
-2. TeamRuntime、状态机、干预指令与持久化。
-3. 计划器、角色结果、质量门禁与工作区锁。
-4. 迁移 UI。
-5. 配置、记忆、测试和文档。
+1. Bundle & native DSH integration.
+2. TeamRuntime, state machine, intervention commands & persistence.
+3. Planner, role results, quality gates & workspace lock.
+4. UI migration.
+5. Config, memory, tests & docs.
 
-只有前四项全部通过验收，才进入真实项目工作区测试；记忆增强、多 CLI 混合团队、历史回放和插件市场发布均排在首版稳定后。
+Only after the first four items pass acceptance do we proceed to real project workspace testing; memory enhancement, multi-CLI mixed teams, history replay, and plugin marketplace publishing come after the first stable version.

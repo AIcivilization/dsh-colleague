@@ -1,12 +1,12 @@
 /**
- * TeamRuntime — 团队运行时服务
+ * TeamRuntime — team runtime service
  *
- * 采用"追加事件 + 状态投影"模型管理团队状态。
- * 所有状态变更通过 appendEvent 完成，状态由事件投影得出。
- * 状态迁移通过 reducer 校验，非法迁移被拒绝并记录审计事件。
+ * Uses an "append-event + state projection" model to manage team state.
+ * All state changes go through appendEvent. State is derived from event projection.
+ * State transitions are validated by reducers. Invalid transitions are rejected and audited.
  *
- * 集成 WorkspaceLock（串行写入）和 MemoryService（记忆注入）。
- * 支持事件持久化和重启恢复。
+ * Integrates WorkspaceLock (serial writes) and MemoryService (memory injection).
+ * Supports event persistence and restart recovery.
  */
 
 import type { Context } from '@deepseek-ai/cordis';
@@ -29,7 +29,7 @@ import type {
 import { WorkspaceLock } from './workspace-lock';
 import { MemoryService } from '../../memory/store';
 
-// ===== 状态迁移规则 =====
+// ===== State transition rules =====
 
 const TEAM_TRANSITIONS: Record<TeamStatus, TeamStatus[]> = {
   idle: ['planning', 'cancelled'],
@@ -59,7 +59,7 @@ function canTransitionTask(from: TaskStatus, to: TaskStatus): boolean {
   return TASK_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
-// ===== 事件存储 + 状态投影 =====
+// ===== Event store + state projection =====
 
 export class TeamRuntime {
   private ctx: Context;
@@ -69,44 +69,44 @@ export class TeamRuntime {
   private listeners: ((event: TeamEvent) => void)[] = [];
   private disposed = false;
 
-  /** 工作区锁 */
+  /** Workspace lock */
   private workspaceLock: WorkspaceLock;
 
-  /** 记忆服务 */
+  /** Memory service */
   private memory: MemoryService;
 
-  /** 持久化路径 */
+  /** Persistence path */
   private persistencePath: string | null = null;
 
-  /** subagent provider 绑定（由 DSH 注入） */
+  /** Subagent provider binding (injected by DSH) */
   private subagentProvider: unknown = null;
 
   constructor(ctx: Context, config: TeamConfig) {
     this.ctx = ctx;
     this.config = config;
 
-    // 初始化工作区锁
+    // Initialize workspace lock
     this.workspaceLock = new WorkspaceLock(config.workspace);
 
-    // 初始化记忆服务
+    // Initialize memory service
     const memoryDir = config.memoryEnabled
       ? resolve(config.workspace, '.colleague', 'memory')
       : undefined;
     this.memory = new MemoryService(memoryDir);
 
-    // 设置持久化路径
+    // Set persistence path
     if (config.memoryEnabled) {
       this.persistencePath = resolve(config.workspace, '.colleague', 'events.jsonl');
     }
 
-    // 尝试从持久化恢复
+    // Attempt to restore from persistence
     const restored = this.load();
 
     if (restored) {
-      // 从事件重放状态
+      // Replay state from events
       this.state = this.replayEvents(restored);
     } else {
-      // 全新初始化
+      // Fresh initialization
       this.state = {
         id: config.teamId,
         name: config.teamName,
@@ -126,7 +126,7 @@ export class TeamRuntime {
     }
   }
 
-  // ===== 事件追加 =====
+  // ===== Event appending =====
 
   private appendEvent(
     type: TeamEvent['type'],
@@ -147,35 +147,35 @@ export class TeamRuntime {
     this.events.push(event);
     this.state.events.push(event);
 
-    // 投影状态
+    // Project state
     this.project(event);
 
-    // 通知监听器
+    // Notify listeners
     for (const listener of this.listeners) {
       try {
         listener(event);
       } catch {
-        // 监听器错误不影响主流程
+        // Listener errors do not affect the main flow
       }
     }
 
     this.state.updatedAt = Date.now();
 
-    // 持久化
+    // Persist
     this.persist(event);
 
-    // 记忆记录
+    // Record to memory
     this.recordToMemory(event);
 
     return event;
   }
 
-  // ===== 状态投影 reducer =====
+  // ===== State projection reducer =====
 
   private project(event: TeamEvent): void {
     switch (event.type) {
       case 'team_created':
-        // 初始状态已在构造函数中设置
+        // Initial state already set in constructor
         break;
 
       case 'team_status_changed':
@@ -255,14 +255,14 @@ export class TeamRuntime {
       case 'message_sent':
       case 'user_intervention':
       case 'error':
-        // 这些事件只记录在事件流中，UI 从事件投影读取
+        // These events are only recorded in the event stream; UI reads from event projection
         break;
     }
   }
 
-  // ===== 公共 API =====
+  // ===== Public API =====
 
-  /** 获取当前团队状态快照 */
+  /** Get current team state snapshot */
   getSnapshot(): TeamState {
     return {
       ...this.state,
@@ -272,7 +272,7 @@ export class TeamRuntime {
     };
   }
 
-  /** 订阅事件流 */
+  /** Subscribe to event stream */
   subscribe(listener: (event: TeamEvent) => void): () => void {
     this.listeners.push(listener);
     return () => {
@@ -280,59 +280,59 @@ export class TeamRuntime {
     };
   }
 
-  /** 获取历史事件 */
+  /** Get historical events */
   getEvents(since?: number): TeamEvent[] {
     if (since === undefined) return [...this.events];
     return this.events.filter((e) => e.timestamp > since);
   }
 
-  /** 获取记忆服务 */
+  /** Get memory service */
   getMemory(): MemoryService {
     return this.memory;
   }
 
-  /** 获取工作区锁 */
+  /** Get workspace lock */
   getWorkspaceLock(): WorkspaceLock {
     return this.workspaceLock;
   }
 
-  // ===== 团队状态迁移 =====
+  // ===== Team state transitions =====
 
-  /** 开始规划 */
+  /** Start planning */
   startPlanning(): void {
     this.transitionTeam('planning');
   }
 
-  /** 开始运行 */
+  /** Start running */
   startRunning(): void {
     this.transitionTeam('running');
   }
 
-  /** 暂停 */
+  /** Pause */
   pause(): void {
     this.transitionTeam('paused');
     this.appendEvent('user_intervention', { type: 'pause' });
   }
 
-  /** 恢复 */
+  /** Resume */
   resume(): void {
     this.transitionTeam('running');
     this.appendEvent('user_intervention', { type: 'resume' });
   }
 
-  /** 完成 */
+  /** Complete */
   complete(summary: string): void {
     this.transitionTeam('completed');
     this.appendEvent('team_status_changed', { status: 'completed', summary });
   }
 
-  /** 失败 */
+  /** Fail */
   fail(reason: string): void {
     this.transitionTeam('failed');
     this.appendEvent('team_status_changed', { status: 'failed', reason });
   }
 
-  /** 取消 */
+  /** Cancel */
   cancel(): void {
     this.transitionTeam('cancelled');
     this.appendEvent('team_status_changed', { status: 'cancelled' });
@@ -352,9 +352,9 @@ export class TeamRuntime {
     this.appendEvent('team_status_changed', { from, to, status: to });
   }
 
-  // ===== 任务管理 =====
+  // ===== Task management =====
 
-  /** 创建任务 */
+  /** Create task */
   createTask(
     title: string,
     description: string,
@@ -366,14 +366,14 @@ export class TeamRuntime {
       throw new Error(`No member with role "${role}" available`);
     }
 
-    // 验证依赖任务存在
+    // Validate dependency tasks exist
     for (const depId of dependencies) {
       if (!this.state.tasks.find((t) => t.id === depId)) {
         throw new Error(`Dependency task not found: ${depId}`);
       }
     }
 
-    // 检查循环依赖
+    // Check for circular dependencies
     this.checkCircularDependency(dependencies, []);
 
     const task: Task = {
@@ -392,7 +392,7 @@ export class TeamRuntime {
     return task;
   }
 
-  /** 检查循环依赖 */
+  /** Check circular dependencies */
   private checkCircularDependency(
     dependencies: string[],
     visited: string[],
@@ -410,7 +410,7 @@ export class TeamRuntime {
     }
   }
 
-  /** 任务状态迁移 */
+  /** Task status transition */
   transitionTask(taskId: string, to: TaskStatus, result?: TaskResult): void {
     const task = this.state.tasks.find((t) => t.id === taskId);
     if (!task) {
@@ -430,7 +430,7 @@ export class TeamRuntime {
       );
     }
 
-    // 检查依赖是否已完成
+    // Check dependencies are completed
     if (to === 'ready' || to === 'running') {
       for (const depId of task.dependencies) {
         const dep = this.state.tasks.find((t) => t.id === depId);
@@ -442,16 +442,16 @@ export class TeamRuntime {
       }
     }
 
-    // 检查工作区锁（写任务需要获取锁）
+    // Check workspace lock (write tasks need to acquire lock)
     if (to === 'running' && (task.role === 'coder' || task.role === 'docs')) {
       if (!this.workspaceLock.acquire(taskId)) {
-        // 进入 blocked 状态
+        // Enter blocked state
         this.appendEvent('task_status_changed', { from, to: 'blocked', status: 'blocked', reason: 'workspace locked' }, taskId);
         return;
       }
     }
 
-    // 释放工作区锁
+    // Release workspace lock
     if ((to === 'passed' || to === 'failed' || to === 'cancelled') &&
         (task.role === 'coder' || task.role === 'docs')) {
       this.workspaceLock.release(taskId);
@@ -464,7 +464,7 @@ export class TeamRuntime {
     );
   }
 
-  /** 记录质量结论 */
+  /** Record quality result */
   recordQuality(
     taskId: string,
     quality: Omit<QualityResult, 'timestamp'>,
@@ -485,9 +485,9 @@ export class TeamRuntime {
       taskId,
     );
 
-    // 根据质量结论迁移任务状态
+    // Transition task state based on quality result
     if (quality.status === 'approved' || quality.status === 'test_passed') {
-      // 如果已经在 passed 状态，不需要再迁移
+      // If already in passed state, no need to transition
       if (task.status !== 'passed') {
         this.transitionTask(taskId, 'passed');
       }
@@ -495,7 +495,7 @@ export class TeamRuntime {
       quality.status === 'changes_requested' ||
       quality.status === 'test_failed'
     ) {
-      // 如果已经在 failed 状态，不需要再迁移
+      // If already in failed state, no need to transition
       if (task.status !== 'failed') {
         this.transitionTask(taskId, 'failed', {
           status: 'failed',
@@ -507,7 +507,7 @@ export class TeamRuntime {
     }
   }
 
-  // ===== 用户介入 =====
+  // ===== User intervention =====
 
   handleIntervention(command: InterventionCommand): void {
     switch (command.type) {
@@ -540,7 +540,7 @@ export class TeamRuntime {
     }
   }
 
-  // ===== 成员管理（受控操作） =====
+  // ===== Member management (controlled operations) =====
 
   addMember(member: MemberConfig): void {
     if (this.state.members.find((m) => m.id === member.id)) {
@@ -560,21 +560,21 @@ export class TeamRuntime {
     this.appendEvent('member_removed', { memberId });
   }
 
-  // ===== Subagent 绑定 =====
+  // ===== Subagent binding =====
 
-  /** 绑定 DSH subagent provider（由插件入口注入） */
+  /** Bind DSH subagent provider (injected by plugin entry) */
   bindSubagentProvider(provider: unknown): void {
     this.subagentProvider = provider;
   }
 
-  /** 获取 subagent provider */
+  /** Get subagent provider */
   getSubagentProvider(): unknown {
     return this.subagentProvider;
   }
 
-  // ===== 记忆注入 =====
+  // ===== Memory injection =====
 
-  /** 为任务检索相关记忆 */
+  /** Retrieve relevant memory for a task */
   getMemoryForTask(taskId: string): string {
     const result = this.memory.searchByTask(taskId);
     if (result.entries.length === 0) return '';
@@ -583,7 +583,7 @@ export class TeamRuntime {
       .join('\n\n');
   }
 
-  /** 记录事件到记忆 */
+  /** Record event to memory */
   private recordToMemory(event: TeamEvent): void {
     if (!this.config.memoryEnabled) return;
 
@@ -612,11 +612,11 @@ export class TeamRuntime {
           break;
       }
     } catch {
-      // 记忆记录失败不阻断主流程
+      // Memory recording failure does not block the main flow
     }
   }
 
-  // ===== 持久化 =====
+  // ===== Persistence =====
 
   private persist(event: TeamEvent): void {
     if (!this.persistencePath) return;
@@ -625,16 +625,16 @@ export class TeamRuntime {
       if (!existsSync(dir)) {
         mkdirSync(dir, { recursive: true });
       }
-      // 追加写入
+      // Append write
       const line = JSON.stringify(event) + '\n';
-      // 读取现有内容追加
+      // Read existing content and append
       let existing = '';
       if (existsSync(this.persistencePath)) {
         existing = readFileSync(this.persistencePath, 'utf-8');
       }
       writeFileSync(this.persistencePath, existing + line, 'utf-8');
     } catch {
-      // 持久化失败不阻断主流程
+      // Persistence failure does not block the main flow
     }
   }
 
@@ -649,10 +649,10 @@ export class TeamRuntime {
         try {
           events.push(JSON.parse(line) as TeamEvent);
         } catch {
-          // 跳过损坏行
+          // Skip corrupted lines
         }
       }
-      // 验证团队 ID 匹配
+      // Validate team ID matches
       if (events.length > 0 && events[0].teamId !== this.config.teamId) {
         return null;
       }
@@ -662,9 +662,9 @@ export class TeamRuntime {
     }
   }
 
-  /** 从事件重放状态 */
+  /** Replay state from events */
   private replayEvents(events: TeamEvent[]): TeamState {
-    // 从第一个事件提取初始状态
+    // Extract initial state from first event
     const state: TeamState = {
       id: this.config.teamId,
       name: this.config.teamName,
@@ -679,7 +679,7 @@ export class TeamRuntime {
 
     this.events = [...events];
 
-    // 重放每个事件
+    // Replay each event
     const oldState = this.state;
     this.state = state;
     for (const event of events) {
@@ -690,7 +690,7 @@ export class TeamRuntime {
     return state;
   }
 
-  // ===== 清理 =====
+  // ===== Cleanup =====
 
   dispose(): void {
     if (this.disposed) return;

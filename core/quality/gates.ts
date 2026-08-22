@@ -1,11 +1,11 @@
 /**
- * 质量门禁 — 统一结构化结果协议
+ * Quality gates — unified structured result protocol
  *
- * 为 coder、reviewer、tester、docs 定义统一结构化结果协议。
- * 结果包含：状态、摘要、产出文件、问题列表、测试命令、测试结果和阻塞原因。
+ * Defines a unified structured result protocol for coder, reviewer, tester, and docs.
+ * Results include: status, summary, artifacts, issues, test command, test output, and block reason.
  *
- * Reviewer 的 changes_requested、Tester 的 failed 必须阻止最终交付。
- * Docs 任务只读取已通过质量门的产出物。
+ * Reviewer's changes_requested and Tester's failed must block final delivery.
+ * Docs tasks only read artifacts that have passed quality gates.
  */
 
 import type {
@@ -17,7 +17,7 @@ import type {
   TaskStatus,
 } from '../runtime/types';
 
-// ===== 结果校验 =====
+// ===== Result validation =====
 
 export function validateTaskResult(raw: unknown): {
   valid: boolean;
@@ -118,7 +118,7 @@ function validateIssue(raw: unknown): string[] {
   return errors;
 }
 
-// ===== 质量结论校验 =====
+// ===== Quality result validation =====
 
 export function validateQualityResult(raw: unknown): {
   valid: boolean;
@@ -167,10 +167,10 @@ export function validateQualityResult(raw: unknown): {
   };
 }
 
-// ===== 质量门禁规则 =====
+// ===== Quality gate rules =====
 
 /**
- * 检查任务是否通过了质量门禁
+ * Check if a task has passed the quality gate
  */
 export function hasPassedQualityGate(task: Task): boolean {
   if (!task.quality) return false;
@@ -181,7 +181,7 @@ export function hasPassedQualityGate(task: Task): boolean {
 }
 
 /**
- * 检查任务是否需要修复
+ * Check if a task needs revision
  */
 export function needsRevision(task: Task): boolean {
   if (!task.quality) return false;
@@ -192,8 +192,8 @@ export function needsRevision(task: Task): boolean {
 }
 
 /**
- * 检查团队是否可以进入最终报告
- * 所有编码任务必须通过审核和测试
+ * Check if the team can proceed to final report.
+ * All coding tasks must pass review and testing.
  */
 export function canFinalize(tasks: Task[]): {
   canFinalize: boolean;
@@ -202,10 +202,10 @@ export function canFinalize(tasks: Task[]): {
   const blockers: string[] = [];
 
   for (const task of tasks) {
-    // 跳过已取消的任务
+    // Skip cancelled tasks
     if (task.status === 'cancelled') continue;
 
-    // 编码任务必须通过质量门禁
+    // Coding tasks must pass quality gate
     if (task.role === 'coder') {
       if (task.status !== 'passed') {
         blockers.push(
@@ -220,14 +220,14 @@ export function canFinalize(tasks: Task[]): {
       }
     }
 
-    // 审核任务必须完成
+    // Review tasks must be completed
     if (task.role === 'reviewer' && task.status !== 'passed') {
       blockers.push(
         `Review task "${task.title}" has not passed (status: ${task.status})`,
       );
     }
 
-    // 测试任务必须完成
+    // Test tasks must be completed
     if (task.role === 'tester' && task.status !== 'passed') {
       blockers.push(
         `Test task "${task.title}" has not passed (status: ${task.status})`,
@@ -239,7 +239,7 @@ export function canFinalize(tasks: Task[]): {
 }
 
 /**
- * 检查文档任务是否只读取已通过质量门的产出物
+ * Check that docs tasks only read artifacts that have passed quality gates
  */
 export function validateDocsInput(
   docsTask: Task,
@@ -251,7 +251,7 @@ export function validateDocsInput(
     return { valid: false, errors: ['Task must be a docs task'] };
   }
 
-  // 获取所有编码任务的产出物
+  // Get all coding task artifacts
   for (const task of allTasks) {
     if (task.role === 'coder' && task.status !== 'cancelled') {
       if (task.status !== 'passed') {

@@ -1,13 +1,13 @@
 /**
- * OrchestrationLoop 单元测试
+ * OrchestrationLoop unit tests
  *
- * 测试编排循环的核心流程：
- * - 启动/暂停/恢复/取消
- * - Leader 决策 → 创建任务 → 派发 → 完成
- * - 质量门禁：审核通过/退回、测试通过/失败
- * - report 完成
- * - ask_user 暂停等待用户
- * - 事件监听
+ * Tests the core flow of the orchestration loop:
+ * - Start/pause/resume/cancel
+ * - Leader decision → create task → dispatch → done
+ * - Quality gates: review approved/rejected, test passed/failed
+ * - Report completion
+ * - ask_user pause and wait for user response
+ * - Event listening
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -20,7 +20,7 @@ import type { TeamConfig } from '../../core/runtime/types';
 // ===== Mock SubagentRuntime =====
 
 /**
- * 创建 mock SubagentRuntime，按调用返回预定义的输出
+ * Create a mock SubagentRuntime that returns predefined outputs based on calls
  */
 function createMockSubagentRuntime(responses: Map<string, string[]>): SubagentRuntimeLike {
   const callCounts: Record<string, number> = {};
@@ -34,14 +34,14 @@ function createMockSubagentRuntime(responses: Map<string, string[]>): SubagentRu
       const queue = responses.get(key) || responses.get('*') || [];
       let output = queue[callCounts[key] - 1] || queue[queue.length - 1] || 'no response';
 
-      // 如果按 prompt 内容匹配
-      if (promptText.includes('审核')) {
+      // Match by prompt content
+      if (promptText.includes('Review')) {
         const reviewQueue = responses.get('reviewer') || responses.get('*') || [];
         output = reviewQueue[0] || output;
-      } else if (promptText.includes('测试')) {
+      } else if (promptText.includes('Test')) {
         const testQueue = responses.get('tester') || responses.get('*') || [];
         output = testQueue[0] || output;
-      } else if (promptText.includes('文档')) {
+      } else if (promptText.includes('documentation') || promptText.includes('docs')) {
         const docsQueue = responses.get('docs') || responses.get('*') || [];
         output = docsQueue[0] || output;
       }
@@ -61,7 +61,7 @@ function createMockSubagentRuntime(responses: Map<string, string[]>): SubagentRu
   };
 }
 
-// ===== 测试 =====
+// ===== Test =====
 
 describe('OrchestrationLoop', () => {
   let ctx: ReturnType<typeof createMockContext>;
@@ -84,48 +84,48 @@ describe('OrchestrationLoop', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  describe('状态管理', () => {
-    it('初始状态为 idle', () => {
+  describe('State Management', () => {
+    it('Initial state is idle', () => {
       expect(loop.getState()).toBe('idle');
     });
 
-    it('未绑定 subagent 时 start 抛错', async () => {
+    it('Throws when starting without bound subagent', async () => {
       await expect(loop.start('test goal')).rejects.toThrow('SubagentRuntime not bound');
     });
 
-    it('subscribe 接收事件', () => {
+    it('Subscribe receives events', () => {
       const events: LoopEvent[] = [];
       loop.subscribe((e) => events.push(e));
-      // 手动触发事件通过 start
+      // Manually trigger events via start
       loop.bindSubagentRuntime(createMockSubagentRuntime(new Map()));
-      // 不能直接测试 start 因为会启动完整循环
-      // 但可以测试 dispose 后 listeners 被清空
+      // Cannot directly test start as it will run the full loop
+      // But can test dispose after listeners are cleaned
       loop.dispose();
       expect(events.length).toBe(0);
     });
   });
 
-  describe('完整流程', () => {
-    it('Leader 创建任务 → coder 执行 → 完成 → report', async () => {
-      // 准备 mock responses
+  describe('Full Flow', () => {
+    it('Leader creates task → coder executes → done → report', async () => {
+      // Prepare mock responses
       const responses = new Map<string, string[]>([
         ['dsh', [
-          // 第一次调用：Leader 决策创建任务
+          // First call: Leader decides to create task
           JSON.stringify({
             type: 'create_task',
             task: {
-              title: '实现登录页',
-              description: '创建一个登录表单组件',
+              title: 'Implement login page',
+              description: 'Create a login form component',
               role: 'coder',
               dependencies: [],
             },
-            reason: '需要先实现登录页面',
+            reason: 'Need to implement login page first',
           }),
-          // 第二次调用：Leader 决策 report
+          // Second call: Leader reports
           JSON.stringify({
             type: 'report',
-            summary: '所有任务已完成',
-            reason: '登录页实现完成',
+            summary: 'All tasks are done',
+            reason: 'Login page implementation done',
           }),
         ]],
       ]);
@@ -135,12 +135,12 @@ describe('OrchestrationLoop', () => {
       const events: LoopEvent[] = [];
       loop.subscribe((e) => events.push(e));
 
-      await loop.start('做一个登录页面');
+      await loop.start('Implement a login page');
 
-      // 验证循环完成
+      // Verify loop is done
       expect(loop.getState()).toBe('completed');
 
-      // 验证事件序列
+      // Verify event order
       const types = events.map((e) => e.type);
       expect(types).toContain('loop_started');
       expect(types).toContain('leader_called');
@@ -149,50 +149,50 @@ describe('OrchestrationLoop', () => {
       expect(types).toContain('task_completed');
       expect(types).toContain('loop_completed');
 
-      // 验证团队状态
+      // Verify team state
       const snapshot = runtime.getSnapshot();
       expect(snapshot.status).toBe('completed');
       expect(snapshot.tasks.length).toBe(1);
       expect(snapshot.tasks[0].status).toBe('passed');
     });
 
-    it('Leader 创建任务 → coder 执行 → request_review → 审核通过 → report', async () => {
+    it('Leader creates task → coder executes → request_review → review approved → report', async () => {
       const responses = new Map<string, string[]>([
         ['dsh', [
-          // Leader: 创建 coder 任务
+          // Leader: create coder task
           JSON.stringify({
             type: 'create_task',
             task: {
-              title: '实现登录页',
-              description: '创建一个登录表单组件',
+              title: 'Implement login page',
+              description: 'Create a login form component',
               role: 'coder',
               dependencies: [],
             },
-            reason: '需要先实现登录页面',
+            reason: 'Need to implement login page first',
           }),
-          // Leader: 请求审核
+          // Leader: request review
           JSON.stringify({
             type: 'request_review',
-            taskId: '', // 将在测试中动态填充
-            reason: '代码写完了，需要审核',
+            taskId: '', // Will be filled at test runtime
+            reason: 'Code is written, need review',
           }),
-          // Leader: 汇报完成
+          // Leader: Report done
           JSON.stringify({
             type: 'report',
-            summary: '所有任务已完成并审核通过',
-            reason: '审核通过',
+            summary: 'All tasks done and review passed',
+            reason: 'Review passed',
           }),
         ]],
         ['reviewer', [
           JSON.stringify({
             status: 'approved',
-            summary: '代码质量良好，通过审核',
+            summary: 'Code quality is good, review passed',
             issues: [],
           }),
         ]],
       ]);
 
-      // 所有成员的 provider 都是 'dsh'，所以按 prompt 内容区分角色
+      // All members have provider 'dsh', so we dispatch by prompt content to determine role
       let leaderCallCount = 0;
       const mockRT: SubagentRuntimeLike = {
         async start(_name: string, request: { prompt: unknown[] }) {
@@ -200,15 +200,15 @@ describe('OrchestrationLoop', () => {
 
           let output = '';
 
-          // 按 prompt 内容区分：Leader、reviewer、coder
-          if (promptText.includes('你的决策') || promptText.includes('团队目标')) {
-            // Leader 决策
+          // Dispatch by prompt content: Leader, reviewer, coder
+          if (promptText.includes('your decision') || promptText.includes('team goal')) {
+            // Leader decision
             leaderCallCount++;
             const queue = responses.get('dsh') || [];
             if (leaderCallCount === 1) {
               output = queue[0]; // create_task
             } else if (leaderCallCount === 2) {
-              // 使用真实 taskId
+              // Use real taskId
               const snapshot = runtime.getSnapshot();
               const taskId = snapshot.tasks[0]?.id || '';
               const action = JSON.parse(queue[1]);
@@ -217,15 +217,15 @@ describe('OrchestrationLoop', () => {
             } else {
               output = queue[2]; // report
             }
-          } else if (promptText.includes('审核员') || promptText.includes('审核结论')) {
-            // reviewer
+          } else if (promptText.includes('Reviewer') || promptText.includes('Review conclusion')) {
+            // Reviewer
             const queue = responses.get('reviewer') || [];
             output = queue[0];
           } else {
-            // coder 执行
+            // Coder executes
             output = JSON.stringify({
               status: 'completed',
-              summary: '登录页实现完成',
+              summary: 'Login page implementation done',
               artifacts: ['Login.tsx'],
               issues: [],
             });
@@ -244,7 +244,7 @@ describe('OrchestrationLoop', () => {
 
       loop.bindSubagentRuntime(mockRT);
 
-      await loop.start('做一个登录页面');
+      await loop.start('Implement a login page');
 
       expect(loop.getState()).toBe('completed');
       const snapshot = runtime.getSnapshot();
@@ -253,7 +253,7 @@ describe('OrchestrationLoop', () => {
       expect(snapshot.tasks[0].quality!.status).toBe('approved');
     });
 
-    it('审核退回 → coder 修复 → 重新审核', async () => {
+    it('Review rejected → coder fixes → re-review', async () => {
       let leaderCallCount = 0;
       let reviewerCallCount = 0;
 
@@ -262,9 +262,9 @@ describe('OrchestrationLoop', () => {
           const promptText = (request.prompt as { type: string; text?: string }[]).map((b) => b.text || '').join('');
           let output = '';
 
-          // 按 prompt 内容区分角色
-          if (promptText.includes('你的决策') || promptText.includes('团队目标')) {
-            // Leader 决策
+          // Dispatch by prompt content
+          if (promptText.includes('your decision') || promptText.includes('team goal')) {
+            // Leader decision
             leaderCallCount++;
             const snapshot = runtime.getSnapshot();
             const taskId = snapshot.tasks[0]?.id || '';
@@ -273,73 +273,73 @@ describe('OrchestrationLoop', () => {
               output = JSON.stringify({
                 type: 'create_task',
                 task: {
-                  title: '实现登录页',
-                  description: '创建一个登录表单组件',
+                  title: 'Implement login page',
+                  description: 'Create a login form component',
                   role: 'coder',
                   dependencies: [],
                 },
-                reason: '需要先实现登录页面',
+                reason: 'Need to implement login page first',
               });
             } else if (leaderCallCount === 2) {
               output = JSON.stringify({
                 type: 'request_review',
                 taskId,
-                reason: '代码写完了',
+                reason: 'Code is written',
               });
             } else if (leaderCallCount === 3) {
-              // 审核退回后，创建修复任务
+              // After review rejection, create a fix task
               output = JSON.stringify({
                 type: 'create_task',
                 task: {
-                  title: '修复空指针风险',
-                  description: '审核发现 Login.tsx 第42行空指针风险',
+                  title: 'Fix null pointer risk',
+                  description: 'Reviewer found null pointer risk in Login.tsx line 42',
                   role: 'coder',
                   dependencies: [],
                 },
-                reason: '审核发现问题，退回修复',
+                reason: 'Reviewer found issue, need to fix',
               });
             } else if (leaderCallCount === 4) {
-              // 再次请求审核（对修复后的任务）
+              // Request review again (for the fixed task)
               const fixTaskId = snapshot.tasks[1]?.id || '';
               output = JSON.stringify({
                 type: 'request_review',
                 taskId: fixTaskId,
-                reason: '修复完成，重新审核',
+                reason: 'Fix is done, need re-review',
               });
             } else {
               output = JSON.stringify({
                 type: 'report',
-                summary: '所有任务完成并审核通过',
-                reason: '全部通过',
+                summary: 'All tasks done and review passed',
+                reason: 'All passed',
               });
             }
-          } else if (promptText.includes('审核员') || promptText.includes('审核结论')) {
-            // reviewer
+          } else if (promptText.includes('Reviewer') || promptText.includes('Review conclusion')) {
+            // Reviewer
             reviewerCallCount++;
             if (reviewerCallCount === 1) {
               output = JSON.stringify({
                 status: 'changes_requested',
-                summary: 'Login.tsx 第42行有空指针风险',
+                summary: 'Login.tsx line 42 has null pointer risk',
                 issues: [{
                   severity: 'critical',
                   file: 'Login.tsx',
                   line: 42,
-                  description: '空指针风险',
-                  suggestion: '添加空值检查',
+                  description: 'Null pointer risk',
+                  suggestion: 'Add null value check',
                 }],
               });
             } else {
               output = JSON.stringify({
                 status: 'approved',
-                summary: '修复后审核通过',
+                summary: 'Review passed after fix',
                 issues: [],
               });
             }
           } else {
-            // coder
+            // Coder
             output = JSON.stringify({
               status: 'completed',
-              summary: '任务完成',
+              summary: 'Task done',
               artifacts: ['Login.tsx'],
               issues: [],
             });
@@ -357,36 +357,36 @@ describe('OrchestrationLoop', () => {
       };
 
       loop.bindSubagentRuntime(mockRT);
-      await loop.start('做一个登录页面');
+      await loop.start('Implement a login page');
 
       expect(loop.getState()).toBe('completed');
       const snapshot = runtime.getSnapshot();
-      // 应该有2个任务（原始 + 修复）
+      // Should have 2 tasks (original + fix)
       expect(snapshot.tasks.length).toBe(2);
     });
   });
 
-  describe('暂停和恢复', () => {
-    it('pause 后状态变为 paused', () => {
+  describe('Pause and Resume', () => {
+    it('Pause changes state to paused', () => {
       loop.bindSubagentRuntime(createMockSubagentRuntime(new Map()));
-      // 直接测试 pause（不启动循环）
-      // pause 在非 running 状态时为 no-op
+      // Test pause directly (without starting loop)
+      // Pause at non-running status is a no-op
       loop.pause();
       expect(loop.getState()).toBe('idle');
     });
   });
 
-  describe('cancel', () => {
-    it('cancel 后状态变为 cancelled', () => {
+  describe('Cancel', () => {
+    it('Cancel changes state to cancelled', () => {
       loop.cancel();
       expect(loop.getState()).toBe('cancelled');
     });
   });
 
-  describe('错误处理', () => {
-    it('超过最大迭代次数后状态变为 failed', async () => {
-      // Leader 每次都输出无效 JSON — 循环会继续但不会产出有效 action
-      // 达到 maxIterations 后抛错
+  describe('Error Handling', () => {
+    it('Exceeds max iterations and fails', async () => {
+      // Leader always outputs invalid JSON — loop will keep going but won't produce valid action
+      // Reaching maxIterations will throw
       const responses = new Map<string, string[]>([
         ['dsh', ['this is not json at all']],
       ]);
@@ -396,10 +396,10 @@ describe('OrchestrationLoop', () => {
       try {
         await loop.start('test');
       } catch (err) {
-        // 预期抛出 Max iterations 错误
+        // Expected to throw max iterations error
       }
 
-      // 循环因超时失败
+      // Loop failed
       expect(loop.getState()).toBe('failed');
     });
   });

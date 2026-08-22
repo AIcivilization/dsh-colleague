@@ -1,6 +1,6 @@
 /**
- * TeamWarmupOverlay — 初始化遮罩
- * 磨砂玻璃覆盖对话区，从列抬头下方开始
+ * TeamWarmupOverlay — initialization overlay
+ * Frosted glass covering the conversation area, starting below the column header
  */
 
 import React from 'react';
@@ -72,7 +72,7 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
       style={{ top: COLUMN_HEADER_HEIGHT }}
     >
       <div className='cp-warmup-content'>
-        {/* 成员头像 */}
+        {/* Member avatars */}
         <div className='cp-warmup-avatars'>
           {assistants.slice(0, 6).map((a) => {
             const status = runtimeStatus.get(a.slot_id)?.status;
@@ -176,7 +176,7 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
             <div className='cp-warmup-subtitle'>
               {t('warmup.gettingReady')}
             </div>
-            {/* 品牌色进度条 */}
+            {/* Brand color progress bar */}
             <div className='cp-warmup-progress'>
               <div className='cp-warmup-progress-bar team-warmup-sweep' />
             </div>

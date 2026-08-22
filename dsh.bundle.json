@@ -2,7 +2,7 @@
   "id": "dsh-colleague",
   "name": "dsh-colleague",
   "version": "0.1.0",
-  "description": "有记忆、有角色的长期 AI 团队 — 基于 DeepSeek Harness 的多 Agent 协作插件",
+  "description": "Persistent, role-based AI teams — a multi-agent collaboration plugin for DeepSeek Harness",
   "author": "AIcivilization",
   "license": "MIT",
   "homepage": "https://github.com/AIcivilization/dsh-colleague#readme",
@@ -18,17 +18,17 @@
       "configPath": {
         "type": "string",
         "default": "config/team.yaml",
-        "description": "团队配置文件路径"
+        "description": "Team configuration file path"
       },
       "maxConcurrentWriters": {
         "type": "number",
         "default": 1,
-        "description": "最大并发写任务数（首版固定为 1，串行写入）"
+        "description": "Maximum concurrent write tasks (first version fixed at 1, serial writes)"
       },
       "memoryEnabled": {
         "type": "boolean",
         "default": true,
-        "description": "是否启用记忆注入"
+        "description": "Enable memory injection"
       }
     }
   },

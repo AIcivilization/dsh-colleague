@@ -13,7 +13,7 @@ export default defineConfig({
     'react-dom',
     'yaml',
   ],
-  // CSS 不打包（rolldown 不支持），由 DSH 宿主或手动加载
+  // CSS is not bundled (rolldown doesn't support it); loaded by DSH host or manually
   // assets: {
   //   include: ['web/index.css'],
   // },

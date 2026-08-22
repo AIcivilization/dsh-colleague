@@ -1,19 +1,19 @@
 /**
- * React 挂载入口 — DSH 嵌入面板
+ * React mount entry — DSH embedded panel
  *
- * 从 DSH TeamRuntime 服务订阅事件流，不再使用 API 轮询。
- * 面板注册为 DSH Web 嵌入组件。
+ * Subscribes to the DSH TeamRuntime service event stream. No API polling.
+ * Panel registered as a DSH Web embedded component.
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-// CSS 由 DSH 宿主加载，不打包到 JS 中
+// CSS loaded by DSH host, not bundled into JS
 import TeamPage from './team-panel';
 import { t } from './team-panel/i18n';
 import type { TeamState, TeamEvent, InterventionCommand } from '../core/runtime/types';
 import { teamStateToBlackboard, eventsToMessages, type MemberState, type Blackboard, type MailboxMessage } from './types';
 
-// ===== DSH 面板注册 =====
+// ===== DSH panel registration =====
 
 export function registerPanel(mount: HTMLElement, runtime: {
   getSnapshot: () => TeamState;
@@ -30,7 +30,7 @@ export function registerPanel(mount: HTMLElement, runtime: {
   return () => root.unmount();
 }
 
-// ===== 事件流订阅 hook =====
+// ===== Event stream subscription hook =====
 
 function useTeamEvents(runtime: {
   getSnapshot: () => TeamState;
@@ -42,21 +42,21 @@ function useTeamEvents(runtime: {
   const eventsRef = useRef<TeamEvent[]>([]);
 
   useEffect(() => {
-    // 初始快照
+    // Initial snapshot
     setState(runtime.getSnapshot());
 
-    // 获取历史事件
+    // Get historical events
     if (runtime.getEvents) {
       const history = runtime.getEvents();
       eventsRef.current = history.slice(-200);
       setEvents([...eventsRef.current]);
     }
 
-    // 订阅事件流
+    // Subscribe to event stream
     const unsubscribe = runtime.subscribe((event) => {
       eventsRef.current = [...eventsRef.current, event].slice(-200);
       setEvents([...eventsRef.current]);
-      // 每次事件后刷新状态
+      // Refresh state after each event
       setState(runtime.getSnapshot());
     });
 
@@ -68,7 +68,7 @@ function useTeamEvents(runtime: {
   return { state, events };
 }
 
-// ===== App 组件 =====
+// ===== App component =====
 
 function App({ runtime }: {
   runtime: {
@@ -101,7 +101,7 @@ function App({ runtime }: {
     runtime.handleIntervention({ type: 'skip', taskId });
   }, [runtime]);
 
-  // 转换为 UI 需要的成员格式
+  // Convert to member format expected by UI
   const members: MemberState[] = state.members.map((m) => ({
     colleague_id: m.id,
     name: m.name,
@@ -117,7 +117,7 @@ function App({ runtime }: {
 
   const leaderId = members.find((m) => m.role === 'leader')?.colleague_id || members[0]?.colleague_id || 'leader';
 
-  // 转换事件为消息格式
+  // Convert events to message format
   const messages: MailboxMessage[] = events.map((e) => ({
     id: e.id,
     from: e.memberId || 'system',
@@ -129,7 +129,7 @@ function App({ runtime }: {
     created_at: e.timestamp,
   }));
 
-  // 构建 fetchState 兼容旧 hook 接口（内部从快照读取，不再发 HTTP 请求）
+  // Build fetchState compatible with old hook interface (reads from snapshot internally, no HTTP requests)
   const fetchState = useCallback(async () => {
     const blackboard = teamStateToBlackboard(state);
     return {

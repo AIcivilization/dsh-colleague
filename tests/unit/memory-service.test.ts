@@ -1,13 +1,13 @@
 /**
- * MemoryService 单元测试
+ * MemoryService single unitTest
  *
- * 测试覆盖：
+ * Testcover cover：
  * - recordEvent / recordDecision / recordCommand / recordQuality
- * - searchByTask（按任务检索）
- * - search（全文检索）
- * - 注入上限（maxEntries / maxCharsPerEntry / maxTotalChars）
- * - 持久化（写入/加载）
- * - clear
+ * - searchByTask（presstaskcheck search）
+ * - search（all text check search）
+ * - register input up limit（maxEntries / maxCharsPerEntry / maxTotalChars）
+ * - persistence（write/load）
+ * - clean
  * - getAll
  */
 
@@ -22,25 +22,25 @@ describe('MemoryService', () => {
   let memory: MemoryService;
 
   beforeEach(() => {
-    memory = new MemoryService(); // 不启用持久化
+    memory = new MemoryService(); // notstart usepersistence
   });
 
-  describe('记录操作', () => {
-    it('recordEvent 记录事件', () => {
+  describe('record recordoperation', () => {
+    it('recordEvent record recordevent', () => {
       memory.recordEvent({
-        content: '任务开始执行',
+        content: 'taskopen initial execute row',
         metadata: { taskId: 'task-001' },
       });
       const all = memory.getAll();
       expect(all.length).toBe(1);
-      expect(all[0].content).toBe('任务开始执行');
+      expect(all[0].content).toBe('taskopen initial execute row');
       expect(all[0].metadata.source).toBe('event');
       expect(all[0].metadata.taskId).toBe('task-001');
     });
 
-    it('recordDecision 记录架构决定', () => {
+    it('recordDecision record record architect structure decis bind', () => {
       memory.recordDecision({
-        content: '选择 React 作为前端框架',
+        content: 'select select React workforbeforeend  architect',
         metadata: {},
       });
       const all = memory.getAll();
@@ -48,7 +48,7 @@ describe('MemoryService', () => {
       expect(all[0].metadata.source).toBe('decision');
     });
 
-    it('recordCommand 记录已验证命令', () => {
+    it('recordCommand record recordhasverify verify life command', () => {
       memory.recordCommand({
         content: 'npm run build',
         metadata: {},
@@ -58,9 +58,9 @@ describe('MemoryService', () => {
       expect(all[0].metadata.source).toBe('command');
     });
 
-    it('recordQuality 记录质量结论', () => {
+    it('recordQuality record record quality amount conclusion conclusion', () => {
       memory.recordQuality({
-        content: '审核通过，无严重问题',
+        content: 'Review passed，no strict heavyIssue',
         metadata: { taskId: 'task-001' },
       });
       const all = memory.getAll();
@@ -68,72 +68,72 @@ describe('MemoryService', () => {
       expect(all[0].metadata.source).toBe('quality');
     });
 
-    it('多条记录追加到列表', () => {
-      memory.recordEvent({ content: '事件1', metadata: {} });
-      memory.recordEvent({ content: '事件2', metadata: {} });
-      memory.recordDecision({ content: '决定1', metadata: {} });
+    it('many item record record  addtolist', () => {
+      memory.recordEvent({ content: 'event1', metadata: {} });
+      memory.recordEvent({ content: 'event2', metadata: {} });
+      memory.recordDecision({ content: 'decis bind1', metadata: {} });
       expect(memory.getAll().length).toBe(3);
     });
   });
 
   describe('searchByTask', () => {
     beforeEach(() => {
-      memory.recordEvent({ content: '任务A开始', metadata: { taskId: 'task-A' } });
-      memory.recordEvent({ content: '任务A完成', metadata: { taskId: 'task-A' } });
-      memory.recordEvent({ content: '任务B开始', metadata: { taskId: 'task-B' } });
-      memory.recordQuality({ content: '任务A审核通过', metadata: { taskId: 'task-A' } });
+      memory.recordEvent({ content: 'taskAopen initial', metadata: { taskId: 'task-A' } });
+      memory.recordEvent({ content: 'taskADone', metadata: { taskId: 'task-A' } });
+      memory.recordEvent({ content: 'taskBopen initial', metadata: { taskId: 'task-B' } });
+      memory.recordQuality({ content: 'taskAReview passed', metadata: { taskId: 'task-A' } });
     });
 
-    it('按 taskId 检索相关记忆', () => {
+    it('press taskId check search phase close record memory', () => {
       const result = memory.searchByTask('task-A');
       expect(result.total).toBe(3);
       expect(result.entries.length).toBe(3);
       expect(result.truncated).toBe(false);
     });
 
-    it('不存在的 taskId 返回空', () => {
+    it('does not existof taskId return returnempty', () => {
       const result = memory.searchByTask('nonexistent');
       expect(result.total).toBe(0);
       expect(result.entries.length).toBe(0);
     });
 
-    it('只返回指定 taskId 的记忆', () => {
+    it('only return return point bind taskId ofrecord memory', () => {
       const result = memory.searchByTask('task-B');
       expect(result.total).toBe(1);
-      expect(result.entries[0].content).toBe('任务B开始');
+      expect(result.entries[0].content).toBe('taskBopen initial');
     });
   });
 
-  describe('search（全文检索）', () => {
+  describe('search（all text check search）', () => {
     beforeEach(() => {
-      memory.recordEvent({ content: '用户登录功能实现', metadata: {} });
-      memory.recordDecision({ content: '使用 JWT 认证', metadata: {} });
-      memory.recordEvent({ content: '登录测试通过', metadata: {} });
+      memory.recordEvent({ content: 'use userloginsuccesscanimplement', metadata: {} });
+      memory.recordDecision({ content: 'use use JWT verify verify', metadata: {} });
+      memory.recordEvent({ content: 'loginTestPassed', metadata: {} });
     });
 
-    it('关键词匹配', () => {
-      const result = memory.search('登录');
+    it('close   match config', () => {
+      const result = memory.search('login');
       expect(result.total).toBe(2);
     });
 
-    it('大小写不敏感', () => {
+    it('large small writenot ', () => {
       memory.recordEvent({ content: 'React Framework', metadata: {} });
       const result = memory.search('react');
       expect(result.total).toBe(1);
     });
 
-    it('无匹配返回空', () => {
+    it('no match config return returnempty', () => {
       const result = memory.search('nonexistent');
       expect(result.total).toBe(0);
     });
   });
 
-  describe('注入上限', () => {
-    it('maxEntries 限制返回条目数', () => {
-      // 记录 10 条
+  describe('register input up limit', () => {
+    it('maxEntries limit control return return item item data', () => {
+      // record record 10 item
       for (let i = 0; i < 10; i++) {
         memory.recordEvent({
-          content: `事件${i}`,
+          content: `event${i}`,
           metadata: { taskId: 'task-x' },
         });
       }
@@ -141,12 +141,12 @@ describe('MemoryService', () => {
         ...DEFAULT_INJECTION_CONFIG,
         maxEntries: 3,
       });
-      // maxEntries 限制后返回 3 条，total 也为 3（已切片）
+      // maxEntries limit controlafterreturn return 3 item，total alsofor 3（hasswitch piece）
       expect(result.entries.length).toBe(3);
       expect(result.total).toBe(3);
     });
 
-    it('maxCharsPerEntry 截断单条内容', () => {
+    it('maxCharsPerEntry  break single item inner content', () => {
       memory.recordEvent({
         content: 'A'.repeat(1000),
         metadata: { taskId: 'task-x' },
@@ -159,7 +159,7 @@ describe('MemoryService', () => {
       expect(result.entries[0].content).toContain('...');
     });
 
-    it('maxTotalChars 限制总注入字符', () => {
+    it('maxTotalChars limit control total register input character symbol', () => {
       for (let i = 0; i < 5; i++) {
         memory.recordEvent({
           content: 'A'.repeat(500),
@@ -178,7 +178,7 @@ describe('MemoryService', () => {
     });
   });
 
-  describe('持久化', () => {
+  describe('persistence', () => {
     let persistDir: string;
     let persistedMemory: MemoryService;
 
@@ -191,9 +191,9 @@ describe('MemoryService', () => {
       rmSync(persistDir, { recursive: true, force: true });
     });
 
-    it('记录后写入 memory.jsonl 文件', () => {
+    it('record recordafterwrite memory.jsonl text component', () => {
       persistedMemory.recordEvent({
-        content: '测试持久化',
+        content: 'Testpersistence',
         metadata: { taskId: 'task-001' },
       });
       const memPath = join(persistDir, 'memory.jsonl');
@@ -202,45 +202,45 @@ describe('MemoryService', () => {
       const lines = content.split('\n').filter((l) => l.trim());
       expect(lines.length).toBe(1);
       const entry = JSON.parse(lines[0]);
-      expect(entry.content).toBe('测试持久化');
+      expect(entry.content).toBe('Testpersistence');
     });
 
-    it('重启后从文件加载记忆', () => {
+    it('restartafterfromtext componentloadrecord memory', () => {
       persistedMemory.recordEvent({
-        content: '需要恢复的记忆',
+        content: 'Needrecoveryofrecord memory',
         metadata: { taskId: 'task-001' },
       });
       persistedMemory.recordDecision({
-        content: '架构决定',
+        content: 'architect structure decis bind',
         metadata: {},
       });
 
-      // 创建新实例从同一目录加载
+      // createnew actual instancefromsame one item recordload
       const restored = new MemoryService(persistDir);
       const all = restored.getAll();
       expect(all.length).toBe(2);
-      expect(all[0].content).toBe('需要恢复的记忆');
-      expect(all[1].content).toBe('架构决定');
+      expect(all[0].content).toBe('Needrecoveryofrecord memory');
+      expect(all[1].content).toBe('architect structure decis bind');
     });
 
-    it('clear 清空记忆并更新文件', () => {
-      persistedMemory.recordEvent({ content: '记忆1', metadata: {} });
-      persistedMemory.recordEvent({ content: '记忆2', metadata: {} });
+    it('clean cleanemptyrecord memory and update new text component', () => {
+      persistedMemory.recordEvent({ content: 'record memory1', metadata: {} });
+      persistedMemory.recordEvent({ content: 'record memory2', metadata: {} });
       expect(persistedMemory.getAll().length).toBe(2);
 
       persistedMemory.clear();
       expect(persistedMemory.getAll().length).toBe(0);
 
-      // 文件也应为空
+      // text component alsoshouldforempty
       const restored = new MemoryService(persistDir);
       expect(restored.getAll().length).toBe(0);
     });
   });
 
-  describe('访问记录更新', () => {
-    it('searchByTask 更新 lastAccessed 和 accessCount', () => {
+  describe('  record record update new', () => {
+    it('searchByTask update new lastAccessed and accessCount', () => {
       memory.recordEvent({
-        content: '测试访问记录',
+        content: 'Test  record record',
         metadata: { taskId: 'task-001' },
       });
 

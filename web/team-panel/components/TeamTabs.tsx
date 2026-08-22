@@ -1,6 +1,6 @@
 /**
- * TeamTabs — 成员胶囊栏
- * 圆形头像 + 状态灯 + 身份色名称 + hover 操作
+ * TeamTabs — member chip bar
+ * Circular avatar + status light + identity-color name + hover actions
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -149,7 +149,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
               ‼️
             </span>
           )}
-          {/* 头像 */}
+          {/* Avatar */}
           <div
             className={`cp-tab-avatar ${warmupFailed ? 'grayscale' : ''}`}
             style={isActive ? { boxShadow: `0 0 0 1.5px ${color}` } : undefined}
@@ -168,7 +168,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           </span>
         </div>
       )}
-      {/* hover 操作按钮 */}
+        {/* Hover action buttons */}
       {showHoverActions && onRename && (
         <span
           data-testid={`team-tab-edit-${slot_id}`}
@@ -255,7 +255,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
   return (
     <div data-testid='team-tab-bar' className='cp-tab-bar'>
       <div className='cp-tab-bar-inner'>
-        {/* 可横向滚动的成员胶囊列表 */}
+        {/* Horizontally scrollable member chip list */}
         <div ref={tabsContainerRef} className='cp-tab-list scrollbar-hide'>
           {assistants.map((assistant) => {
             return (
@@ -285,7 +285,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
             );
           })}
         </div>
-        {/* 两侧渐隐提示 */}
+        {/* Edge fade indicators */}
         {showLeftFade && (
           <div
             className='cp-tab-fade'
@@ -298,7 +298,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
             style={{ right: 0, background: 'linear-gradient(270deg, var(--bg-1), transparent)' }}
           />
         )}
-        {/* 固定在最右的「添加成员」 */}
+        {/* Pinned "Add member" on the right */}
         {onAddMember ? (
           <div className='flex items-center shrink-0' style={{ paddingInlineStart: '8px', paddingInlineEnd: '12px' }}>
             <button

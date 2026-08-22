@@ -1,11 +1,11 @@
 /**
  * Colleague Plugin useTeamWarmup.ts
- * 团队 warmup 状态管理。
+ * Team warmup state management.
  *
- * 后端在团队会话整体就绪时发 ready 信号。
- * runtimeStatus 是各成员逐个的真实唤醒信号。
+ * Backend sends a ready signal when the team session is fully initialized.
+ * runtimeStatus is the per-member real wake-up signal.
  *
- * 纯事件驱动：通过 subscribe 监听事件流，不再使用 300ms 轮询。
+ * Pure event-driven: subscribes to the event stream, no 300ms polling.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -21,9 +21,9 @@ type TeamAssistant = {
 type Props = {
   teamId: string;
   assistants: TeamAssistant[];
-  /** 获取成员运行时状态 */
+  /** Get member runtime status */
   getMemberRuntimeStatus: (slot_id: string) => TeamWarmupMemberState | undefined;
-  /** 可选：订阅事件流（事件驱动替代轮询） */
+  /** Optional: subscribe to event stream (event-driven instead of polling) */
   subscribe?: (listener: () => void) => () => void;
 };
 
@@ -35,7 +35,7 @@ export function useTeamWarmup({ teamId, assistants, getMemberRuntimeStatus, subs
   const [phase, setPhase] = useState<TeamWarmupPhase>('warming');
   const [runtimeStatus, setRuntimeStatus] = useState<Map<string, TeamWarmupMemberState>>(new Map());
 
-  // 用字符串 key 稳定化依赖，避免 assistants 数组引用变化导致无限重渲染
+  // Stabilize dependencies with string key to avoid infinite re-render from assistants array reference changes
   const assistantsKey = assistants.map((a) => a.slot_id).join(',');
   const getMemberRuntimeStatusRef = useRef(getMemberRuntimeStatus);
   getMemberRuntimeStatusRef.current = getMemberRuntimeStatus;
@@ -64,20 +64,20 @@ export function useTeamWarmup({ teamId, assistants, getMemberRuntimeStatus, subs
     } else if (allReady && assistants.length > 0) {
       setPhase('ready');
     }
-    // 否则保持 warming
+    // Otherwise stay in warming
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assistantsKey, assistants.length]);
 
   useEffect(() => {
-    // 初始检查
+    // Initial check
     checkWarmup();
 
-    // 超时：30 秒后如果还在 warming，切换到 error
+    // Timeout: after 30s if still warming, switch to error
     const timeout = setTimeout(() => {
       setPhase((prev) => (prev === 'warming' ? 'error' : prev));
     }, 30000);
 
-    // 事件驱动：如果有 subscribe，监听事件流触发检查
+    // Event-driven: if subscribe is available, listen to event stream to trigger checks
     let unsubscribe: (() => void) | undefined;
     if (subscribe) {
       unsubscribe = subscribe(() => {
@@ -94,7 +94,7 @@ export function useTeamWarmup({ teamId, assistants, getMemberRuntimeStatus, subs
   const retry = useCallback(() => {
     setPhase('warming');
     setRuntimeStatus(new Map());
-    // 重新触发检查
+    // Re-trigger check
     setTimeout(checkWarmup, 100);
   }, [checkWarmup]);
 

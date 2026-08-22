@@ -1,12 +1,12 @@
 /**
- * 记忆系统类型定义
+ * Memory system type definitions
  *
- * 首版实现为持久化团队事件、架构决定、已验证命令和质量结论。
- * 按任务检索少量相关内容注入 Leader 或执行角色。
- * L0–L3 蒸馏移入后续版本。
+ * First version implements persistent team events, architectural decisions, verified commands, and quality conclusions.
+ * Retrieves a small amount of relevant content per task for injection into Leader or execution roles.
+ * L0–L3 distillation deferred to future versions.
  */
 
-// ===== 记忆条目 =====
+// ===== Memory entry =====
 
 export interface MemoryEntry {
   id: string;
@@ -21,7 +21,7 @@ export interface MemoryEntry {
   };
 }
 
-// ===== 记忆检索结果 =====
+// ===== Memory search result =====
 
 export interface MemorySearchResult {
   entries: MemoryEntry[];
@@ -29,14 +29,14 @@ export interface MemorySearchResult {
   truncated: boolean;
 }
 
-// ===== 记忆注入配置 =====
+// ===== Memory injection config =====
 
 export interface MemoryInjectionConfig {
-  /** 单次注入的最大条目数 */
+  /** Max entries per injection */
   maxEntries: number;
-  /** 单条记忆的最大字符数 */
+  /** Max characters per memory entry */
   maxCharsPerEntry: number;
-  /** 注入总字符上限 */
+  /** Max total characters for injection */
   maxTotalChars: number;
 }
 
@@ -46,30 +46,30 @@ export const DEFAULT_INJECTION_CONFIG: MemoryInjectionConfig = {
   maxTotalChars: 2000,
 };
 
-// ===== 记忆操作接口 =====
+// ===== Memory operations interface =====
 
 export interface MemoryOps {
-  /** 记录团队事件 */
+  /** Record team event */
   recordEvent(entry: Omit<MemoryEntry, 'id' | 'metadata'> & { metadata?: Partial<MemoryEntry['metadata']> }): void;
 
-  /** 记录架构决定 */
+  /** Record architectural decision */
   recordDecision(entry: Omit<MemoryEntry, 'id' | 'metadata'> & { metadata?: Partial<MemoryEntry['metadata']> }): void;
 
-  /** 记录已验证命令 */
+  /** Record verified command */
   recordCommand(entry: Omit<MemoryEntry, 'id' | 'metadata'> & { metadata?: Partial<MemoryEntry['metadata']> }): void;
 
-  /** 记录质量结论 */
+  /** Record quality conclusion */
   recordQuality(entry: Omit<MemoryEntry, 'id' | 'metadata'> & { metadata?: Partial<MemoryEntry['metadata']> }): void;
 
-  /** 按任务检索相关记忆 */
+  /** Retrieve relevant memory by task */
   searchByTask(taskId: string, config?: MemoryInjectionConfig): MemorySearchResult;
 
-  /** 全文检索 */
+  /** Full-text search */
   search(query: string, config?: MemoryInjectionConfig): MemorySearchResult;
 
-  /** 获取所有记忆 */
+  /** Get all memory entries */
   getAll(): MemoryEntry[];
 
-  /** 清理 */
+  /** Clear all memory */
   clear(): void;
 }

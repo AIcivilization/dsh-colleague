@@ -1,11 +1,11 @@
 /**
- * 团队配置加载器
+ * Team config loader
  *
- * 从 YAML 配置文件加载团队配置，验证必填字段，
- * 加载角色模板和技能 prompt。
- * 缺失文件、无效角色在启动时失败并给出诊断。
+ * Loads team configuration from a YAML file, validates required fields,
+ * loads role templates and skill prompts.
+ * Missing files or invalid roles cause startup failure with diagnostics.
  *
- * 使用 yaml 包进行专业 YAML 解析，不依赖自写解析器。
+ * Uses the `yaml` package for professional YAML parsing.
  */
 
 import { readFileSync } from 'node:fs';
@@ -13,11 +13,11 @@ import { resolve, dirname } from 'node:path';
 import { parse as parseYAML } from 'yaml';
 import type { TeamConfig, MemberConfig, RoleId } from '../runtime/types';
 
-// ===== 常量 =====
+// ===== Constants =====
 
 const VALID_ROLES: RoleId[] = ['leader', 'coder', 'reviewer', 'tester', 'docs'];
 
-// ===== 配置加载 =====
+// ===== Config loading =====
 
 export function loadTeamConfig(configPath: string): Omit<TeamConfig, 'workspace' | 'maxConcurrentWriters' | 'memoryEnabled'> {
   const fullPath = resolve(configPath);
@@ -43,17 +43,17 @@ export function loadTeamConfig(configPath: string): Omit<TeamConfig, 'workspace'
     throw new Error(`Team config is not a valid YAML object: ${configPath}`);
   }
 
-  // 提取团队信息
+  // Extract team info
   const team = raw.team as { name?: string; description?: string; id?: string } | undefined;
   if (!team) {
     throw new Error(
       `Team config missing "team" section in ${configPath}`,
     );
   }
-  const teamName = team.name || '默认团队';
+  const teamName = team.name || 'Default Team';
   const teamId = team.id || `team-${Date.now()}`;
 
-  // 提取成员列表
+  // Extract member list
   const membersRaw = raw.members as Array<Record<string, unknown>> | undefined;
   if (!Array.isArray(membersRaw) || membersRaw.length === 0) {
     throw new Error(
@@ -66,7 +66,7 @@ export function loadTeamConfig(configPath: string): Omit<TeamConfig, 'workspace'
     return parseMember(raw, index, configDir, configPath);
   });
 
-  // 验证：必须有一个 leader
+  // Validate: must have a leader
   const hasLeader = members.some((m) => m.role === 'leader');
   if (!hasLeader) {
     throw new Error(
@@ -74,7 +74,7 @@ export function loadTeamConfig(configPath: string): Omit<TeamConfig, 'workspace'
     );
   }
 
-  // 验证：角色不重复（除了可以有多个 coder）
+  // Validate: no duplicate roles (except coder which can have multiple)
   const roleCounts: Record<string, number> = {};
   for (const m of members) {
     roleCounts[m.role] = (roleCounts[m.role] || 0) + 1;
@@ -87,11 +87,11 @@ export function loadTeamConfig(configPath: string): Omit<TeamConfig, 'workspace'
     }
   }
 
-  // 提取并发配置
+  // Extract concurrency config
   const concurrency = raw.concurrency as { max_writers?: number } | undefined;
   const maxWriters = concurrency?.max_writers ?? 1;
 
-  // 提取记忆配置
+  // Extract memory config
   const memory = raw.memory as { enabled?: boolean; persistence?: boolean } | undefined;
   const memoryEnabled = memory?.enabled ?? true;
 
@@ -135,25 +135,25 @@ function parseMember(
   }
   const role = roleStr as RoleId;
 
-  // provider 是 DSH 已注册的 subagent provider 名称
+  // provider is a registered DSH subagent provider name
   const provider = (raw.provider as string) || 'dsh';
 
-  // model 是可选的模型标识
+  // model is an optional model identifier
   const model = raw.model as string | undefined;
 
-  // template 指向角色模板文件
+  // template points to a role template file
   const templatePath = raw.template as string | undefined;
   let templatePathResolved: string | undefined;
   let skillPrompt: string | undefined;
 
   if (templatePath) {
-    // 模板路径相对于配置文件的父目录（项目根）解析
-    // config/team.yaml 中的 ./templates/xxx.yaml → 项目根/templates/xxx.yaml
+    // Template path resolved relative to parent of config dir (project root)
+    // config/team.yaml's ./templates/xxx.yaml → project-root/templates/xxx.yaml
     templatePathResolved = resolve(configDir, '..', templatePath);
     try {
       skillPrompt = readFileSync(templatePathResolved, 'utf-8');
     } catch {
-      // 如果上一级目录没找到，尝试相对于配置文件本身
+      // If not found at parent level, try relative to config file itself
       try {
         templatePathResolved = resolve(configDir, templatePath);
         skillPrompt = readFileSync(templatePathResolved, 'utf-8');
@@ -167,7 +167,7 @@ function parseMember(
 
   const slotId = (raw.slot_id as number) ?? index;
 
-  // 权限模式默认为 reject（安全第一）
+  // Permission mode defaults to reject (security first)
   const permission = (raw.permission as 'reject' | 'allow' | 'ask') || 'reject';
 
   return {
@@ -183,7 +183,7 @@ function parseMember(
   };
 }
 
-// ===== 技能 prompt 加载 =====
+// ===== Skill prompt loading =====
 
 export function loadSkillPrompt(path: string): string {
   try {
