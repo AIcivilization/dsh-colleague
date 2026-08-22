@@ -8,17 +8,13 @@ export default defineConfig({
   clean: true,
   external: [
     '@deepseek-ai/cordis',
-    '@deepseek-ai/dsh-subagent',
-    '@deepseek-ai/dsh-session',
-    '@deepseek-ai/dsh-agent',
-    '@deepseek-ai/dsh-tool-subagent',
+    '@deepseek-ai/dsh-llm',
     'react',
     'react-dom',
     'yaml',
-    './index.css',
   ],
-  // 将 CSS 文件作为外部资源，不打包
-  assets: {
-    include: ['web/index.css'],
-  },
+  // CSS 不打包（rolldown 不支持），由 DSH 宿主或手动加载
+  // assets: {
+  //   include: ['web/index.css'],
+  // },
 });

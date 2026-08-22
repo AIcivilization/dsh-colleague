@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import './index.css';
+// CSS 由 DSH 宿主加载，不打包到 JS 中
 import TeamPage from './team-panel';
 import { t } from './team-panel/i18n';
 import type { TeamState, TeamEvent, InterventionCommand } from '../core/runtime/types';

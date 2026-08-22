@@ -20,7 +20,7 @@ const VALID_ROLES: RoleId[] = ['leader', 'coder', 'reviewer', 'tester', 'docs'];
 // ===== 配置加载 =====
 
 export function loadTeamConfig(configPath: string): Omit<TeamConfig, 'workspace' | 'maxConcurrentWriters' | 'memoryEnabled'> {
-  const fullPath = resolve(process.cwd(), configPath);
+  const fullPath = resolve(configPath);
   let yamlText: string;
   try {
     yamlText = readFileSync(fullPath, 'utf-8');
