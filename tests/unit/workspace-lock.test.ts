@@ -99,7 +99,7 @@ describe('WorkspaceLock', () => {
   });
 
   describe('snapshotBefore / snapshotAfter', () => {
-    it('snapshotBefore record record HEAD', () => {
+    it('snapshotBefore record HEAD', () => {
       const snapshot = lock.snapshotBefore('task-001');
       expect(snapshot.head).toBeTruthy();
       expect(snapshot.head.length).toBe(40); // git hash long degree
@@ -145,7 +145,7 @@ describe('WorkspaceLock', () => {
   });
 
   describe('cleanSnapshot', () => {
-    it('clean removeafter snapshotAfter throws', () => {
+    it('clearedafter snapshotAfter throws', () => {
       lock.snapshotBefore('task-001');
       lock.clearSnapshot('task-001');
       expect(() => lock.snapshotAfter('task-001')).toThrow(

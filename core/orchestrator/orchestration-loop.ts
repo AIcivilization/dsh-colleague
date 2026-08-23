@@ -1,5 +1,5 @@
 /**
- * OrchestrationLoop — the orchestration loop (heart of the plugin)
+ * OrchestrationLoop — the orchestrationion loop (heart of the plugin)
  *
  * Reconstructed from the original leaderDecisionLoop pseudocode and rewritten
  * as a real implementation based on DSH SubagentRuntime.
@@ -197,7 +197,7 @@ export class OrchestrationLoop {
   // ===== Public API =====
 
   /**
-   * Start the orchestration loop
+   * Start the orchestrationion loop
    * @param goal User goal
    */
   async start(goal: string): Promise<void> {

@@ -25,20 +25,20 @@ describe('MemoryService', () => {
     memory = new MemoryService(); // notstart usepersistence
   });
 
-  describe('record recordoperation', () => {
-    it('recordEvent record recordevent', () => {
+  describe('recordoperation', () => {
+    it('recordEvent recordevent', () => {
       memory.recordEvent({
-        content: 'taskopen initial execute row',
+        content: 'taskopen initial executes',
         metadata: { taskId: 'task-001' },
       });
       const all = memory.getAll();
       expect(all.length).toBe(1);
-      expect(all[0].content).toBe('taskopen initial execute row');
+      expect(all[0].content).toBe('taskopen initial executes');
       expect(all[0].metadata.source).toBe('event');
       expect(all[0].metadata.taskId).toBe('task-001');
     });
 
-    it('recordDecision record record architect structure decis bind', () => {
+    it('recordDecision record architect structure decis bind', () => {
       memory.recordDecision({
         content: 'select select React workforbeforeend  architect',
         metadata: {},
@@ -48,7 +48,7 @@ describe('MemoryService', () => {
       expect(all[0].metadata.source).toBe('decision');
     });
 
-    it('recordCommand record recordhasverify verify life command', () => {
+    it('recordCommand recordhasverify life command', () => {
       memory.recordCommand({
         content: 'npm run build',
         metadata: {},
@@ -58,7 +58,7 @@ describe('MemoryService', () => {
       expect(all[0].metadata.source).toBe('command');
     });
 
-    it('recordQuality record record quality amount conclusion conclusion', () => {
+    it('recordQuality record quality conclusion conclusion', () => {
       memory.recordQuality({
         content: 'Review passed，no strict heavyIssue',
         metadata: { taskId: 'task-001' },
@@ -68,7 +68,7 @@ describe('MemoryService', () => {
       expect(all[0].metadata.source).toBe('quality');
     });
 
-    it('many item record record  addtolist', () => {
+    it('many item record  addtolist', () => {
       memory.recordEvent({ content: 'event1', metadata: {} });
       memory.recordEvent({ content: 'event2', metadata: {} });
       memory.recordDecision({ content: 'decis bind1', metadata: {} });
@@ -106,8 +106,8 @@ describe('MemoryService', () => {
 
   describe('search（all text check search）', () => {
     beforeEach(() => {
-      memory.recordEvent({ content: 'use userloginsuccesscanimplement', metadata: {} });
-      memory.recordDecision({ content: 'use use JWT verify verify', metadata: {} });
+      memory.recordEvent({ content: 'use userloginsuccessimplement', metadata: {} });
+      memory.recordDecision({ content: 'use use JWT verify', metadata: {} });
       memory.recordEvent({ content: 'loginTestPassed', metadata: {} });
     });
 
@@ -129,8 +129,8 @@ describe('MemoryService', () => {
   });
 
   describe('register input up limit', () => {
-    it('maxEntries limit control return return item item data', () => {
-      // record record 10 item
+    it('maxEntries limit return return item item data', () => {
+      // record 10 item
       for (let i = 0; i < 10; i++) {
         memory.recordEvent({
           content: `event${i}`,
@@ -141,7 +141,7 @@ describe('MemoryService', () => {
         ...DEFAULT_INJECTION_CONFIG,
         maxEntries: 3,
       });
-      // maxEntries limit controlafterreturn return 3 item，total alsofor 3（hasswitch piece）
+      // maxEntries limitafterreturn return 3 item，total alsofor 3（hasswitch piece）
       expect(result.entries.length).toBe(3);
       expect(result.total).toBe(3);
     });
@@ -159,7 +159,7 @@ describe('MemoryService', () => {
       expect(result.entries[0].content).toContain('...');
     });
 
-    it('maxTotalChars limit control total register input character symbol', () => {
+    it('maxTotalChars limit total register input character symbol', () => {
       for (let i = 0; i < 5; i++) {
         memory.recordEvent({
           content: 'A'.repeat(500),
@@ -191,7 +191,7 @@ describe('MemoryService', () => {
       rmSync(persistDir, { recursive: true, force: true });
     });
 
-    it('record recordafterwrite memory.jsonl text component', () => {
+    it('recordafterwrite memory.jsonl text component', () => {
       persistedMemory.recordEvent({
         content: 'Testpersistence',
         metadata: { taskId: 'task-001' },
@@ -237,10 +237,10 @@ describe('MemoryService', () => {
     });
   });
 
-  describe('  record record update new', () => {
+  describe('  record update new', () => {
     it('searchByTask update new lastAccessed and accessCount', () => {
       memory.recordEvent({
-        content: 'Test  record record',
+        content: 'Test  record',
         metadata: { taskId: 'task-001' },
       });
 

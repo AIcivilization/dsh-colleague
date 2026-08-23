@@ -3,12 +3,12 @@
  *
  * Testcover cover：
  * - Legal YAML configparsing
- * - missing team segment wrong errordiagnostics
- * - missing members listwrong errordiagnostics
- * - membermissing id / name / role fieldwrong errordiagnostics
- * - illegal rolewrong errordiagnostics
- * - Missing leader wrong errordiagnostics
- * - duplicatenot coder rolewrong errordiagnostics
+ * - missing team segment errordiagnostics
+ * - missing members listerrordiagnostics
+ * - membermissing id / name / role fielderrordiagnostics
+ * - illegal roleerrordiagnostics
+ * - Missing leader errordiagnostics
+ * - duplicatenot coder roleerrordiagnostics
  * - templatetext componentload
  * - concurrencyconfigextraction
  * - record memoryconfigextraction
@@ -75,7 +75,7 @@ members:
     it('default team name and id', () => {
       writeConfig(`
 team:
-  description: "no name name"
+  description: "no name provided"
 
 members:
   - id: "leader-01"
@@ -85,7 +85,7 @@ members:
     slot_id: 0
 `);
       const config = loadTeamConfig(join(configDir, 'team.yaml'));
-      expect(config.teamName).toBe('defaultteam');
+      expect(config.teamName).toBe('Default Team');
       expect(config.teamId).toMatch(/^team-/);
     });
 
@@ -158,7 +158,7 @@ members:
       expect(config.members[0].templatePath).toContain('leader.yaml');
     });
 
-    it('templateFile does not existthrowswrong error', () => {
+    it('templateFile does not existthrowserror', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -176,7 +176,7 @@ members:
     });
   });
 
-  describe('wrong errordiagnostics', () => {
+  describe('errordiagnostics', () => {
     it('File does not existthrows', () => {
       expect(() => loadTeamConfig('/nonexistent/team.yaml')).toThrow(
         'Team config file not found',

@@ -3,7 +3,7 @@
  *
  * Uses a real @deepseek-ai/cordis Context to load colleague-plugin,
  * verifying that apply() executes correctly in a real runtime.
- * The orchestration loop uses a mock SubagentRuntime (does not depend on a real LLM).
+ * The orchestrationion loop uses a mock SubagentRuntime (does not depend on a real LLM).
  */
 
 import { Context, Fiber } from '@deepseek-ai/cordis';
@@ -113,13 +113,13 @@ async function main() {
     console.log('    tasks:', snapshot.tasks.length, 'tasks');
     console.log('[5] Status correct\n');
 
-    // 6. Bind mock SubagentRuntime and start orchestration loop
+    // 6. Bind mock SubagentRuntime and start orchestrationion loop
     console.log('[6] Binding SubagentRuntime...');
     loopService.bindSubagentRuntime(createMockSubagentRuntime());
     console.log('[6] Binding success\n');
 
-    // 7. Start orchestration loop
-    console.log('[7] Starting orchestration loop...');
+    // 7. Start orchestrationion loop
+    console.log('[7] Starting orchestrationion loop...');
     console.log('    goal: Implement a login page\n');
     await loopService.start('Implement a login page');
 

@@ -64,10 +64,10 @@ describe('LeaderPlanner', () => {
     it('Legal create_task Passed', () => {
       const action = {
         type: 'create_task',
-        reason: 'Need to implementloginsuccesscan',
+        reason: 'Need to implement login successfully',
         task: {
           title: 'implementlogin',
-          description: 'implementuse userlogin API',
+          description: 'Implement user login API',
           role: 'coder',
           dependencies: [],
         },
@@ -124,7 +124,7 @@ describe('LeaderPlanner', () => {
           dependencies: [],
         },
       };
-      // no has tester member
+      // no tester member
       const state = makeState();
       state.members = state.members.filter((m) => m.role !== 'tester');
       const result = planner.validate(action, state);
@@ -166,7 +166,7 @@ describe('LeaderPlanner', () => {
   });
 
   describe('- Concurrency budget validation', () => {
-    it('hashas running taskwhennotcanagaincreatehasdependencyofNew task（not run rowindependency）', () => {
+    it('Has running taskwhencannot againcreatedependencynew task（not runningdependency）', () => {
       const runningTask = makeTask({
         id: 'task-001',
         status: 'running',
@@ -182,7 +182,7 @@ describe('LeaderPlanner', () => {
           title: 'New task',
           description: 'Description',
           role: 'coder',
-          // dependencyhasDoneof task-002（not run rowin），trigger sendconcurrencylimit control
+          // dependencies are doneof task-002（not running），triggersconcurrency limit
           dependencies: ['task-002'],
         },
       };
@@ -191,7 +191,7 @@ describe('LeaderPlanner', () => {
       expect(result.errors.some((e) => e.includes('concurrent limit'))).toBe(true);
     });
 
-    it('hashas running taskandNew tasknodependencywhenLegal（notcheck checkconcurrency）', () => {
+    it('Has running taskandNew tasknodependencywhenLegal（notcheck checkconcurrency）', () => {
       const runningTask = makeTask({
         id: 'task-001',
         status: 'running',
@@ -206,12 +206,12 @@ describe('LeaderPlanner', () => {
           dependencies: [],
         },
       };
-      // nodependencywhennottrigger sendconcurrencycheck check（whenbeforeimplementrowfor）
+      // nodependencywhennottriggersconcurrencycheck check（whenbeforeimplementrowfor）
       const result = planner.validate(action, makeState([runningTask]));
       expect(result.valid).toBe(true);
     });
 
-    it('hashas running taskbutNew taskdependencyitthenLegal', () => {
+    it('Has running taskbutNew taskdependencyitthenLegal', () => {
       const runningTask = makeTask({
         id: 'task-001',
         status: 'running',
@@ -256,7 +256,7 @@ describe('LeaderPlanner', () => {
       const blockedTask = makeTask({ id: 'task-001', status: 'blocked' });
       const action = {
         type: 'unblock_task',
-        reason: 'dependencyhasDone',
+        reason: 'dependencies are done',
         taskId: 'task-001',
       };
       const result = planner.validate(action, makeState([blockedTask]));
@@ -334,8 +334,8 @@ describe('LeaderPlanner', () => {
     it('Legal report Passed', () => {
       const action = {
         type: 'report',
-        reason: 'ReportDone',
-        summary: 'all hastaskhasDone',
+        reason: 'Report done',
+        summary: 'All tasks are done',
       };
       const result = planner.validate(action, makeState());
       expect(result.valid).toBe(true);
@@ -410,7 +410,7 @@ describe('LeaderPlanner', () => {
   });
 
   describe('parseLeaderOutput', () => {
-    it('direct connect JSON outputbecorrect correctparsing', async () => {
+    it('Direct JSON outputis parsing', async () => {
       const raw = JSON.stringify({
         type: 'create_task',
         reason: 'Need to implement',
@@ -454,7 +454,7 @@ describe('LeaderPlanner', () => {
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it('Validationfailedreturn return null andwrong errorlist', async () => {
+    it('Validationfailedreturn return null anderrorlist', async () => {
       const raw = JSON.stringify({ type: 'create_task', reason: 'Need' });
       const result = await planner.parseLeaderOutput(raw, makeState());
       expect(result.action).toBeNull();

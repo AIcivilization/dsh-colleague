@@ -1,13 +1,13 @@
 /**
- * contract contractTest — Bundle install install、configverify verify、DSH service service register inputand provider cancapability reject reject
+ * Contract test — Bundle load, config verification, DSH service registration and provider capability rejection
  *
- * Testcover cover：
- * - dsh.bundle.json manifest conclusion structure complete whole integrity
- * - cordis.patch.yml dependencydeclaration brightand package.json peerDependencies one consistent
- * - plugin component input port apply(ctx) register volume service service
- * - plugin componentconfig schema Validation
- * - provider cancapability reject reject（notregister volume provider enter input blocked/failed status）
- * - plugin component uninstall loadafterresource source release release
+ * Tests cover:
+ * - dsh.bundle.json manifest structural integrity
+ * - cordis.patch.yml dependency declaration and package.json peerDependencies consistency
+ * - plugin entry points apply(ctx) register services
+ * - plugin config schema validation
+ * - provider capability rejection (unregistered provider enters blocked/failed status)
+ * - plugin unload releases all resources
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -30,7 +30,7 @@ describe('contract contractTest：Bundle Manifest', () => {
     expect(manifest.version).toBe('0.1.0');
   });
 
-  it('manifest declaration bright host and client input port', () => {
+  it('manifest declaration bright host and client entry points', () => {
     const path = resolve(ROOT, 'dsh.bundle.json');
     const manifest = JSON.parse(readFileSync(path, 'utf-8'));
     expect(manifest.entry.host).toBe('./dist/index.js');
@@ -75,7 +75,7 @@ describe('contract contractTest：cordis.patch.yml', () => {
     expect(existsSync(path)).toBe(true);
   });
 
-  it('patch.yml declaration bright plugin component ID andconfig', () => {
+  it('patch.yml declaration bright plugin ID andconfig', () => {
     const path = resolve(ROOT, 'cordis.patch.yml');
     const content = readFileSync(path, 'utf-8');
     expect(content).toContain('colleague-plugin');
@@ -102,18 +102,18 @@ describe('contract contractTest：cordis.patch.yml', () => {
   });
 });
 
-describe('contract contractTest：structure create produce artifact', () => {
-  it('dist/index.js storeat（Host input port）', () => {
+describe('contract contractTest：Build artifacts artifact', () => {
+  it('dist/index.js storeat（Host entry points）', () => {
     const path = resolve(ROOT, 'dist', 'index.js');
     expect(existsSync(path)).toBe(true);
   });
 
-  it('dist/web/main.js storeat（Client input port）', () => {
+  it('dist/web/main.js storeat（Client entry points）', () => {
     const path = resolve(ROOT, 'dist', 'web', 'main.js');
     expect(existsSync(path)).toBe(true);
   });
 
-  it('dist/ include include .d.ts class type declaration bright text component', () => {
+  it('dist/ include .d.ts class type declaration bright text component', () => {
     const distDir = resolve(ROOT, 'dist');
     expect(existsSync(distDir)).toBe(true);
     // tsdown produce success .d.ts text component
@@ -122,7 +122,7 @@ describe('contract contractTest：structure create produce artifact', () => {
   });
 });
 
-describe('contract contractTest：plugin component input portandservice service register input', () => {
+describe('contract contractTest：plugin entry pointsandservice service register input', () => {
   let ctx: any;
   let config: TeamConfig;
   let runtime: TeamRuntime;
@@ -138,8 +138,8 @@ describe('contract contractTest：plugin component input portandservice service 
     cleanupWorkspace(config.workspace);
   });
 
-  it('TeamRuntime register volumefor colleague-team service service', () => {
-    // verify verify runtime actual instance storeatand has public together API
+  it('TeamRuntime registers colleague-team service', () => {
+    // verify runtime instance is stored and has public API
     expect(runtime).toBeDefined();
     expect(typeof runtime.getSnapshot).toBe('function');
     expect(typeof runtime.subscribe).toBe('function');
@@ -150,26 +150,26 @@ describe('contract contractTest：plugin component input portandservice service 
     expect(typeof runtime.dispose).toBe('function');
   });
 
-  it('TeamRuntime connect affected DSH subagent provider bind bind', () => {
+  it('TeamRuntime connect affected DSH subagent provider binding', () => {
     expect(typeof runtime.bindSubagentProvider).toBe('function');
-    // bind bindbeforefor null
-    // bind bind mock provider
+    // bindingbeforefor null
+    // binding mock provider
     const mockProvider = { name: 'dsh', capabilities: { tools: ['*'] } };
     expect(() => runtime.bindSubagentProvider(ctx)).not.toThrow();
   });
 
-  it('plugin component uninstall loadafter dispose release release all has resource source', () => {
+  it('plugin uninstallafter dispose released all has resource source', () => {
     const rt = new TeamRuntime(ctx, config);
     let received = 0;
     rt.subscribe(() => received++);
     rt.dispose();
 
     // dispose after listeners hascleanempty
-    expect(received).toBe(0); // no has newevent
+    expect(received).toBe(0); // no newevent
   });
 });
 
-describe('contract contractTest：Provider cancapability reject reject', () => {
+describe('contract contractTest：Provider capability rejection', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -182,18 +182,18 @@ describe('contract contractTest：Provider cancapability reject reject', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('notregister volume provider oftaskenter input blocked/failed status', () => {
+  it('not registered volume provider oftaskenter input blocked/failed status', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    // createtaskbut no has bind bind subagent provider
+    // createtaskbut no binding subagent provider
     const task = runtime.createTask('Test Task', 'Description', 'coder');
     runtime.transitionTask(task.id, 'ready');
     runtime.transitionTask(task.id, 'running');
 
-    // taskcanby run row，but no has provider bind bindwhen，actual actual execute row willfailed
-    // verify verify runtime no has provider whencanmanage managestatus
+    // taskcan be execution，but no provider bindingwhen，actually executes willfailed
+    // verify runtime no provider whencanmanage managestatus
     expect(runtime.getSnapshot().tasks.find((t) => t.id === task.id)?.status).toBe('running');
 
     runtime.dispose();
@@ -210,10 +210,10 @@ describe('contract contractTest：Provider cancapability reject reject', () => {
     runtime.dispose();
   });
 
-  it('configinvalidwhenstart movefailedand give outputdiagnostics', () => {
+  it('configinvalidwhenstartfailedand give outputdiagnostics', () => {
     const badConfig = { ...config, workspace: '/nonexistent/path' };
     // TeamRuntime structure buildwhennotcheck check workspace storeatintegrity（ to WorkspaceLock）
-    // but createTask atrun rowwhenwillPassed WorkspaceLock check check
+    // but createTask atexecutionwhenwillPassed WorkspaceLock check check
     const runtime = new TeamRuntime(ctx, badConfig);
     runtime.startPlanning();
     runtime.startRunning();
@@ -235,7 +235,7 @@ describe('contract contractTest：Provider cancapability reject reject', () => {
 });
 
 describe('contract contractTest：--dump-config  content integrity', () => {
-  it('cordis.yml include include plugin component ID andconfig', () => {
+  it('cordis.yml include plugin ID andconfig', () => {
     const path = resolve(ROOT, 'cordis.yml');
     const content = readFileSync(path, 'utf-8');
     expect(content).toContain('colleague-plugin');
@@ -244,7 +244,7 @@ describe('contract contractTest：--dump-config  content integrity', () => {
     expect(content).toContain('memoryEnabled');
   });
 
-  it('package.json exports declaration bright Host and Client input port', () => {
+  it('package.json exports declaration bright Host and Client entry points', () => {
     const path = resolve(ROOT, 'package.json');
     const pkg = JSON.parse(readFileSync(path, 'utf-8'));
     expect(pkg.exports['.']).toBeDefined();
@@ -253,7 +253,7 @@ describe('contract contractTest：--dump-config  content integrity', () => {
     expect(pkg.exports['./web'].import).toBe('./dist/web/index.js');
   });
 
-  it('package.json files include include all has must need produce artifact', () => {
+  it('package.json files include all has must need produce artifact', () => {
     const path = resolve(ROOT, 'package.json');
     const pkg = JSON.parse(readFileSync(path, 'utf-8'));
     expect(pkg.files).toContain('dist');

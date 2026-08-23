@@ -201,7 +201,7 @@ describe('OrchestrationLoop', () => {
           let output = '';
 
           // Dispatch by prompt content: Leader, reviewer, coder
-          if (promptText.includes('your decision') || promptText.includes('team goal')) {
+          if (promptText.includes('Your Decision') || promptText.includes('Team Goal')) {
             // Leader decision
             leaderCallCount++;
             const queue = responses.get('dsh') || [];
@@ -263,7 +263,7 @@ describe('OrchestrationLoop', () => {
           let output = '';
 
           // Dispatch by prompt content
-          if (promptText.includes('your decision') || promptText.includes('team goal')) {
+          if (promptText.includes('Your Decision') || promptText.includes('Team Goal')) {
             // Leader decision
             leaderCallCount++;
             const snapshot = runtime.getSnapshot();

@@ -1,12 +1,12 @@
 /**
- * quality amount gate gate single unitTest
+ * quality gate gate single unitTest
  *
  * Testcover cover：
  * - validateTaskResult：Legal/Illegalconclusion resultValidation
- * - validateQualityResult：Legal/Illegalquality amount conclusion conclusionValidation
+ * - validateQualityResult：Legal/Illegalquality conclusion conclusionValidation
  * - hasPassedQualityGate：gate gatePassedjudge break
- * - needsRevision：fix resumeneedrequest judge break
- * - canFinalize：teammax final ize check check
+ * - needsRevision：fixneedrequest judge break
+ * - canFinalize：teamfinalize check check
  * - validateDocsInput：text documenttaskinputValidation
  */
 
@@ -116,7 +116,7 @@ describe('validateTaskResult', () => {
     expect(result.errors.some((e) => e.includes('Issue 1'))).toBe(true);
   });
 
-  it('blocked conclusion result include include blockedReason', () => {
+  it('blocked conclusion result include blockedReason', () => {
     const result = validateTaskResult({
       status: 'blocked',
       summary: 'Blocked',
@@ -128,7 +128,7 @@ describe('validateTaskResult', () => {
 });
 
 describe('validateQualityResult', () => {
-  it('Legalquality amount conclusion conclusionPassedValidation', () => {
+  it('Legalquality conclusion conclusionPassedValidation', () => {
     const result = validateQualityResult({
       status: 'approved',
       summary: 'ReviewPassed',
@@ -189,36 +189,36 @@ describe('hasPassedQualityGate', () => {
     expect(hasPassedQualityGate(task)).toBe(false);
   });
 
-  it('no quality amount conclusion conclusionnotPassedgate gate', () => {
+  it('no quality conclusion conclusionnotPassedgate gate', () => {
     const task = makeTask({ quality: undefined });
     expect(hasPassedQualityGate(task)).toBe(false);
   });
 });
 
 describe('needsRevision', () => {
-  it('changes_requested Needfix resume', () => {
+  it('changes_requested Needfix', () => {
     const task = makeTask({ quality: makeQuality({ status: 'changes_requested' }) });
     expect(needsRevision(task)).toBe(true);
   });
 
-  it('test_failed Needfix resume', () => {
+  it('test_failed Needfix', () => {
     const task = makeTask({ quality: makeQuality({ status: 'test_failed' }) });
     expect(needsRevision(task)).toBe(true);
   });
 
-  it('approved notNeedfix resume', () => {
+  it('approved notNeedfix', () => {
     const task = makeTask({ quality: makeQuality({ status: 'approved' }) });
     expect(needsRevision(task)).toBe(false);
   });
 
-  it('no quality amount conclusion conclusionnotNeedfix resume', () => {
+  it('no quality conclusion conclusionnotNeedfix', () => {
     const task = makeTask({ quality: undefined });
     expect(needsRevision(task)).toBe(false);
   });
 });
 
 describe('canFinalize', () => {
-  it('all hastaskPassedthencanmax final ize', () => {
+  it('all hastaskPassedthencanfinalize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -242,7 +242,7 @@ describe('canFinalize', () => {
     expect(result.blockers.length).toBe(0);
   });
 
-  it('coder tasknotPassedthencannotmax final ize', () => {
+  it('coder tasknotPassedthencannotfinalize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -255,7 +255,7 @@ describe('canFinalize', () => {
     expect(result.blockers.length).toBe(1);
   });
 
-  it('coder taskPassedbut quality amount gatenotPassedthencannotmax final ize', () => {
+  it('coder taskPassedbut quality gatenotPassedthencannotfinalize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -269,7 +269,7 @@ describe('canFinalize', () => {
     expect(result.blockers.some((b) => b.includes('quality gate'))).toBe(true);
   });
 
-  it('reviewer tasknotDonethencannotmax final ize', () => {
+  it('reviewer tasknotDonethencannotfinalize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -288,7 +288,7 @@ describe('canFinalize', () => {
     expect(result.blockers.some((b) => b.includes('Review'))).toBe(true);
   });
 
-  it('tester tasknotDonethencannotmax final ize', () => {
+  it('tester tasknotDonethencannotfinalize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
