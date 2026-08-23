@@ -74,8 +74,6 @@ Write-Info "Step 2/4: Installing to web profile..."
 # Remove old version if already installed
 $removeArgs = @("plugin", "--profile", "web", "remove", "dsh-colleague")
 & Invoke-Expression "$DSH_BIN $($removeArgs -join ' ')" 2>$null
-$removeArgs2 = @("plugin", "--profile", "web", "remove", "colleague-plugin")
-& Invoke-Expression "$DSH_BIN $($removeArgs2 -join ' ')" 2>$null
 
 # Install
 $installUri = "file:///$($PLUGIN_DIR -replace '\\','/')"

@@ -40,7 +40,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --noEmit false && tsdown",
+    "build": "tsc --noEmit && tsdown",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "vitest run",

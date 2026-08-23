@@ -54,7 +54,6 @@ info "Step 2/4: Installing to web profile..."
 
 # Remove old version if already installed
 $DSH_BIN plugin --profile web remove dsh-colleague 2>/dev/null || true
-$DSH_BIN plugin --profile web remove colleague-plugin 2>/dev/null || true
 
 # Install
 if ! $DSH_BIN plugin --profile web add "file://$PLUGIN_DIR" 2>&1 | tail -5; then
@@ -100,7 +99,7 @@ STATE=$(curl -sf http://127.0.0.1:3080/plugin-console/state 2>/dev/null || echo 
 if echo "$STATE" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
-entries = [e for e in d.get('entries', []) if 'dsh-colleague' in e.get('entryId', '') or 'colleague' in e.get('entryId', '')]
+entries = [e for e in d.get('entries', []) if 'dsh-colleague' in e.get('entryId', '')]
 if not entries:
     print('NOT_FOUND')
     sys.exit(1)
@@ -110,7 +109,7 @@ print(f\"status={e.get('fiberPhase')}, enabled={e.get('enabled')}, extra={e.get(
   info "Plugin verified: $(echo "$STATE" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
-entries = [e for e in d.get('entries', []) if 'dsh-colleague' in e.get('entryId', '') or 'colleague' in e.get('entryId', '')]
+entries = [e for e in d.get('entries', []) if 'dsh-colleague' in e.get('entryId', '')]
 e = entries[0]
 print(f\"status={e.get('fiberPhase')}, enabled={e.get('enabled')}, extra={e.get('extra')}\")
 ")"
@@ -119,7 +118,7 @@ else
 fi
 
 # Verify API route
-API_STATE=$(curl -sf http://127.0.0.1:3080/plugins/dsh-colleague/state 2>/dev/null || curl -sf http://127.0.0.1:3080/plugins/colleague-plugin/state 2>/dev/null || echo "")
+API_STATE=$(curl -sf http://127.0.0.1:3080/plugins/dsh-colleague/state 2>/dev/null || echo "")
 if [ -n "$API_STATE" ] && echo "$API_STATE" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)

@@ -98,7 +98,7 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
 
   // Register team panel as DSH Web embedded panel
   // DSH uses webServer.register({ kind, path, method, handler }) for HTTP routes
-  // Frontend fetches team state via /plugins/colleague-plugin/state
+  // Frontend fetches team state via /plugins/dsh-colleague/state
   const registerWebPanel = () => {
     // Safely read ctx properties — bypass Cordis inject whitelist interception
     const safeGet = (name: string): any => {
@@ -165,18 +165,18 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
 
       const routes = [
         {
-          kind: 'exact' as const, method: 'GET', path: '/plugins/colleague-plugin/state',
+          kind: 'exact' as const, method: 'GET', path: '/plugins/dsh-colleague/state',
           handler: (_req: any, res: any) => send(res, 200, runtime.getSnapshot()),
         },
         {
-          kind: 'exact' as const, method: 'GET', path: '/plugins/colleague-plugin/events',
+          kind: 'exact' as const, method: 'GET', path: '/plugins/dsh-colleague/events',
           handler: (req: any, res: any) => {
             const since = parseInt(new URL(req.url, 'http://localhost').searchParams.get('since') || '0', 10);
             send(res, 200, runtime.getEvents(since));
           },
         },
         {
-          kind: 'exact' as const, method: 'POST', path: '/plugins/colleague-plugin/intervene',
+          kind: 'exact' as const, method: 'POST', path: '/plugins/dsh-colleague/intervene',
           handler: async (req: any, res: any) => {
             let body: any = {};
             try { body = JSON.parse(await readJsonBody(req)); } catch {}
