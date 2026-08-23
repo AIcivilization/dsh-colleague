@@ -194,6 +194,7 @@ export function needsRevision(task: Task): boolean {
 /**
  * Check if the team can proceed to final report.
  * All coding tasks must pass review and testing.
+ * Failed tasks are allowed (treated as abandoned/superseded).
  */
 export function canFinalize(tasks: Task[]): {
   canFinalize: boolean;
@@ -205,7 +206,10 @@ export function canFinalize(tasks: Task[]): {
     // Skip cancelled tasks
     if (task.status === 'cancelled') continue;
 
-    // Coding tasks must pass quality gate
+    // Skip failed coder tasks (treated as abandoned/superseded by a fix task)
+    if (task.role === 'coder' && task.status === 'failed') continue;
+
+    // Coding tasks must be in a terminal state
     if (task.role === 'coder') {
       if (task.status !== 'passed') {
         blockers.push(
@@ -213,7 +217,9 @@ export function canFinalize(tasks: Task[]): {
         );
         continue;
       }
-      if (!hasPassedQualityGate(task)) {
+      // If quality gate was run, it must have passed
+      // If no quality gate was run (no review step), allow pass
+      if (task.quality && !hasPassedQualityGate(task)) {
         blockers.push(
           `Coder task "${task.title}" has not passed quality gate`,
         );

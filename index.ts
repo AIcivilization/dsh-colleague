@@ -59,10 +59,11 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
   }
   const teamConfig = loadTeamConfig(configPath);
 
-  // Create team runtime service
+  // Create team runtime service — ensure workspace is an absolute path
+  const workspaceRoot = resolve(config.workspace || process.cwd());
   const runtime = new TeamRuntime(ctx, {
     ...teamConfig,
-    workspace: config.workspace || process.cwd(),
+    workspace: workspaceRoot,
     maxConcurrentWriters: config.maxConcurrentWriters ?? 1,
     memoryEnabled: config.memoryEnabled ?? true,
   });
@@ -97,8 +98,8 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
   ctx.provide('colleague-loop', loop);
 
   // Register team panel as DSH Web embedded panel
-  // DSH uses webServer.register({ kind, path, method, handler }) for HTTP routes
   // Frontend fetches team state via /plugins/dsh-colleague/state
+  let routesRegistered = false;
   const registerWebPanel = () => {
     // Safely read ctx properties — bypass Cordis inject whitelist interception
     const safeGet = (name: string): any => {
@@ -155,7 +156,8 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
     const settings = safeGet('settings');
 
     // Path 1: webServer.register — register HTTP API routes
-    if (webServer && typeof webServer.register === 'function') {
+    if (webServer && typeof webServer.register === 'function' && !routesRegistered) {
+      routesRegistered = true;
       const send = (res: any, status: number, body: any) => {
         try {
           res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -173,6 +175,39 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
           handler: (req: any, res: any) => {
             const since = parseInt(new URL(req.url, 'http://localhost').searchParams.get('since') || '0', 10);
             send(res, 200, runtime.getEvents(since));
+          },
+        },
+        {
+          kind: 'exact' as const, method: 'POST', path: '/plugins/dsh-colleague/start',
+          handler: async (req: any, res: any) => {
+            let body: any = {};
+            try { body = JSON.parse(await readJsonBody(req)); } catch {}
+            if (!body.goal || typeof body.goal !== 'string') {
+              send(res, 400, { error: 'Missing "goal" field' });
+              return;
+            }
+            if (loop.isRunning()) {
+              send(res, 409, { error: 'Loop is already running', state: loop.getState() });
+              return;
+            }
+            // Fire and forget — loop runs in background
+            loop.start(body.goal).catch((err) => {
+              // Error is handled inside loop; emit is done via events
+            });
+            send(res, 200, { ok: true, state: loop.getState() });
+          },
+        },
+        {
+          kind: 'exact' as const, method: 'POST', path: '/plugins/dsh-colleague/answer',
+          handler: async (req: any, res: any) => {
+            let body: any = {};
+            try { body = JSON.parse(await readJsonBody(req)); } catch {}
+            if (!body.answer || typeof body.answer !== 'string') {
+              send(res, 400, { error: 'Missing "answer" field' });
+              return;
+            }
+            loop.answerUser(body.answer);
+            send(res, 200, { ok: true });
           },
         },
         {

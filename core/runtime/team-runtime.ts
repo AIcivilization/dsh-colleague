@@ -11,7 +11,7 @@
 
 import type { Context } from '@deepseek-ai/cordis';
 import { randomUUID } from 'node:crypto';
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync, mkdirSync, appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type {
   TeamConfig,
@@ -35,7 +35,7 @@ const TEAM_TRANSITIONS: Record<TeamStatus, TeamStatus[]> = {
   idle: ['planning', 'cancelled'],
   planning: ['running', 'failed', 'cancelled'],
   running: ['paused', 'completed', 'failed', 'cancelled'],
-  paused: ['running', 'cancelled'],
+  paused: ['running', 'failed', 'cancelled'],
   completed: [],
   failed: ['planning', 'cancelled'],
   cancelled: [],
@@ -47,7 +47,7 @@ const TASK_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   running: ['blocked', 'passed', 'failed', 'cancelled'],
   blocked: ['ready', 'cancelled'],
   passed: ['failed'],
-  failed: ['ready', 'cancelled'],
+  failed: ['ready', 'passed', 'cancelled'],
   cancelled: [],
 };
 
@@ -268,7 +268,8 @@ export class TeamRuntime {
       ...this.state,
       members: [...this.state.members],
       tasks: this.state.tasks.map((t) => ({ ...t })),
-      events: [...this.state.events],
+      // Only include recent events to avoid unbounded snapshot size
+      events: this.state.events.slice(-100),
     };
   }
 
@@ -576,6 +577,7 @@ export class TeamRuntime {
 
   /** Retrieve relevant memory for a task */
   getMemoryForTask(taskId: string): string {
+    // Search by task ID first
     const result = this.memory.searchByTask(taskId);
     if (result.entries.length === 0) return '';
     return result.entries
@@ -602,14 +604,25 @@ export class TeamRuntime {
             metadata: { createdAt: event.timestamp },
           });
           break;
-        case 'task_completed':
-        case 'task_failed':
-        case 'task_blocked':
-          this.memory.recordEvent({
+        case 'task_status_changed': {
+          // Check the target status to determine memory category
+          const toStatus = event.data.to as string | undefined;
+          if (toStatus === 'passed' || toStatus === 'failed' || toStatus === 'blocked') {
+            this.memory.recordEvent({
+              content,
+              metadata: { taskId: event.taskId, createdAt: event.timestamp },
+            });
+          }
+          break;
+        }
+        case 'user_intervention': {
+          // Record user interventions as commands
+          this.memory.recordCommand({
             content,
             metadata: { taskId: event.taskId, createdAt: event.timestamp },
           });
           break;
+        }
       }
     } catch {
       // Memory recording failure does not block the main flow
@@ -625,14 +638,9 @@ export class TeamRuntime {
       if (!existsSync(dir)) {
         mkdirSync(dir, { recursive: true });
       }
-      // Append write
+      // Append-only write — no full rewrite needed
       const line = JSON.stringify(event) + '\n';
-      // Read existing content and append
-      let existing = '';
-      if (existsSync(this.persistencePath)) {
-        existing = readFileSync(this.persistencePath, 'utf-8');
-      }
-      writeFileSync(this.persistencePath, existing + line, 'utf-8');
+      appendFileSync(this.persistencePath, line, 'utf-8');
     } catch {
       // Persistence failure does not block the main flow
     }

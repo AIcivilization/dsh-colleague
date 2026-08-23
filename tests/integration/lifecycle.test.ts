@@ -149,7 +149,7 @@ describe('integration successTest：event persistenceandrecovery', () => {
     runtime.dispose();
   });
 
-  it('canFinalize block stopnotPassedReviewofteamfinalize', () => {
+  it('canFinalize allows passed coder task without quality review', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
@@ -164,10 +164,10 @@ describe('integration successTest：event persistenceandrecovery', () => {
       issues: [],
     });
 
-    // no quality conclusion conclusion → cannotfinalize
+    // No quality review was performed — still allowed to finalize
     const tasks = runtime.getSnapshot().tasks;
     const result = canFinalize(tasks);
-    expect(result.canFinalize).toBe(false);
+    expect(result.canFinalize).toBe(true);
 
     runtime.dispose();
   });

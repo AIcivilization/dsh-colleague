@@ -19,8 +19,8 @@
       "import": "./dist/index.js"
     },
     "./web": {
-      "types": "./dist/web/index.d.ts",
-      "import": "./dist/web/index.js"
+      "types": "./dist/web/main.d.ts",
+      "import": "./dist/web/main.js"
     },
     "./package.json": "./package.json"
   },

@@ -34,14 +34,17 @@ function createMockSubagentRuntime(responses: Map<string, string[]>): SubagentRu
       const queue = responses.get(key) || responses.get('*') || [];
       let output = queue[callCounts[key] - 1] || queue[queue.length - 1] || 'no response';
 
-      // Match by prompt content
-      if (promptText.includes('Review')) {
+      // Match by prompt content — check Leader first to avoid false matches
+      if (promptText.includes('Your Decision') || promptText.includes('Team Goal')) {
+        // Leader decision — use the dsh queue directly
+        output = queue[callCounts[key] - 1] || queue[queue.length - 1] || 'no response';
+      } else if (promptText.startsWith('You are the team\'s Reviewer')) {
         const reviewQueue = responses.get('reviewer') || responses.get('*') || [];
         output = reviewQueue[0] || output;
-      } else if (promptText.includes('Test')) {
+      } else if (promptText.startsWith('You are the team\'s Tester')) {
         const testQueue = responses.get('tester') || responses.get('*') || [];
         output = testQueue[0] || output;
-      } else if (promptText.includes('documentation') || promptText.includes('docs')) {
+      } else if (promptText.startsWith('You are the team\'s Doc')) {
         const docsQueue = responses.get('docs') || responses.get('*') || [];
         output = docsQueue[0] || output;
       }
@@ -121,7 +124,14 @@ describe('OrchestrationLoop', () => {
             },
             reason: 'Need to implement login page first',
           }),
-          // Second call: Leader reports
+          // Second call: Coder returns result
+          JSON.stringify({
+            status: 'completed',
+            summary: 'Login page implemented',
+            artifacts: ['login.tsx'],
+            issues: [],
+          }),
+          // Third call: Leader reports
           JSON.stringify({
             type: 'report',
             summary: 'All tasks are done',
@@ -217,7 +227,7 @@ describe('OrchestrationLoop', () => {
             } else {
               output = queue[2]; // report
             }
-          } else if (promptText.includes('Reviewer') || promptText.includes('Review conclusion')) {
+          } else if (promptText.startsWith('You are the team\'s Reviewer')) {
             // Reviewer
             const queue = responses.get('reviewer') || [];
             output = queue[0];
@@ -313,7 +323,7 @@ describe('OrchestrationLoop', () => {
                 reason: 'All passed',
               });
             }
-          } else if (promptText.includes('Reviewer') || promptText.includes('Review conclusion')) {
+          } else if (promptText.startsWith('You are the team\'s Reviewer')) {
             // Reviewer
             reviewerCallCount++;
             if (reviewerCallCount === 1) {

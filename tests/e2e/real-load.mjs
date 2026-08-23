@@ -136,8 +136,12 @@ async function main() {
     if (loopService.getState() === 'completed' && finalSnapshot.status === 'completed') {
       console.log('=== ✅ All passed ===');
     } else {
-      console.log('=== ⚠️ Loop did not reach completed status ===');
+      console.log('=== ❌ Loop did not reach completed status ===');
       console.log('    loop:', loopService.getState(), 'team:', finalSnapshot.status);
+      loopService.dispose();
+      teamService.dispose();
+      rmSync(workspace, { recursive: true, force: true });
+      process.exit(1);
     }
 
     // 8. Cleanup

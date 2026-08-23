@@ -4,3 +4,5 @@ dist/
 *.log
 .env
 .colleague/
+.omo/
+REVIEW.md

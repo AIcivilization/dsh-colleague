@@ -38,6 +38,7 @@ import {
   validateQualityResult,
   hasPassedQualityGate,
   needsRevision,
+  canFinalize,
 } from '../quality/gates';
 
 // ===== Type definitions =====
@@ -140,6 +141,10 @@ export class OrchestrationLoop {
   private abortController: AbortController | null = null;
   private currentGoal: string | null = null;
   private userResponseResolver: ((response: string) => void) | null = null;
+  /** Generation counter — prevents stale resume from continuing an old loop */
+  private generation = 0;
+  /** Disposed flag — ensures idempotent dispose */
+  private disposed = false;
 
   constructor(
     runtime: TeamRuntime,
@@ -210,7 +215,9 @@ export class OrchestrationLoop {
     }
 
     this.currentGoal = goal;
+    this.generation++;
     this.abortController = new AbortController();
+    const myGen = this.generation;
 
     // Start team
     this.runtime.startPlanning();
@@ -245,10 +252,13 @@ export class OrchestrationLoop {
     if (this.state !== 'paused') return;
     this.runtime.resume();
     this.state = 'running';
+    this.generation++;
     this.abortController = new AbortController();
+    const myGen = this.generation;
     this.emit('loop_resumed');
-    // Async resume loop
+    // Async resume loop — check generation to prevent stale resume
     this.runLoop().catch((err) => {
+      if (this.generation !== myGen) return; // Stale generation, ignore
       const message = err instanceof Error ? err.message : String(err);
       this.emit('loop_failed', { message });
       this.runtime.fail(message);
@@ -590,6 +600,20 @@ export class OrchestrationLoop {
 
   private async executeReport(action: LeaderAction): Promise<boolean> {
     const summary = action.summary || action.reason;
+
+    // Check if all tasks are ready for finalization
+    const snapshot = this.runtime.getSnapshot();
+    const finalization = canFinalize(snapshot.tasks);
+    if (!finalization.canFinalize) {
+      // Block finalization and emit blockers
+      this.emit('error', {
+        message: 'Cannot finalize: ' + finalization.blockers.join('; '),
+      });
+      // Transition to failed so leader can re-plan
+      this.runtime.fail('Finalization blocked: ' + finalization.blockers.join('; '));
+      return false;
+    }
+
     this.runtime.complete(summary);
     this.state = 'completed';
     this.emit('loop_completed', { message: summary });
@@ -872,10 +896,10 @@ export class OrchestrationLoop {
       }
     }
 
-    // If structured result cannot be parsed, generate from raw text
+    // If structured result cannot be parsed, mark as failed
     return {
-      status: 'completed',
-      summary: raw.slice(0, 500),
+      status: 'failed',
+      summary: 'Failed to parse structured result: ' + raw.slice(0, 500),
       artifacts: [],
       issues: [],
     };
@@ -903,10 +927,10 @@ export class OrchestrationLoop {
       }
     }
 
-    // If cannot parse, default to pass (do not block flow)
+    // If cannot parse, default to fail (block flow for safety)
     return {
-      status: passStatus,
-      summary: raw.slice(0, 500),
+      status: failStatus,
+      summary: 'Failed to parse quality result: ' + raw.slice(0, 500),
       issues: [],
     };
   }
@@ -938,8 +962,15 @@ export class OrchestrationLoop {
   // ===== Cleanup =====
 
   dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    // Abort any in-flight operations first
+    if (this.abortController) {
+      this.abortController.abort();
+    }
     this.listeners = [];
     this.abortController = null;
     this.userResponseResolver = null;
+    this.state = 'cancelled';
   }
 }

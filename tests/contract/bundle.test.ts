@@ -238,7 +238,7 @@ describe('contract contractTest：--dump-config  content integrity', () => {
     expect(pkg.exports['.']).toBeDefined();
     expect(pkg.exports['.'].import).toBe('./dist/index.js');
     expect(pkg.exports['./web']).toBeDefined();
-    expect(pkg.exports['./web'].import).toBe('./dist/web/index.js');
+    expect(pkg.exports['./web'].import).toBe('./dist/web/main.js');
   });
 
   it('package.json files include all has must need produce artifact', () => {

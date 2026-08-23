@@ -2,6 +2,7 @@
 # Define team members, roles, provider, and workspace
 
 team:
+  id: "frontend-team-01"
   name: "Frontend Team"
   description: "Full-stack team for frontend development"
 

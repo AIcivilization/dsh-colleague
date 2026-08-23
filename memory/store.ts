@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync, mkdirSync, appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type {
   MemoryEntry,
@@ -69,7 +69,7 @@ export class MemoryService implements MemoryOps {
       },
     };
     this.entries.push(full);
-    this.persist();
+    this.persist(full);
   }
 
   searchByTask(taskId: string, config?: MemoryInjectionConfig): MemorySearchResult {
@@ -134,15 +134,21 @@ export class MemoryService implements MemoryOps {
     };
   }
 
-  private persist(): void {
+  private persist(entry?: MemoryEntry): void {
     if (!this.persistencePath) return;
     try {
       const dir = resolve(this.persistencePath, '..');
       if (!existsSync(dir)) {
         mkdirSync(dir, { recursive: true });
       }
-      const lines = this.entries.map((e) => JSON.stringify(e));
-      writeFileSync(this.persistencePath, lines.join('\n') + '\n', 'utf-8');
+      if (entry) {
+        // Append-only write for single entry
+        appendFileSync(this.persistencePath, JSON.stringify(entry) + '\n', 'utf-8');
+      } else {
+        // Full rewrite only on clear()
+        const lines = this.entries.map((e) => JSON.stringify(e));
+        writeFileSync(this.persistencePath, lines.join('\n') + '\n', 'utf-8');
+      }
     } catch {
       // Persistence failure does not block the main flow
     }

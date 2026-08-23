@@ -51,7 +51,7 @@ export function loadTeamConfig(configPath: string): Omit<TeamConfig, 'workspace'
     );
   }
   const teamName = team.name || 'Default Team';
-  const teamId = team.id || `team-${Date.now()}`;
+  const teamId = team.id || `team-${teamName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 
   // Extract member list
   const membersRaw = raw.members as Array<Record<string, unknown>> | undefined;
