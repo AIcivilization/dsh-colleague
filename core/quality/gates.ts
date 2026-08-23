@@ -5,6 +5,7 @@
  * Results include: status, summary, artifacts, issues, test command, test output, and block reason.
  *
  * Reviewer's changes_requested and Tester's failed must block final delivery.
+ * Failed coder tasks block unless a subsequent fix task has passed.
  * Docs tasks only read artifacts that have passed quality gates.
  */
 
@@ -194,7 +195,7 @@ export function needsRevision(task: Task): boolean {
 /**
  * Check if the team can proceed to final report.
  * All coding tasks must pass review and testing.
- * Failed tasks are allowed (treated as abandoned/superseded).
+ * Failed coder tasks block unless a subsequent fix task has passed.
  */
 export function canFinalize(tasks: Task[]): {
   canFinalize: boolean;
@@ -202,12 +203,31 @@ export function canFinalize(tasks: Task[]): {
 } {
   const blockers: string[] = [];
 
+  // Build set of tasks that have been "fixed" — a passed coder task
+  // that depends on the failed task, or shares a title prefix
+  const fixedTaskIds = new Set<string>();
+  for (const t of tasks) {
+    if (t.role === 'coder' && t.status === 'passed') {
+      for (const depId of t.dependencies) {
+        fixedTaskIds.add(depId);
+      }
+      // Also check title-based matching: "Fix ..." tasks fix the original
+      if (t.title.toLowerCase().startsWith('fix ')) {
+        for (const orig of tasks) {
+          if (orig.role === 'coder' && orig.status === 'failed') {
+            fixedTaskIds.add(orig.id);
+          }
+        }
+      }
+    }
+  }
+
   for (const task of tasks) {
     // Skip cancelled tasks
     if (task.status === 'cancelled') continue;
 
-    // Skip failed coder tasks (treated as abandoned/superseded by a fix task)
-    if (task.role === 'coder' && task.status === 'failed') continue;
+    // Skip failed coder tasks that have been fixed by a subsequent task
+    if (task.role === 'coder' && task.status === 'failed' && fixedTaskIds.has(task.id)) continue;
 
     // Coding tasks must be in a terminal state
     if (task.role === 'coder') {

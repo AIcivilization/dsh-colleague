@@ -25,7 +25,8 @@ function createMockSubagentRuntime() {
       const promptText = request.prompt.map(b => b.text || '').join('');
       let output = '';
 
-      if (promptText.includes('your decision') || promptText.includes('team goal')) {
+      const lowerPrompt = promptText.toLowerCase();
+      if (lowerPrompt.includes('your decision') || lowerPrompt.includes('team goal')) {
         // Leader decision
         leaderCallCount++;
         if (leaderCallCount === 1) {

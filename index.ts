@@ -38,14 +38,40 @@ export const inject = [] as const;
 
 import { fileURLToPath } from 'node:url';
 
-/** Read JSON from HTTP request body */
+/** Max request body size: 1MB to prevent abuse */
+const MAX_BODY_SIZE = 1024 * 1024;
+
+/** Read JSON from HTTP request body with size limit */
 function readJsonBody(req: any): Promise<string> {
   return new Promise((resolve) => {
     let data = '';
-    req.on('data', (chunk: any) => { data += chunk; });
-    req.on('end', () => resolve(data));
+    let tooLarge = false;
+    req.on('data', (chunk: any) => {
+      data += chunk;
+      if (data.length > MAX_BODY_SIZE) {
+        tooLarge = true;
+        req.destroy();
+      }
+    });
+    req.on('end', () => resolve(tooLarge ? '' : data));
     req.on('error', () => resolve(''));
   });
+}
+
+/** Check Origin/Host header to prevent CSRF (drive-by POST from browser) */
+function isLocalOrigin(req: any): boolean {
+  try {
+    const origin = req.headers?.origin || req.headers?.host || '';
+    if (!origin) return true; // Non-browser clients (curl, internal) have no Origin
+    // Allow localhost and 127.0.0.1 on any port
+    const allowed = ['localhost', '127.0.0.1', '0.0.0.0', '[::1]'];
+    for (const a of allowed) {
+      if (origin.startsWith(a) || origin.includes('//' + a)) return true;
+    }
+    return false;
+  } catch {
+    return true; // Fail open for non-browser requests
+  }
 }
 
 export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
@@ -157,7 +183,6 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
 
     // Path 1: webServer.register — register HTTP API routes
     if (webServer && typeof webServer.register === 'function' && !routesRegistered) {
-      routesRegistered = true;
       const send = (res: any, status: number, body: any) => {
         try {
           res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -180,6 +205,11 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
         {
           kind: 'exact' as const, method: 'POST', path: '/plugins/dsh-colleague/start',
           handler: async (req: any, res: any) => {
+            // CSRF protection: check Origin for POST routes
+            if (!isLocalOrigin(req)) {
+              send(res, 403, { error: 'Forbidden: non-local origin' });
+              return;
+            }
             let body: any = {};
             try { body = JSON.parse(await readJsonBody(req)); } catch {}
             if (!body.goal || typeof body.goal !== 'string') {
@@ -190,9 +220,15 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
               send(res, 409, { error: 'Loop is already running', state: loop.getState() });
               return;
             }
-            // Fire and forget — loop runs in background
-            loop.start(body.goal).catch((err) => {
-              // Error is handled inside loop; emit is done via events
+            // Check valid start states (idle or failed)
+            const currentState = loop.getState();
+            if (currentState !== 'idle' && currentState !== 'failed') {
+              send(res, 409, { error: `Cannot start loop in state: ${currentState}`, state: currentState });
+              return;
+            }
+            // Start loop — errors propagate via events, not swallowed
+            loop.start(body.goal).catch(() => {
+              // Error is already handled inside loop.start (emits loop_failed)
             });
             send(res, 200, { ok: true, state: loop.getState() });
           },
@@ -200,6 +236,10 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
         {
           kind: 'exact' as const, method: 'POST', path: '/plugins/dsh-colleague/answer',
           handler: async (req: any, res: any) => {
+            if (!isLocalOrigin(req)) {
+              send(res, 403, { error: 'Forbidden: non-local origin' });
+              return;
+            }
             let body: any = {};
             try { body = JSON.parse(await readJsonBody(req)); } catch {}
             if (!body.answer || typeof body.answer !== 'string') {
@@ -213,19 +253,76 @@ export function apply(ctx: Context, config: ColleaguePluginConfig = {}) {
         {
           kind: 'exact' as const, method: 'POST', path: '/plugins/dsh-colleague/intervene',
           handler: async (req: any, res: any) => {
+            if (!isLocalOrigin(req)) {
+              send(res, 403, { error: 'Forbidden: non-local origin' });
+              return;
+            }
             let body: any = {};
             try { body = JSON.parse(await readJsonBody(req)); } catch {}
-            if (body.action === 'pause') loop.pause();
-            if (body.action === 'resume') loop.resume();
+            const action = body.action as string | undefined;
+            if (!action) {
+              send(res, 400, { error: 'Missing "action" field' });
+              return;
+            }
+            switch (action) {
+              case 'pause':
+                loop.pause();
+                break;
+              case 'resume':
+                loop.resume();
+                break;
+              case 'skip':
+                if (body.taskId) {
+                  runtime.handleIntervention({ type: 'skip', taskId: body.taskId });
+                } else {
+                  send(res, 400, { error: 'Skip requires "taskId"' });
+                  return;
+                }
+                break;
+              case 'takeover':
+                if (body.taskId) {
+                  runtime.handleIntervention({ type: 'takeover', taskId: body.taskId });
+                } else {
+                  send(res, 400, { error: 'Takeover requires "taskId"' });
+                  return;
+                }
+                break;
+              case 'revise':
+                if (body.message) {
+                  runtime.handleIntervention({ type: 'revise', message: body.message });
+                } else {
+                  send(res, 400, { error: 'Revise requires "message"' });
+                  return;
+                }
+                break;
+              case 'answer':
+                if (body.answer) {
+                  loop.answerUser(body.answer);
+                } else {
+                  send(res, 400, { error: 'Answer requires "answer" field' });
+                  return;
+                }
+                break;
+              default:
+                send(res, 400, { error: `Unknown action: ${action}` });
+                return;
+            }
             send(res, 200, { ok: true });
           },
         },
       ];
 
+      let allRegistered = true;
       for (const r of routes) {
         try {
           webServer.register({ kind: r.kind, path: r.path, method: r.method, handler: r.handler });
-        } catch {}
+        } catch {
+          allRegistered = false;
+        }
+      }
+      // Only set flag after all routes successfully registered
+      if (allRegistered) {
+        routesRegistered = true;
       }
     }
 

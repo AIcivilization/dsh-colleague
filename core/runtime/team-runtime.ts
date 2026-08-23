@@ -577,10 +577,18 @@ export class TeamRuntime {
 
   /** Retrieve relevant memory for a task */
   getMemoryForTask(taskId: string): string {
-    // Search by task ID first
-    const result = this.memory.searchByTask(taskId);
-    if (result.entries.length === 0) return '';
-    return result.entries
+    if (taskId) {
+      // Search by task ID first
+      const result = this.memory.searchByTask(taskId);
+      if (result.entries.length === 0) return '';
+      return result.entries
+        .map((e) => `[${e.metadata.source}] ${e.content}`)
+        .join('\n\n');
+    }
+    // Empty taskId — return recent global memory for leader context
+    const all = this.memory.getAll();
+    if (all.length === 0) return '';
+    return all.slice(-10)
       .map((e) => `[${e.metadata.source}] ${e.content}`)
       .join('\n\n');
   }

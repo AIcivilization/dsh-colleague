@@ -44,7 +44,7 @@
 1. **DSH Native Subagent**: Each colleague uses registered DSH providers via `ctx.subagents`; no self-managed child processes.
 2. **Append-event + State Projection**: All state changes go through `appendEvent`; state is derived from event projection (reducer). Tasks and events use stable UUIDs.
 3. **Leader Bounded Planner**: Leader output is schema-validated (7 action types); invalid output retries up to 2 times.
-4. **Quality Gates**: Unified structured result protocol; `changes_requested` and `test_failed` block final delivery.
+4. **Quality Gates**: Unified structured result protocol; `changes_requested` and `test_failed` block final delivery. Failed coder tasks block unless a subsequent fix task has passed.
 5. **Workspace Serial Write Lock**: coder vs coder, coder vs docs cannot write concurrently; review/test only reads concurrently after dependencies complete.
 6. **Event-Driven UI**: Polling removed; real-time response to backend event stream via `subscribe`.
 7. **Event Persistence**: Event stream written to `events.jsonl`; full team state recoverable after restart.

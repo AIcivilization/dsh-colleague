@@ -51,7 +51,12 @@ export function loadTeamConfig(configPath: string): Omit<TeamConfig, 'workspace'
     );
   }
   const teamName = team.name || 'Default Team';
-  const teamId = team.id || `team-${teamName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  // Generate stable teamId from name — for non-ASCII names, append a hash suffix
+  // to prevent collisions (e.g. two different Chinese team names both slug to "team--")
+  const slug = teamName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const teamId = team.id || (slug && /^[a-z0-9]/.test(slug)
+    ? `team-${slug}`
+    : `team-${Buffer.from(teamName).toString('hex').slice(0, 12)}`);
 
   // Extract member list
   const membersRaw = raw.members as Array<Record<string, unknown>> | undefined;

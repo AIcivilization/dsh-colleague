@@ -1,5 +1,5 @@
 import { defineConfig } from 'tsdown';
-import { renameSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
+import { renameSync, readdirSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export default defineConfig({
@@ -64,5 +64,28 @@ export default defineConfig({
         console.log(`  renamed: ${from} -> ${to}`);
       }
     }
+
+    // Fix internal .d.ts imports that reference hashed filenames
+    // e.g. import from "./types-DZtPBn2_.js" -> import from "./types.js"
+    // e.g. import from "../types-DZtPBn2_.js" -> import from "../types.js"
+    const hashPattern = /from\s+"(\.\.?\/[a-zA-Z]+)-[A-Za-z0-9_-]+\.js"/g;
+    const fixDtsImports = (dir: string, subdir?: string) => {
+      if (!existsSync(dir)) return;
+      for (const file of readdirSync(dir)) {
+        if (!file.endsWith('.d.ts')) continue;
+        const filePath = resolve(dir, file);
+        let content = readFileSync(filePath, 'utf-8');
+        const newContent = content.replace(hashPattern, (_match, path: string) => {
+          return `from "${path}.js"`;
+        });
+        if (newContent !== content) {
+          writeFileSync(filePath, newContent, 'utf-8');
+          console.log(`  fixed imports in: ${subdir ? subdir + '/' : ''}${file}`);
+        }
+      }
+    };
+
+    fixDtsImports(distDir);
+    fixDtsImports(resolve(distDir, 'web'), 'web');
   },
 });

@@ -229,22 +229,30 @@ export class OrchestrationLoop {
     try {
       await this.runLoop();
     } catch (err) {
+      // Check if this is a stale generation (e.g. a newer start/resume happened)
+      if (this.generation !== myGen) return;
       const message = err instanceof Error ? err.message : String(err);
       this.emit('loop_failed', { message });
-      this.runtime.fail(message);
+      // Only fail if runtime is in a state that allows transition to failed
+      const snapStatus = this.runtime.getSnapshot().status;
+      if (snapStatus === 'running' || snapStatus === 'planning' || snapStatus === 'paused') {
+        this.runtime.fail(message);
+      }
       this.state = 'failed';
     }
   }
 
   /** Pause loop */
   pause(): void {
+    // Already paused or not running — no-op (prevents double pause crash)
     if (this.state !== 'running') return;
-    this.runtime.pause();
-    this.state = 'paused';
-    this.emit('loop_paused');
+    // Abort in-flight operations before state change
     if (this.abortController) {
       this.abortController.abort();
     }
+    this.runtime.pause();
+    this.state = 'paused';
+    this.emit('loop_paused');
   }
 
   /** Resume loop */
