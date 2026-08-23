@@ -1,8 +1,8 @@
-# Colleague Plugin — Design System Specification
+# dsh-colleague — Design System Specification
 
-> Colleague Plugin Custom Design System
+> dsh-colleague Custom Design System
 >
-> This document defines the complete design specification for the colleague-plugin project, including color systems, typography, spacing, border radius, animations, component visual specs, and Tailwind CSS mapping rules. All UI code must follow this specification.
+> This document defines the complete design specification for the dsh-colleague project, including color systems, typography, spacing, border radius, animations, component visual specs, and Tailwind CSS mapping rules. All UI code must follow this specification.
 
 ---
 
@@ -187,7 +187,7 @@ Tailwind alias: `font-mono`. Used for code blocks, file paths, command-line text
 
 ## 3. Spacing System
 
-Colleague Plugin uses pixel-precise spacing, not Tailwind's default 4px base multiples.
+dsh-colleague uses pixel-precise spacing, not Tailwind's default 4px base multiples.
 Non-standard values are registered via Tailwind `spacing.extend`:
 
 | Value | Usage |

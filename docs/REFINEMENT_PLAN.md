@@ -1,4 +1,4 @@
-# Colleague Plugin Refinement Plan
+# dsh-colleague Refinement Plan
 
 ## Goals & Default Decisions
 
@@ -22,7 +22,7 @@ Remove standalone ports, CORS, `/api/*`, Vite proxy, and `execSync` CLI fallback
 
 Acceptance criteria:
 
-- `dsh plugin --profile colleague-dev add ./colleague-plugin` succeeds.
+- `dsh plugin --profile colleague-dev add ./dsh-colleague` succeeds.
 - `dsh --profile colleague-dev --dump-config` shows the plugin layer and all dependency lines.
 - After launching DSH Web, the plugin panel is visible in the host; no `npm run server` or `npm run dev` needed.
 - After uninstalling the plugin, team service, event listeners, and background tasks are all released.

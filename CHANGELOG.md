@@ -4,7 +4,7 @@
 
 ### Breaking Changes
 
-This version refactors Colleague Plugin from a standalone Express + Vite prototype into a **DeepSeek Harness (DSH) Cordis plugin**. The following are incompatible changes:
+This version refactors dsh-colleague from a standalone Express + Vite prototype into a **DeepSeek Harness (DSH) Cordis plugin**. The following are incompatible changes:
 
 #### Removed Features
 

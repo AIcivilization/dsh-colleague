@@ -1,4 +1,4 @@
-# Colleague Plugin — Product Overview
+# dsh-colleague — Product Overview
 
 > Persistent, role-based AI teams — a multi-agent collaboration plugin for DeepSeek Harness (DSH)
 >
@@ -8,7 +8,7 @@
 
 ## 1. Product Overview
 
-Colleague Plugin is a DSH (DeepSeek Harness) Cordis plugin that implements a controllable multi-agent software delivery loop.
+dsh-colleague is a DSH (DeepSeek Harness) Cordis plugin that implements a controllable multi-agent software delivery loop.
 
 User provides a goal → Leader decomposes into subtasks → Coder writes code → Reviewer reviews → Tester tests → Docs writes documentation → all pass, then report.
 
@@ -31,7 +31,7 @@ User provides a goal → Leader decomposes into subtasks → Coder writes code �
 │                  DSH (DeepSeek Harness)               │
 │                                                       │
 │  ┌──────────────────────────────────────────────────┐ │
-│  │           Colleague Plugin (Cordis)              │ │
+│  │           dsh-colleague (Cordis)                 │ │
 │  │                                                  │ │
 │  │  ┌─────────────┐  ┌──────────────┐             │ │
 │  │  │ TeamRuntime │  │ MemoryService│             │ │
@@ -204,8 +204,8 @@ memory:
 ### Plugin Config (`cordis.yml`)
 
 ```yaml
-- id: colleague-plugin
-  name: 'colleague-plugin'
+- id: dsh-colleague
+  name: 'dsh-colleague'
   config:
     configPath: 'config/team.yaml'
     maxConcurrentWriters: 1

@@ -8,7 +8,7 @@
 ┌──────────────────────────────────────────────────────────┐
 │  User Interaction Layer (Web UI)                          │
 │  ┌──────────────────────────────────────────────────┐     │
-│  │ Team Panel (Colleague Plugin custom design)     │     │
+│  │ Team Panel (dsh-colleague custom design)          │     │
 │  │  - Top member bar + status indicators           │     │
 │  │  - Activity board (TaskCard + MessageCard)      │     │
 │  │  - Control bar (filter/sort)                    │     │
@@ -234,7 +234,7 @@ class OrchestrationLoop {
 
 ```typescript
 // index.ts
-export function apply(ctx: Context, config: ColleaguePluginConfig) {
+export function apply(ctx: Context, config: DshColleagueConfig) {
   const runtime = new TeamRuntime(ctx, teamConfig);
   const planner = new LeaderPlanner(config.maxConcurrentWriters);
   const loop = new OrchestrationLoop(runtime, planner);
