@@ -40,7 +40,7 @@ describe('E2E: normal delivery flow process', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('complete whole delivery：planning→coding→Review→Test→finalize', () => {
+  it('complete delivery: planning -> coding -> Review -> Test -> finalize', () => {
     const runtime = new TeamRuntime(ctx, config);
 
     // planningphase

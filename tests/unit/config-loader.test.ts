@@ -46,7 +46,7 @@ describe('loadTeamConfig', () => {
   }
 
   describe('Legalconfig', () => {
-    it('complete wholeconfigparsingsuccess', () => {
+    it('complete config parsing success', () => {
       const configPath = writeConfig(`
 team:
   name: "Test Team"

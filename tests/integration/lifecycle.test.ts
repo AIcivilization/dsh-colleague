@@ -1,11 +1,11 @@
 /**
  * integration successTest — event persistenceandrecovery + Mock Provider all flow process
  *
- * Testcover cover：
+ * Test coverage:
  * - eventflowpersistenceto events.jsonl
- * - restartafterfromeventflow complete wholerecoveryteamstatus
- * - Mock provider mock mock max small coder tasklifecycle
- * - TeamRuntime + WorkspaceLock + MemoryService endtoend collaborat work
+ * - restart from event flow: complete recovery of team status
+ * - Mock provider simulates minimal coder task lifecycle
+ * - TeamRuntime + WorkspaceLock + MemoryService end-to-end collaboration
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -39,7 +39,7 @@ describe('integration successTest：event persistenceandrecovery', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('complete whole lifecycle：create → planning → execution → taskDone → Review → Test → finalize', () => {
+  it('complete lifecycle: create -> planning -> execution -> taskDone -> Review -> Test -> finalize', () => {
     const runtime = new TeamRuntime(ctx, config);
 
     // 1. teamstart
@@ -172,7 +172,7 @@ describe('integration successTest：event persistenceandrecovery', () => {
     runtime.dispose();
   });
 
-  it('event persistenceafterrestartrecoverycomplete wholestatus', () => {
+  it('event persistence: after restart, recovers complete status', () => {
     // ordinal onephase
     const rt1 = new TeamRuntime(ctx, config);
     rt1.startPlanning();
@@ -232,7 +232,7 @@ describe('integration successTest：event persistenceandrecovery', () => {
     runtime.startPlanning();
     runtime.startRunning();
 
-    // mock mock Leader output
+    // Mock Leader output
     const leaderAction = {
       type: 'create_task' as const,
       reason: 'Need to implement login successfully',

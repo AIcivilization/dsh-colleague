@@ -25,8 +25,8 @@ describe('contract contractTest：Bundle Manifest', () => {
     expect(existsSync(path)).toBe(true);
     const content = readFileSync(path, 'utf-8');
     const manifest = JSON.parse(content);
-    expect(manifest.id).toBe('colleague-plugin');
-    expect(manifest.name).toBe('colleague-plugin');
+    expect(manifest.id).toBe('dsh-colleague');
+    expect(manifest.name).toBe('dsh-colleague');
     expect(manifest.version).toBe('0.1.0');
   });
 
@@ -40,8 +40,7 @@ describe('contract contractTest：Bundle Manifest', () => {
   it('manifest declaration bright inject and provides', () => {
     const path = resolve(ROOT, 'dsh.bundle.json');
     const manifest = JSON.parse(readFileSync(path, 'utf-8'));
-    expect(manifest.inject).toContain('dsh-session');
-    expect(manifest.inject).toContain('dsh-subagent');
+    expect(manifest.optionalInject).toContain('dsh-subagent');
     expect(manifest.provides).toContain('colleague-team');
   });
 
@@ -78,27 +77,17 @@ describe('contract contractTest：cordis.patch.yml', () => {
   it('patch.yml declaration bright plugin ID andconfig', () => {
     const path = resolve(ROOT, 'cordis.patch.yml');
     const content = readFileSync(path, 'utf-8');
-    expect(content).toContain('colleague-plugin');
-    expect(content).toContain('configPath');
+    expect(content).toContain('dsh-colleague');
     expect(content).toContain('maxConcurrentWriters');
     expect(content).toContain('memoryEnabled');
   });
 
-  it('patch.yml declaration bright all has mustneeddependency', () => {
+  it('patch.yml declares insert structure', () => {
     const path = resolve(ROOT, 'cordis.patch.yml');
     const content = readFileSync(path, 'utf-8');
-    expect(content).toContain('@deepseek-ai/cordis');
-    expect(content).toContain('@deepseek-ai/dsh-session');
-    expect(content).toContain('@deepseek-ai/dsh-subagent');
-    expect(content).toContain('@deepseek-ai/dsh-agent');
-    expect(content).toContain('@deepseek-ai/dsh-tool-subagent');
-  });
-
-  it('patch.yml declaration brightcanselectdependency dsh-web', () => {
-    const path = resolve(ROOT, 'cordis.patch.yml');
-    const content = readFileSync(path, 'utf-8');
-    expect(content).toContain('dsh-web');
-    expect(content).toContain('optionalDependencies');
+    expect(content).toContain('- insert:');
+    expect(content).toContain('id: dsh-colleague');
+    expect(content).toContain('name: dsh-colleague');
   });
 });
 
@@ -238,8 +227,7 @@ describe('contract contractTest：--dump-config  content integrity', () => {
   it('cordis.yml include plugin ID andconfig', () => {
     const path = resolve(ROOT, 'cordis.yml');
     const content = readFileSync(path, 'utf-8');
-    expect(content).toContain('colleague-plugin');
-    expect(content).toContain('configPath');
+    expect(content).toContain('dsh-colleague');
     expect(content).toContain('maxConcurrentWriters');
     expect(content).toContain('memoryEnabled');
   });

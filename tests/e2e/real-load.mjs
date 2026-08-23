@@ -1,9 +1,9 @@
 /**
  * Real DSH Cordis plugin load test
  *
- * Uses a real @deepseek-ai/cordis Context to load colleague-plugin,
+ * Uses a real @deepseek-ai/cordis Context to load dsh-colleague,
  * verifying that apply() executes correctly in a real runtime.
- * The orchestrationion loop uses a mock SubagentRuntime (does not depend on a real LLM).
+ * The orchestration loop uses a mock SubagentRuntime (does not depend on a real LLM).
  */
 
 import { Context, Fiber } from '@deepseek-ai/cordis';
