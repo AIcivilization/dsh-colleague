@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { resolve } from 'node:path';
 
 export default defineConfig({
   test: {
@@ -9,9 +10,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@core': '/Users/wf/自进化/临时/colleague-plugin/core',
-      '@web': '/Users/wf/自进化/临时/colleague-plugin/web',
-      '@config': '/Users/wf/自进化/临时/colleague-plugin/config',
+      '@core': resolve(__dirname, 'core'),
+      '@web': resolve(__dirname, 'web'),
+      '@config': resolve(__dirname, 'config'),
     },
   },
 });

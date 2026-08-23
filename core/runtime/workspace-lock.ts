@@ -9,6 +9,18 @@
 import { execSync } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { platform } from 'node:os';
+
+// On Windows, git commands need a shell to be found in PATH
+const IS_WIN = platform() === 'win32';
+
+const execOpts = (cwd: string, timeout = 5000) => ({
+  cwd,
+  encoding: 'utf-8' as const,
+  timeout,
+  stdio: ['pipe', 'pipe', 'ignore'] as ['pipe', 'pipe', 'ignore'],
+  shell: IS_WIN ? 'cmd.exe' : undefined,
+});
 
 export interface WorkspaceSnapshot {
   /** Git HEAD commit */
@@ -47,12 +59,7 @@ export class WorkspaceLock {
 
     // Git state readable
     try {
-      execSync('git rev-parse HEAD', {
-        cwd: this.workspace,
-        encoding: 'utf-8',
-        timeout: 5000,
-        stdio: ['pipe', 'pipe', 'ignore'],
-      });
+      execSync('git rev-parse HEAD', execOpts(this.workspace));
     } catch {
       errors.push(
         `Cannot read Git state in ${this.workspace}. Is it a git repository?`,
@@ -115,23 +122,13 @@ export class WorkspaceLock {
     let changedFiles: string[] = [];
 
     try {
-      head = execSync('git rev-parse HEAD', {
-        cwd: this.workspace,
-        encoding: 'utf-8',
-        timeout: 5000,
-        stdio: ['pipe', 'pipe', 'ignore'],
-      }).trim();
+      head = execSync('git rev-parse HEAD', execOpts(this.workspace)).trim();
     } catch {
       // Not a Git repo
     }
 
     try {
-      const status = execSync('git status --porcelain', {
-        cwd: this.workspace,
-        encoding: 'utf-8',
-        timeout: 5000,
-        stdio: ['pipe', 'pipe', 'ignore'],
-      }).trim();
+      const status = execSync('git status --porcelain', execOpts(this.workspace)).trim();
       isDirty = status.length > 0;
       changedFiles = status
         .split('\n')
@@ -160,12 +157,7 @@ export class WorkspaceLock {
     try {
       const diff = execSync(
         `git diff --name-only ${before.head}..${after.head}`,
-        {
-          cwd: this.workspace,
-          encoding: 'utf-8',
-          timeout: 10000,
-          stdio: ['pipe', 'pipe', 'ignore'],
-        },
+        execOpts(this.workspace, 10000),
       ).trim();
       return diff ? diff.split('\n').filter(Boolean) : [];
     } catch {

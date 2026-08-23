@@ -32,7 +32,7 @@ function makeState(tasks: Task[] = []): TeamState {
     members: makeMembers(),
     tasks,
     events: [],
-    workspace: '/tmp/test',
+    workspace: require('node:os').tmpdir(),
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };

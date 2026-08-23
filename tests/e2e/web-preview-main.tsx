@@ -50,7 +50,7 @@ const mockState = {
   members: mockMembers,
   tasks: mockTasks,
   events: mockEvents,
-  workspace: '/tmp/workspace',
+  workspace: require('node:os').tmpdir(),
   createdAt: Date.now() - 60000,
   updatedAt: Date.now(),
 }

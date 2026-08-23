@@ -19,8 +19,12 @@ dsh-colleague is a [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deeps
 - Node.js `>= 22.19.0`
 - DSH installed (`dsh --version` >= 0.1.0-rc.8)
 - At least one subagent provider registered in DSH
+- Git installed and available in PATH
+- Supported OS: **macOS**, **Linux**, **Windows** (PowerShell or cmd)
 
 ### One-Click Install
+
+#### macOS / Linux
 
 ```bash
 # Clone the repo
@@ -29,6 +33,17 @@ cd dsh-colleague
 
 # One-click install: build + register with DSH + restart + verify
 bash scripts/install-to-dsh-web.sh
+```
+
+#### Windows (PowerShell)
+
+```powershell
+# Clone the repo
+git clone https://github.com/AIcivilization/dsh-colleague.git
+cd dsh-colleague
+
+# One-click install: build + register with DSH + restart + verify
+powershell -ExecutionPolicy Bypass -File scripts\install-to-dsh-web.ps1
 ```
 
 The script automatically:
