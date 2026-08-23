@@ -475,7 +475,7 @@ describe('TeamRuntime State Machine', () => {
         id: 'coder-02',
         name: 'Coder 2',
         role: 'coder',
-        provider: 'dsh',
+        provider: 'dsh-sdk',
         slotId: 5,
       };
       runtime.addMember(newMember);
@@ -489,7 +489,7 @@ describe('TeamRuntime State Machine', () => {
           id: 'coder-01',
           name: 'Duplicate Coder',
           role: 'coder',
-          provider: 'dsh',
+          provider: 'dsh-sdk',
           slotId: 9,
         }),
       ).toThrow('Member with id "coder-01" already exists');

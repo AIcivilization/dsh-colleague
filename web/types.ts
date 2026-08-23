@@ -31,7 +31,7 @@ export interface Task {
   title: string;
   description: string;
   assignee: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'blocked' | 'cancelled';
   dependencies?: string[];
   result?: {
     status: 'completed' | 'failed' | 'blocked';
@@ -148,8 +148,9 @@ function mapTaskStatus(status: string): Task['status'] {
     case 'passed':
       return 'completed';
     case 'failed':
-    case 'blocked':
       return 'failed';
+    case 'blocked':
+      return 'blocked';
     case 'cancelled':
       return 'cancelled';
     default:

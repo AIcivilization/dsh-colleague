@@ -4,20 +4,22 @@
 
 # ===== preset.yml =====
 # Colleague plugin preset — defines the plugin's base configuration
+# status: active — loaded by the DSH preset system at install time
 
 id: colleague
 name: 'Colleague Plugin'
 description: 'Persistent, role-based AI teams — a multi-agent collaboration plugin for DSH'
-version: '1.0.0'
+version: '0.1.x'
 author: 'dsh-colleague'
 
 # DSH package dependencies
 dependencies:
-  - '@deepseek-ai/dsh-subagent-acp'    # ACP protocol support
-  - '@deepseek-ai/dsh-subagent-codex'  # Codex direct connection (optional)
-  - '@deepseek-ai/dsh-subagent-claude-code'  # Claude Code direct connection (optional)
+  - '@deepseek-ai/dsh-subagent-dsh-sdk'   # Primary: DSH SDK subagent provider
+  - '@deepseek-ai/dsh-subagent-acp'        # ACP protocol support (optional)
+  - '@deepseek-ai/dsh-subagent-codex'      # Codex direct connection (optional)
+  - '@deepseek-ai/dsh-subagent-claude-code' # Claude Code direct connection (optional)
 
-# Enabled agents
+# Enabled agents — each agent maps to a role template
 agents:
   - id: colleague-leader
     name: 'Colleague-Lead'
@@ -39,21 +41,14 @@ agents:
     name: 'Colleague-Doc Writer'
     preset: './templates/doc-writer.yaml'
 
-# WebUI mode (mode 5: team panel)
+# WebUI mode — client module entry served by DSH at /plugins/dsh-colleague/client.js
 webui:
   enabled: true
-  entry: './web/team-panel/index.tsx'
-  port: 3210
+  entry: './web/main.tsx'
 
-# Agent auto-discovery
-discovery:
-  enabled: true
-  module: './core/discovery/agent-discovery.ts'
-  scan_on_startup: true
-
-# Memory system
+# Memory system — L0-L3 distillation deferred to future versions
+# Current version: persistent retrieval injection of team events, decisions,
+# verified commands, and quality conclusions. See memory/store.ts for details.
 memory:
   enabled: true
-  module: './memory/types.ts'
-  levels: ['L0', 'L1', 'L2', 'L3']
-  auto_distill: true
+  module: './memory/store'

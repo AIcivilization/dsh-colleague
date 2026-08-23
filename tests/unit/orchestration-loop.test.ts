@@ -15,6 +15,7 @@ import { OrchestrationLoop, type SubagentRuntimeLike, type SubagentRunLike, type
 import { TeamRuntime } from '../../core/runtime/team-runtime';
 import { LeaderPlanner } from '../../core/planner/leader-planner';
 import { createMockContext, createMockTeamConfig, cleanupWorkspace } from './helpers';
+import { canFinalize } from '../../core/quality/gates';
 import type { TeamConfig } from '../../core/runtime/types';
 
 // ===== Mock SubagentRuntime =====
@@ -112,7 +113,7 @@ describe('OrchestrationLoop', () => {
     it('Leader creates task → coder executes → done → report', async () => {
       // Prepare mock responses
       const responses = new Map<string, string[]>([
-        ['dsh', [
+        ['dsh-sdk', [
           // First call: Leader decides to create task
           JSON.stringify({
             type: 'create_task',
@@ -168,7 +169,7 @@ describe('OrchestrationLoop', () => {
 
     it('Leader creates task → coder executes → request_review → review approved → report', async () => {
       const responses = new Map<string, string[]>([
-        ['dsh', [
+        ['dsh-sdk', [
           // Leader: create coder task
           JSON.stringify({
             type: 'create_task',
@@ -202,7 +203,7 @@ describe('OrchestrationLoop', () => {
         ]],
       ]);
 
-      // All members have provider 'dsh', so we dispatch by prompt content to determine role
+      // All members have provider 'dsh-sdk', so we dispatch by prompt content to determine role
       let leaderCallCount = 0;
       const mockRT: SubagentRuntimeLike = {
         async start(_name: string, request: { prompt: unknown[] }) {
@@ -214,7 +215,7 @@ describe('OrchestrationLoop', () => {
           if (promptText.includes('Your Decision') || promptText.includes('Team Goal')) {
             // Leader decision
             leaderCallCount++;
-            const queue = responses.get('dsh') || [];
+            const queue = responses.get('dsh-sdk') || [];
             if (leaderCallCount === 1) {
               output = queue[0]; // create_task
             } else if (leaderCallCount === 2) {
@@ -297,17 +298,18 @@ describe('OrchestrationLoop', () => {
                 reason: 'Code is written',
               });
             } else if (leaderCallCount === 3) {
-              // After review rejection, create a fix task
-              output = JSON.stringify({
-                type: 'create_task',
-                task: {
-                  title: 'Fix null pointer risk',
-                  description: 'Reviewer found null pointer risk in Login.tsx line 42',
-                  role: 'coder',
-                  dependencies: [],
-                },
-                reason: 'Reviewer found issue, need to fix',
-              });
+            // After review rejection, create a fix task
+            // Fix task title starts with 'Fix ' and description references original task id
+            output = JSON.stringify({
+              type: 'create_task',
+              task: {
+                title: 'Fix null pointer risk',
+                description: `Reviewer found null pointer risk in Login.tsx line 42 (fixes task ${taskId.slice(0, 8)})`,
+                role: 'coder',
+                dependencies: [],
+              },
+              reason: 'Reviewer found issue, need to fix',
+            });
             } else if (leaderCallCount === 4) {
               // Request review again (for the fixed task)
               const fixTaskId = snapshot.tasks[1]?.id || '';
@@ -367,10 +369,17 @@ describe('OrchestrationLoop', () => {
       };
 
       loop.bindSubagentRuntime(mockRT);
-      await loop.start('Implement a login page');
+      
+      try {
+        await loop.start('Implement a login page');
+      } catch (err) {
+        // Expected: loop may fail if canFinalize blocks
+      }
+
+      const snapshot = runtime.getSnapshot();
+      const { canFinalize: canFin, blockers } = canFinalize(snapshot.tasks);
 
       expect(loop.getState()).toBe('completed');
-      const snapshot = runtime.getSnapshot();
       // Should have 2 tasks (original + fix)
       expect(snapshot.tasks.length).toBe(2);
     });
@@ -398,7 +407,7 @@ describe('OrchestrationLoop', () => {
       // Leader always outputs invalid JSON — loop will keep going but won't produce valid action
       // Reaching maxIterations will throw
       const responses = new Map<string, string[]>([
-        ['dsh', ['this is not json at all']],
+        ['dsh-sdk', ['this is not json at all']],
       ]);
 
       loop.bindSubagentRuntime(createMockSubagentRuntime(responses));

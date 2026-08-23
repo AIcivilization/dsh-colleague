@@ -419,6 +419,10 @@ export class TeamRuntime {
     }
 
     const from = task.status;
+    // Idempotent: same-state transition is a no-op (prevents duplicate event
+    // append when pause/complete is called twice)
+    if (from === to) return;
+
     if (!canTransitionTask(from, to)) {
       this.appendEvent('error', {
         message: `Invalid task status transition: ${from} → ${to} for task ${taskId}`,

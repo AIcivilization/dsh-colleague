@@ -10,6 +10,7 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
+import { createHash } from 'node:crypto';
 import { parse as parseYAML } from 'yaml';
 import type { TeamConfig, MemberConfig, RoleId } from '../runtime/types';
 
@@ -51,12 +52,26 @@ export function loadTeamConfig(configPath: string): Omit<TeamConfig, 'workspace'
     );
   }
   const teamName = team.name || 'Default Team';
-  // Generate stable teamId from name — for non-ASCII names, append a hash suffix
-  // to prevent collisions (e.g. two different Chinese team names both slug to "team--")
+  // Generate stable teamId from name.
+  // When the name contains non-ASCII chars (or chars outside [a-z0-9 -]),
+  // the slug will be compressed and may collide (e.g. "Team 团队A" and
+  // "Team 团队B" both slug to "team-a"). In that case, append a hex hash
+  // suffix to guarantee uniqueness.
+  // Pure ASCII names keep the old behavior for backward compat.
+  const hasNonSlugChars = /[^a-z0-9 -]/.test(teamName.toLowerCase());
   const slug = teamName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  const teamId = team.id || (slug && /^[a-z0-9]/.test(slug)
-    ? `team-${slug}`
-    : `team-${Buffer.from(teamName).toString('hex').slice(0, 12)}`);
+  let teamId: string;
+  if (team.id) {
+    teamId = team.id;
+  } else if (hasNonSlugChars) {
+    // Mixed/CJK name — append hex hash to disambiguate
+    const hex = createHash('sha256').update(teamName).digest('hex').slice(0, 8);
+    teamId = slug ? `team-${slug}-${hex}` : `team-${hex}`;
+  } else {
+    teamId = slug && /^[a-z0-9]/.test(slug)
+      ? `team-${slug}`
+      : `team-${Buffer.from(teamName).toString('hex').slice(0, 12)}`;
+  }
 
   // Extract member list
   const membersRaw = raw.members as Array<Record<string, unknown>> | undefined;
@@ -141,7 +156,10 @@ function parseMember(
   const role = roleStr as RoleId;
 
   // provider is a registered DSH subagent provider name
-  const provider = (raw.provider as string) || 'dsh';
+  // Default: 'dsh-sdk' (@deepseek-ai/dsh-subagent-dsh-sdk)
+  // Backward compat: 'dsh' is alias-mapped to 'dsh-sdk' with a deprecation warning
+  const rawProvider = (raw.provider as string) || 'dsh-sdk';
+  const provider = rawProvider === 'dsh' ? 'dsh-sdk' : rawProvider;
 
   // model is an optional model identifier
   const model = raw.model as string | undefined;

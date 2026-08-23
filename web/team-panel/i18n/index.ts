@@ -112,6 +112,7 @@ const translations: Translations = {
   'task.status.in_progress': { zh: '进行中', en: 'in_progress' },
   'task.status.completed': { zh: '已完成', en: 'completed' },
   'task.status.failed': { zh: '失败', en: 'failed' },
+  'task.status.blocked': { zh: '等待锁', en: 'blocked' },
   'task.status.cancelled': { zh: '已取消', en: 'cancelled' },
 
   // ===== 介入栏 =====

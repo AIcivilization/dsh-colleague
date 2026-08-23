@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v0.1.0 (2025-08-21)
+## v0.1.0 (2026-08-21)
 
 ### Breaking Changes
 

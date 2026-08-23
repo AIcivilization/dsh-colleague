@@ -1,13 +1,13 @@
 /**
- * MemoryService single unitTest
+ * MemoryService unit tests
  *
- * Testcover cover：
+ * Test coverage:
  * - recordEvent / recordDecision / recordCommand / recordQuality
- * - searchByTask（presstaskcheck search）
- * - search（all text check search）
- * - register input up limit（maxEntries / maxCharsPerEntry / maxTotalChars）
- * - persistence（write/load）
- * - clean
+ * - searchByTask (search by task id)
+ * - search (full-text search)
+ * - injection limits (maxEntries / maxCharsPerEntry / maxTotalChars)
+ * - persistence (write/load)
+ * - clear
  * - getAll
  */
 
@@ -22,11 +22,11 @@ describe('MemoryService', () => {
   let memory: MemoryService;
 
   beforeEach(() => {
-    memory = new MemoryService(); // notstart usepersistence
+      memory = new MemoryService(); // no persistence by default
   });
 
-  describe('recordoperation', () => {
-    it('recordEvent recordevent', () => {
+  describe('record operations', () => {
+    it('recordEvent records an event', () => {
       memory.recordEvent({
         content: 'taskopen initial executes',
         metadata: { taskId: 'task-001' },
@@ -38,9 +38,9 @@ describe('MemoryService', () => {
       expect(all[0].metadata.taskId).toBe('task-001');
     });
 
-    it('recordDecision record architect structure decis bind', () => {
+    it('recordDecision records an architecture decision', () => {
       memory.recordDecision({
-        content: 'select select React workforbeforeend  architect',
+        content: 'Choose React as the frontend framework',
         metadata: {},
       });
       const all = memory.getAll();
@@ -48,7 +48,7 @@ describe('MemoryService', () => {
       expect(all[0].metadata.source).toBe('decision');
     });
 
-    it('recordCommand recordhasverify life command', () => {
+    it('recordCommand records a verified command', () => {
       memory.recordCommand({
         content: 'npm run build',
         metadata: {},
@@ -58,9 +58,9 @@ describe('MemoryService', () => {
       expect(all[0].metadata.source).toBe('command');
     });
 
-    it('recordQuality record quality conclusion conclusion', () => {
+    it('recordQuality records a quality conclusion', () => {
       memory.recordQuality({
-        content: 'Review passed，no strict heavyIssue',
+        content: 'Review passed, no major issues',
         metadata: { taskId: 'task-001' },
       });
       const all = memory.getAll();
@@ -68,69 +68,69 @@ describe('MemoryService', () => {
       expect(all[0].metadata.source).toBe('quality');
     });
 
-    it('many item record  addtolist', () => {
+    it('multiple records add to list', () => {
       memory.recordEvent({ content: 'event1', metadata: {} });
       memory.recordEvent({ content: 'event2', metadata: {} });
-      memory.recordDecision({ content: 'decis bind1', metadata: {} });
+      memory.recordDecision({ content: 'decision1', metadata: {} });
       expect(memory.getAll().length).toBe(3);
     });
   });
 
   describe('searchByTask', () => {
     beforeEach(() => {
-      memory.recordEvent({ content: 'taskAopen initial', metadata: { taskId: 'task-A' } });
-      memory.recordEvent({ content: 'taskADone', metadata: { taskId: 'task-A' } });
-      memory.recordEvent({ content: 'taskBopen initial', metadata: { taskId: 'task-B' } });
-      memory.recordQuality({ content: 'taskAReview passed', metadata: { taskId: 'task-A' } });
+      memory.recordEvent({ content: 'taskA started', metadata: { taskId: 'task-A' } });
+      memory.recordEvent({ content: 'taskA done', metadata: { taskId: 'task-A' } });
+      memory.recordEvent({ content: 'taskB started', metadata: { taskId: 'task-B' } });
+      memory.recordQuality({ content: 'taskA review passed', metadata: { taskId: 'task-A' } });
     });
 
-    it('press taskId check search phase close record memory', () => {
+    it('by taskId returns matching records', () => {
       const result = memory.searchByTask('task-A');
       expect(result.total).toBe(3);
       expect(result.entries.length).toBe(3);
       expect(result.truncated).toBe(false);
     });
 
-    it('does not existof taskId return returnempty', () => {
+    it('non-existent taskId returns empty', () => {
       const result = memory.searchByTask('nonexistent');
       expect(result.total).toBe(0);
       expect(result.entries.length).toBe(0);
     });
 
-    it('only return return point bind taskId ofrecord memory', () => {
+    it('only returns entries for the given taskId', () => {
       const result = memory.searchByTask('task-B');
       expect(result.total).toBe(1);
-      expect(result.entries[0].content).toBe('taskBopen initial');
+      expect(result.entries[0].content).toBe('taskB started');
     });
   });
 
-  describe('search（all text check search）', () => {
+  describe('search (full-text search)', () => {
     beforeEach(() => {
-      memory.recordEvent({ content: 'use userloginsuccessimplement', metadata: {} });
-      memory.recordDecision({ content: 'use use JWT verify', metadata: {} });
-      memory.recordEvent({ content: 'loginTestPassed', metadata: {} });
+      memory.recordEvent({ content: 'User login success implementation', metadata: {} });
+      memory.recordDecision({ content: 'Use JWT for verification', metadata: {} });
+      memory.recordEvent({ content: 'Login test passed', metadata: {} });
     });
 
-    it('close   match config', () => {
+    it('close match query', () => {
       const result = memory.search('login');
       expect(result.total).toBe(2);
     });
 
-    it('large small writenot ', () => {
+    it('case-insensitive search works', () => {
       memory.recordEvent({ content: 'React Framework', metadata: {} });
       const result = memory.search('react');
       expect(result.total).toBe(1);
     });
 
-    it('no match config return returnempty', () => {
+    it('no match returns empty', () => {
       const result = memory.search('nonexistent');
       expect(result.total).toBe(0);
     });
   });
 
-  describe('register input up limit', () => {
-    it('maxEntries limit return return item item data', () => {
-      // record 10 item
+  describe('injection limits', () => {
+    it('maxEntries limits returned items', () => {
+      // record 10 items
       for (let i = 0; i < 10; i++) {
         memory.recordEvent({
           content: `event${i}`,
@@ -141,12 +141,12 @@ describe('MemoryService', () => {
         ...DEFAULT_INJECTION_CONFIG,
         maxEntries: 3,
       });
-      // maxEntries limitafterreturn return 3 item，total alsofor 3（hasswitch piece）
+      // maxEntries limits returned items to 3
       expect(result.entries.length).toBe(3);
       expect(result.total).toBe(3);
     });
 
-    it('maxCharsPerEntry  break single item inner content', () => {
+    it('maxCharsPerEntry truncates long entries', () => {
       memory.recordEvent({
         content: 'A'.repeat(1000),
         metadata: { taskId: 'task-x' },
@@ -159,7 +159,7 @@ describe('MemoryService', () => {
       expect(result.entries[0].content).toContain('...');
     });
 
-    it('maxTotalChars limit total register input character symbol', () => {
+    it('maxTotalChars limits total injection characters', () => {
       for (let i = 0; i < 5; i++) {
         memory.recordEvent({
           content: 'A'.repeat(500),
@@ -191,9 +191,9 @@ describe('MemoryService', () => {
       rmSync(persistDir, { recursive: true, force: true });
     });
 
-    it('recordafterwrite memory.jsonl text component', () => {
+    it('records are persisted to memory.jsonl', () => {
       persistedMemory.recordEvent({
-        content: 'Testpersistence',
+        content: 'Test persistence',
         metadata: { taskId: 'task-001' },
       });
       const memPath = join(persistDir, 'memory.jsonl');
@@ -202,45 +202,45 @@ describe('MemoryService', () => {
       const lines = content.split('\n').filter((l) => l.trim());
       expect(lines.length).toBe(1);
       const entry = JSON.parse(lines[0]);
-      expect(entry.content).toBe('Testpersistence');
+      expect(entry.content).toBe('Test persistence');
     });
 
-    it('restartafterfromtext componentloadrecord memory', () => {
+    it('restart loads persisted memory from file', () => {
       persistedMemory.recordEvent({
-        content: 'Needrecoveryofrecord memory',
+        content: 'Need to recover memory',
         metadata: { taskId: 'task-001' },
       });
       persistedMemory.recordDecision({
-        content: 'architect structure decis bind',
+        content: 'Architecture decision',
         metadata: {},
       });
 
-      // createnew actual instancefromsame one item recordload
+      // create new instance to load from same file
       const restored = new MemoryService(persistDir);
       const all = restored.getAll();
       expect(all.length).toBe(2);
-      expect(all[0].content).toBe('Needrecoveryofrecord memory');
-      expect(all[1].content).toBe('architect structure decis bind');
+      expect(all[0].content).toBe('Need to recover memory');
+      expect(all[1].content).toBe('Architecture decision');
     });
 
-    it('clean cleanemptyrecord memory and update new text component', () => {
-      persistedMemory.recordEvent({ content: 'record memory1', metadata: {} });
-      persistedMemory.recordEvent({ content: 'record memory2', metadata: {} });
+    it('clear empties memory and persists', () => {
+      persistedMemory.recordEvent({ content: 'memory1', metadata: {} });
+      persistedMemory.recordEvent({ content: 'memory2', metadata: {} });
       expect(persistedMemory.getAll().length).toBe(2);
 
       persistedMemory.clear();
       expect(persistedMemory.getAll().length).toBe(0);
 
-      // text component alsoshouldforempty
+      // file should also be empty
       const restored = new MemoryService(persistDir);
       expect(restored.getAll().length).toBe(0);
     });
   });
 
-  describe('  record update new', () => {
-    it('searchByTask update new lastAccessed and accessCount', () => {
+  describe('access tracking', () => {
+    it('searchByTask updates lastAccessed and accessCount', () => {
       memory.recordEvent({
-        content: 'Test  record',
+        content: 'Test record',
         metadata: { taskId: 'task-001' },
       });
 

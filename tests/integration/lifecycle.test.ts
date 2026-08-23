@@ -1,8 +1,8 @@
 /**
- * integration successTest — event persistenceandrecovery + Mock Provider all flow process
+ * integration test — event persistence and recovery + Mock Provider lifecycle
  *
  * Test coverage:
- * - eventflowpersistenceto events.jsonl
+ * - event flow persistence to events.jsonl
  * - restart from event flow: complete recovery of team status
  * - Mock provider simulates minimal coder task lifecycle
  * - TeamRuntime + WorkspaceLock + MemoryService end-to-end collaboration
@@ -26,7 +26,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { TeamConfig } from '../../core/runtime/types';
 
-describe('integration successTest：event persistenceandrecovery', () => {
+describe('Integration: Event persistence and recovery', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -42,12 +42,12 @@ describe('integration successTest：event persistenceandrecovery', () => {
   it('complete lifecycle: create -> planning -> execution -> taskDone -> Review -> Test -> finalize', () => {
     const runtime = new TeamRuntime(ctx, config);
 
-    // 1. teamstart
+    // 1. team starts
     runtime.startPlanning();
     runtime.startRunning();
     expect(runtime.getSnapshot().status).toBe('running');
 
-    // 2. Leader createcodingtask
+    // 2. Leader creates coding task
     const coderTask = runtime.createTask(
       'Implement user authentication',
       'Implement JWT login and registration API',
@@ -55,11 +55,11 @@ describe('integration successTest：event persistenceandrecovery', () => {
     );
     expect(coderTask.status).toBe('planned');
 
-    // 3. taskflow rotateto running
+    // 3. task transitions to running
     runtime.transitionTask(coderTask.id, 'ready');
     runtime.transitionTask(coderTask.id, 'running');
 
-    // 4. coder return return conclusion structure ize conclusion result
+    // 4. coder returns structured result
     const coderResult = {
       status: 'completed' as const,
       summary: 'implement /api/login and /api/register',
@@ -71,10 +71,10 @@ describe('integration successTest：event persistenceandrecovery', () => {
 
     runtime.transitionTask(coderTask.id, 'passed', resultValidation.result);
 
-    // 5. reviewer Review
+    // 5. reviewer reviews
     const reviewQuality = validateQualityResult({
       status: 'approved',
-      summary: 'Code quality good good，complies with standard standard',
+      summary: 'Code quality is good, complies with standards',
       issues: [],
     });
     expect(reviewQuality.valid).toBe(true);
@@ -85,19 +85,19 @@ describe('integration successTest：event persistenceandrecovery', () => {
       issues: [],
     });
 
-    // 6. verify quality gate gate
+    // 6. verify quality gate
     const task = runtime.getSnapshot().tasks.find((t) => t.id === coderTask.id);
     expect(task).toBeDefined();
     expect(hasPassedQualityGate(task!)).toBe(true);
 
-    // 7. teamDone
-    runtime.complete('all hastaskDone');
+    // 7. team completes
+    runtime.complete('All tasks done');
     expect(runtime.getSnapshot().status).toBe('completed');
 
     runtime.dispose();
   });
 
-  it('Reviewrejection → fix → re-review passed', () => {
+  it('Review rejection → fix → re-review passed', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
@@ -112,25 +112,25 @@ describe('integration successTest：event persistenceandrecovery', () => {
       issues: [],
     });
 
-    // Reviewrejection
+    // Review rejection
     runtime.recordQuality(coderTask.id, {
       status: 'changes_requested',
-      summary: 'Changes needednaming standard standard',
+      summary: 'Changes needed: naming standards',
       issues: [
-        { severity: 'warning', description: 'variablenamenon-standard', file: 'src/a.ts', line: 10 },
+        { severity: 'warning', description: 'variable naming non-standard', file: 'src/a.ts', line: 10 },
       ],
     });
 
-    // taskshouldchangefor failed
+    // task should transition to failed
     let task = runtime.getSnapshot().tasks.find((t) => t.id === coderTask.id);
     expect(task?.status).toBe('failed');
 
-    // fix then re- enter input ready
+    // fix then re-enter ready
     runtime.transitionTask(coderTask.id, 'ready');
     runtime.transitionTask(coderTask.id, 'running');
     runtime.transitionTask(coderTask.id, 'passed', {
       status: 'completed',
-      summary: 'hasfixnamingIssue',
+      summary: 'Fixed naming issue',
       artifacts: ['src/a.ts'],
       issues: [],
     });
@@ -138,7 +138,7 @@ describe('integration successTest：event persistenceandrecovery', () => {
     // re-review passed
     runtime.recordQuality(coderTask.id, {
       status: 'approved',
-      summary: 'fix afterPassed',
+      summary: 'Fix after passed',
       issues: [],
     });
 
@@ -154,7 +154,7 @@ describe('integration successTest：event persistenceandrecovery', () => {
     runtime.startPlanning();
     runtime.startRunning();
 
-    const coderTask = runtime.createTask('coding', 'Description', 'coder');
+    const coderTask = runtime.createTask('Coding', 'Description', 'coder');
     runtime.transitionTask(coderTask.id, 'ready');
     runtime.transitionTask(coderTask.id, 'running');
     runtime.transitionTask(coderTask.id, 'passed', {
@@ -173,7 +173,7 @@ describe('integration successTest：event persistenceandrecovery', () => {
   });
 
   it('event persistence: after restart, recovers complete status', () => {
-    // ordinal onephase
+    // phase 1
     const rt1 = new TeamRuntime(ctx, config);
     rt1.startPlanning();
     rt1.startRunning();
@@ -194,22 +194,22 @@ describe('integration successTest：event persistenceandrecovery', () => {
     });
     rt1.pause();
 
-    // verifypersistencetext component storeat
+    // verify persistence file exists
     const eventsPath = resolve(config.workspace, '.colleague', 'events.jsonl');
     expect(existsSync(eventsPath)).toBe(true);
 
-    // verify every rowisLegal JSON
+    // verify every row is valid JSON
     const content = readFileSync(eventsPath, 'utf-8');
     const lines = content.split('\n').filter((l) => l.trim());
     expect(lines.length).toBeGreaterThan(5);
 
     rt1.dispose();
 
-    // ordinal twophase：restartrecovery
+    // phase 2: restart recovery
     const rt2 = new TeamRuntime(ctx, config);
     const state = rt2.getSnapshot();
 
-    // verifyrecoveryofstatus
+    // verify status recovery
     expect(state.status).toBe('paused');
     expect(state.tasks.length).toBe(2);
     expect(state.tasks[0].title).toBe('task1');
@@ -218,14 +218,14 @@ describe('integration successTest：event persistenceandrecovery', () => {
     expect(state.tasks[1].title).toBe('task2');
     expect(state.tasks[1].dependencies).toContain(task1.id);
 
-    // verifyrecoveryaftercan be continue continueoperation
+    // verify recovery allows continued operation
     rt2.resume();
     expect(rt2.getSnapshot().status).toBe('running');
 
     rt2.dispose();
   });
 
-  it('LeaderPlanner + TeamRuntime joint move：Validationafterexecutes', () => {
+  it('LeaderPlanner + TeamRuntime integration: validation after execution', () => {
     const runtime = new TeamRuntime(ctx, config);
     const planner = new LeaderPlanner(1);
 
@@ -237,40 +237,40 @@ describe('integration successTest：event persistenceandrecovery', () => {
       type: 'create_task' as const,
       reason: 'Need to implement login successfully',
       task: {
-        title: 'implementlogin',
+        title: 'implement login',
         description: 'JWT login API',
         role: 'coder' as const,
         dependencies: [] as string[],
       },
     };
 
-    // Validation Leader output
+    // Validate Leader output
     const state = runtime.getSnapshot();
     const validation = planner.validate(leaderAction, state);
     expect(validation.valid).toBe(true);
 
-    // executes Leader point command
+    // execute Leader's command
     const task = runtime.createTask(
       leaderAction.task.title,
       leaderAction.task.description,
       leaderAction.task.role,
       leaderAction.task.dependencies,
     );
-    expect(task.title).toBe('implementlogin');
+    expect(task.title).toBe('implement login');
 
     runtime.dispose();
   });
 
-  it('record memory system statpersistence：restartaftercancheck search architect structure decis bind', () => {
+  it('Memory system persistence: restart can search architectural decisions', () => {
     const rt1 = new TeamRuntime(ctx, config);
     rt1.startPlanning();
     rt1.startRunning();
 
-    // triggers team_status_changed event，recordtorecord memory
+    // triggers team_status_changed event, records to memory
     rt1.pause();
     rt1.resume();
 
-    // Passed quality_recorded record quality conclusion conclusion
+    // quality_recorded records quality conclusion
     const task = rt1.createTask('task', 'Description', 'coder');
     rt1.transitionTask(task.id, 'ready');
     rt1.transitionTask(task.id, 'running');
@@ -288,17 +288,17 @@ describe('integration successTest：event persistenceandrecovery', () => {
 
     rt1.dispose();
 
-    // restartafterverify record memory
+    // restart and verify memory
     const rt2 = new TeamRuntime(ctx, config);
     const memory = rt2.getMemory();
     const all = memory.getAll();
     expect(all.length).toBeGreaterThan(0);
 
-    // shouldinclude quality conclusion conclusion
+    // should include quality conclusion
     const qualityEntries = all.filter((e) => e.metadata.source === 'quality');
     expect(qualityEntries.length).toBeGreaterThan(0);
 
-    // shouldincludedecisionrecord
+    // should include decision record
     const decisionEntries = all.filter((e) => e.metadata.source === 'decision');
     expect(decisionEntries.length).toBeGreaterThan(0);
 

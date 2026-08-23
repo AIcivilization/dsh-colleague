@@ -1,16 +1,16 @@
 /**
- * endtoendTest — teamall flow process scenario scenario
+ * End-to-end tests — team flow scenario tests
  *
- * Testcover cover：
- * - normal delivery flow process（planning→coding→Review→Test→report）
- * - Reviewrejection + fix + re-review
- * - Testfailed + fix + re-test
- * - pauserecovery
- * - skiptask
- * - controlled
- * - plugin heavy load（dispose + heavy create）
- * - empty planterminal state
- * - partial get cancelterminal state
+ * Test coverage:
+ * - Normal delivery flow (planning → coding → review → test → report)
+ * - Review rejection + fix + re-review
+ * - Test failed + fix + re-test
+ * - Pause recovery
+ * - Skip task
+ * - Takeover
+ * - Plugin persistence (dispose + re-create)
+ * - Empty plan terminal state
+ * - Partial cancel terminal state
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -43,7 +43,7 @@ describe('E2E: normal delivery flow process', () => {
   it('complete delivery: planning -> coding -> Review -> Test -> finalize', () => {
     const runtime = new TeamRuntime(ctx, config);
 
-    // planningphase
+    // planning phase
     runtime.startPlanning();
     runtime.startRunning();
 
@@ -66,22 +66,22 @@ describe('E2E: normal delivery flow process', () => {
     });
 
     // Tester Test
-    const testTask = runtime.createTask('Testsuccess', 'Description', 'tester', [codeTask.id]);
+    const testTask = runtime.createTask('Test', 'Description', 'tester', [codeTask.id]);
     runtime.transitionTask(testTask.id, 'ready');
     runtime.transitionTask(testTask.id, 'running');
     runtime.transitionTask(testTask.id, 'passed', {
       status: 'completed',
-      summary: 'allTestPassed',
+      summary: 'All tests passed',
       artifacts: ['tests/feature.test.ts'],
       issues: [],
     });
     runtime.recordQuality(testTask.id, {
       status: 'test_passed',
-      summary: 'TestPassed',
+      summary: 'Test passed',
       issues: [],
     });
 
-    // verifycan be finalize
+    // verify can finalize
     const state = runtime.getSnapshot();
     const finalizeResult = canFinalize(state.tasks);
     expect(finalizeResult.canFinalize).toBe(true);
@@ -94,7 +94,7 @@ describe('E2E: normal delivery flow process', () => {
   });
 });
 
-describe('E2E: Reviewrejectionandfix', () => {
+describe('E2E: Review rejection and fix', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -107,7 +107,7 @@ describe('E2E: Reviewrejectionandfix', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('Reviewrejection → fix → re-review passed', () => {
+  it('Review rejection → fix → re-review passed', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
@@ -135,7 +135,7 @@ describe('E2E: Reviewrejectionandfix', () => {
     runtime.transitionTask(task.id, 'running');
     runtime.transitionTask(task.id, 'passed', {
       status: 'completed',
-      summary: 'hasfix',
+      summary: 'Has fix',
       artifacts: ['src/feat.ts'],
       issues: [],
     });
@@ -143,7 +143,7 @@ describe('E2E: Reviewrejectionandfix', () => {
     // re-review passed
     runtime.recordQuality(task.id, {
       status: 'approved',
-      summary: 'fix afterPassed',
+      summary: 'Fix after passed',
       issues: [],
     });
 
@@ -152,7 +152,7 @@ describe('E2E: Reviewrejectionandfix', () => {
   });
 });
 
-describe('E2E: Testfailedandfix', () => {
+describe('E2E: Test failed and fix', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -165,12 +165,12 @@ describe('E2E: Testfailedandfix', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('Testfailed → fix → re-testPassed', () => {
+  it('Test failed → fix → re-test passed', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
 
-    const codeTask = runtime.createTask('coding', 'Description', 'coder');
+    const codeTask = runtime.createTask('Coding', 'Description', 'coder');
     runtime.transitionTask(codeTask.id, 'ready');
     runtime.transitionTask(codeTask.id, 'running');
     runtime.transitionTask(codeTask.id, 'passed', {
@@ -191,25 +191,25 @@ describe('E2E: Testfailedandfix', () => {
     runtime.transitionTask(testTask.id, 'running');
     runtime.transitionTask(testTask.id, 'passed', {
       status: 'completed',
-      summary: 'TestexecutesDone',
+      summary: 'Test executed done',
       artifacts: [],
       issues: [],
     });
 
-    // Testfailed
+    // Test failed
     runtime.recordQuality(testTask.id, {
       status: 'test_failed',
-      summary: '2 countTestfailed',
+      summary: '2 tests failed',
       issues: [{ severity: 'critical', description: 'test_login failed' }],
     });
     expect(runtime.getSnapshot().tasks.find((t) => t.id === testTask.id)?.status).toBe('failed');
 
-    // fix then re-Test
+    // fix then re-test
     runtime.transitionTask(testTask.id, 'ready');
     runtime.transitionTask(testTask.id, 'running');
     runtime.transitionTask(testTask.id, 'passed', {
       status: 'completed',
-      summary: 'fix then re-Test',
+      summary: 'Fix then re-test',
       artifacts: [],
       issues: [],
     });
@@ -224,7 +224,7 @@ describe('E2E: Testfailedandfix', () => {
   });
 });
 
-describe('E2E: pauserecovery', () => {
+describe('E2E: Pause recovery', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -237,7 +237,7 @@ describe('E2E: pauserecovery', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('pause afternotagain dispatch sendNew task，recoveryaftercancontinue continue', () => {
+  it('pause prevents new task dispatch, resume allows continuation', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
@@ -246,12 +246,12 @@ describe('E2E: pauserecovery', () => {
     runtime.pause();
     expect(runtime.getSnapshot().status).toBe('paused');
 
-    // pause after creating taskshould not block stop（but actually executesshouldwaitrecovery）
-    // Here here verify pause statusbook itself correct correct
+    // pause should not block task creation (but execution waits for resume)
+    // Here we verify pause state itself is correct
     const task = runtime.createTask('New task', 'Description', 'coder');
     expect(task.status).toBe('planned');
 
-    // recovery
+    // resume
     runtime.resume();
     expect(runtime.getSnapshot().status).toBe('running');
 
@@ -259,7 +259,7 @@ describe('E2E: pauserecovery', () => {
   });
 });
 
-describe('E2E: skiptask', () => {
+describe('E2E: Skip task', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -272,7 +272,7 @@ describe('E2E: skiptask', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('skiptaskafteritsothertasknotaffectedaffect', () => {
+  it('skip task, other tasks not affected', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
@@ -284,7 +284,7 @@ describe('E2E: skiptask', () => {
     runtime.handleIntervention({ type: 'skip', taskId: task1.id });
     expect(runtime.getSnapshot().tasks.find((t) => t.id === task1.id)?.status).toBe('cancelled');
 
-    // task2 notaffectedaffect
+    // task2 not affected
     runtime.transitionTask(task2.id, 'ready');
     expect(runtime.getSnapshot().tasks.find((t) => t.id === task2.id)?.status).toBe('ready');
 
@@ -292,7 +292,7 @@ describe('E2E: skiptask', () => {
   });
 });
 
-describe('E2E: controlled', () => {
+describe('E2E: Takeover', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -305,7 +305,7 @@ describe('E2E: controlled', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('controlledoperationpause teamand record', () => {
+  it('takeover pauses team and records event', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
@@ -325,7 +325,7 @@ describe('E2E: controlled', () => {
   });
 });
 
-describe('E2E: plugin heavy load', () => {
+describe('E2E: Plugin persistence', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -338,40 +338,40 @@ describe('E2E: plugin heavy load', () => {
     cleanupWorkspace(config.workspace);
   });
 
-  it('dispose afterheavy create runtime canrecoverystatus', () => {
+  it('dispose then re-create runtime recovers state', () => {
     const rt1 = new TeamRuntime(ctx, config);
     rt1.startPlanning();
     rt1.startRunning();
-    const task = rt1.createTask('persistencetask', 'Description', 'coder');
+    const task = rt1.createTask('Persistent task', 'Description', 'coder');
     rt1.transitionTask(task.id, 'ready');
     rt1.transitionTask(task.id, 'running');
     rt1.dispose();
 
-    // heavy create
+    // re-create
     const rt2 = new TeamRuntime(ctx, config);
     const state = rt2.getSnapshot();
     expect(state.status).toBe('running');
     expect(state.tasks.length).toBe(1);
-    expect(state.tasks[0].title).toBe('persistencetask');
+    expect(state.tasks[0].title).toBe('Persistent task');
     expect(state.tasks[0].status).toBe('running');
     rt2.dispose();
   });
 
-  it('dispose after eventsubscription is cleared', () => {
+  it('dispose clears event subscription', () => {
     const rt = new TeamRuntime(ctx, config);
     let received = 0;
     rt.subscribe(() => received++);
     rt.dispose();
 
-    // dispose aftershould notagain receivetoevent
-    // due to dispose cleanempty listeners，namely use triggers alsonotnotification
+    // dispose should not receive more events
+    // dispose cleared listeners, no further notifications
     const before = received;
     // directly calling dispose cleared listeners
     expect(received).toBe(before);
   });
 });
 
-describe('E2E: empty planandterminal state', () => {
+describe('E2E: Empty plan and terminal state', () => {
   let ctx: any;
   let config: TeamConfig;
 
@@ -389,20 +389,20 @@ describe('E2E: empty planandterminal state', () => {
     runtime.startPlanning();
     runtime.startRunning();
 
-    // no any tasks，directly completes
+    // no tasks, directly complete
     const tasks = runtime.getSnapshot().tasks;
     expect(tasks.length).toBe(0);
 
     const finalizeResult = canFinalize(tasks);
     expect(finalizeResult.canFinalize).toBe(true);
 
-    runtime.complete('empty planDone');
+    runtime.complete('Empty plan done');
     expect(runtime.getSnapshot().status).toBe('completed');
 
     runtime.dispose();
   });
 
-  it('partial get cancelafterremainingtaskcanfinalize', () => {
+  it('partial cancel, remaining tasks can finalize', () => {
     const runtime = new TeamRuntime(ctx, config);
     runtime.startPlanning();
     runtime.startRunning();
@@ -410,10 +410,10 @@ describe('E2E: empty planandterminal state', () => {
     const task1 = runtime.createTask('task1', 'Description', 'coder');
     const task2 = runtime.createTask('task2', 'Description', 'coder');
 
-    // get cancel task2
+    // cancel task2
     runtime.transitionTask(task2.id, 'cancelled');
 
-    // task1 DoneandPassedReview
+    // task1 done and passed review
     runtime.transitionTask(task1.id, 'ready');
     runtime.transitionTask(task1.id, 'running');
     runtime.transitionTask(task1.id, 'passed', {
@@ -446,19 +446,19 @@ describe('E2E: empty planandterminal state', () => {
     runtime.transitionTask(task.id, 'running');
     runtime.transitionTask(task.id, 'failed', {
       status: 'failed',
-      summary: 'implementfailed',
+      summary: 'Implementation failed',
       artifacts: [],
-      issues: [{ severity: 'critical', description: 'strict heavy error' }],
+      issues: [{ severity: 'critical', description: 'strict error' }],
     });
 
-    // fix afterget cancel
+    // fix then cancel
     runtime.transitionTask(task.id, 'cancelled');
 
-    // can be finalize（only onetaskis cancelled）
+    // can finalize (only cancelled task)
     const finalizeResult = canFinalize(runtime.getSnapshot().tasks);
     expect(finalizeResult.canFinalize).toBe(true);
 
-    runtime.fail('alltaskfailed');
+    runtime.fail('All tasks failed');
     expect(runtime.getSnapshot().status).toBe('failed');
 
     runtime.dispose();

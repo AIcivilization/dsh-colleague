@@ -1,14 +1,14 @@
 /**
- * WorkspaceLock single unitTest
+ * WorkspaceLock unit tests
  *
- * Testcover cover：
- * - acquire/release serialwrite
- * - duplicate acquire return return false
- * - not hold has or release invalid
+ * Test coverage:
+ * - acquire/release serial write lock
+ * - duplicate acquire returns false
+ * - release by non-holder is invalid
  * - isLocked / getLockHolder
- * - precheck（item record storeat、Git  ）
+ * - precheck (file integrity, git)
  * - snapshotBefore / snapshotAfter / computeDiff
- * - cleanSnapshot
+ * - clearSnapshot
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -24,11 +24,11 @@ describe('WorkspaceLock', () => {
 
   beforeEach(() => {
     workspace = mkdtempSync(join(tmpdir(), 'ws-lock-test-'));
-    // initial initial ize git  
+    // initialize git repo
     execSync('git init', { cwd: workspace, stdio: 'pipe' });
     execSync('git config user.email test@test.com', { cwd: workspace, stdio: 'pipe' });
     execSync('git config user.name Test', { cwd: workspace, stdio: 'pipe' });
-    // createinitial initial submit submit
+    // create initial commit
     writeFileSync(join(workspace, 'README.md'), '# Test\n');
     execSync('git add .', { cwd: workspace, stdio: 'pipe' });
     execSync('git commit -m "init"', { cwd: workspace, stdio: 'pipe' });
@@ -46,27 +46,27 @@ describe('WorkspaceLock', () => {
       expect(lock.getLockHolder()).toBe('task-001');
     });
 
-    it('haslockwhen acquire return return false', () => {
+    it('locked workspace acquire returns false', () => {
       lock.acquire('task-001');
       expect(lock.acquire('task-002')).toBe(false);
       expect(lock.getLockHolder()).toBe('task-001');
     });
 
-    it('hold has or release success', () => {
+    it('holder release succeeds', () => {
       lock.acquire('task-001');
       lock.release('task-001');
       expect(lock.isLocked()).toBe(false);
       expect(lock.getLockHolder()).toBeNull();
     });
 
-    it('not hold has or release invalid', () => {
+    it('non-holder release is invalid', () => {
       lock.acquire('task-001');
-      lock.release('task-002'); // notishold has or
+      lock.release('task-002'); // not the holder
       expect(lock.isLocked()).toBe(true);
       expect(lock.getLockHolder()).toBe('task-001');
     });
 
-    it('release aftercanagain time acquire', () => {
+    it('release allows re-acquire', () => {
       lock.acquire('task-001');
       lock.release('task-001');
       expect(lock.acquire('task-002')).toBe(true);
@@ -75,20 +75,20 @@ describe('WorkspaceLock', () => {
   });
 
   describe('precheck', () => {
-    it('Legal git  Passed precheck', () => {
+    it('valid git repo passes precheck', () => {
       const result = lock.precheck();
       expect(result.ok).toBe(true);
       expect(result.errors.length).toBe(0);
     });
 
-    it('item recorddoes not existwhen precheck failed', () => {
+    it('non-existent path fails precheck', () => {
       const badLock = new WorkspaceLock('/nonexistent/path');
       const result = badLock.precheck();
       expect(result.ok).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it('not git  when precheck failed', () => {
+    it('non-git directory fails precheck', () => {
       const nonGitDir = mkdtempSync(join(tmpdir(), 'non-git-'));
       const nonGitLock = new WorkspaceLock(nonGitDir);
       const result = nonGitLock.precheck();
@@ -102,36 +102,36 @@ describe('WorkspaceLock', () => {
     it('snapshotBefore record HEAD', () => {
       const snapshot = lock.snapshotBefore('task-001');
       expect(snapshot.head).toBeTruthy();
-      expect(snapshot.head.length).toBe(40); // git hash long degree
+      expect(snapshot.head.length).toBe(40); // git commit hash length
     });
 
-    it('snapshotAfter count compute diff（no change updatewhen diff forempty）', () => {
+    it('snapshotAfter computes diff (no change → empty diff)', () => {
       lock.snapshotBefore('task-001');
       const { before, after, diff } = lock.snapshotAfter('task-001');
       expect(before.head).toBe(after.head);
       expect(diff.length).toBe(0);
     });
 
-    it('snapshotAfter count compute diff（has new text component change update）', () => {
+    it('snapshotAfter computes diff (new text changes)', () => {
       lock.snapshotBefore('task-001');
-      // createnew text component
+      // create new file
       writeFileSync(join(workspace, 'new-file.ts'), 'export const x = 1;\n');
       const { before, after, diff } = lock.snapshotAfter('task-001');
-      // HEAD no change butworkspacehas change update
+      // HEAD unchanged but workspace has changes
       expect(before.head).toBe(after.head);
       expect(after.isDirty).toBe(true);
       expect(diff.length).toBeGreaterThan(0);
       expect(diff.some((f) => f.includes('new-file.ts'))).toBe(true);
     });
 
-    it('snapshotAfter count compute diff（has commit change update）', () => {
+    it('snapshotAfter computes diff (commit changes)', () => {
       lock.snapshotBefore('task-001');
-      // createnew text component and submit submit
+      // create new file and commit
       writeFileSync(join(workspace, 'feature.ts'), 'export const y = 2;\n');
       execSync('git add .', { cwd: workspace, stdio: 'pipe' });
       execSync('git commit -m "feature"', { cwd: workspace, stdio: 'pipe' });
       const { before, after, diff } = lock.snapshotAfter('task-001');
-      // HEAD change
+      // HEAD changed
       expect(before.head).not.toBe(after.head);
       expect(diff.length).toBeGreaterThan(0);
       expect(diff.some((f) => f.includes('feature.ts'))).toBe(true);
@@ -145,7 +145,7 @@ describe('WorkspaceLock', () => {
   });
 
   describe('cleanSnapshot', () => {
-    it('clearedafter snapshotAfter throws', () => {
+    it('clearSnapshot removes the before-snapshot', () => {
       lock.snapshotBefore('task-001');
       lock.clearSnapshot('task-001');
       expect(() => lock.snapshotAfter('task-001')).toThrow(

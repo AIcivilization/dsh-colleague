@@ -19,6 +19,8 @@ const STATUS_COLOR: Record<string, string> = {
   pending: 'var(--bg-6)',
   in_progress: 'var(--primary)',
   completed: 'var(--success)',
+  failed: 'var(--danger)',
+  blocked: 'var(--warning, #f0ad4e)',
   cancelled: 'var(--danger)',
 };
 
@@ -96,6 +98,7 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
       {description.length > 0 && (
         <div
           ref={descRef}
+          id={`task-desc-${task.id}`}
           className='cp-card-desc'
           style={expanded ? undefined : clampStyle(2)}
         >
@@ -109,6 +112,8 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
             className='cp-card-expand-btn'
             role='button'
             tabIndex={0}
+            aria-expanded={expanded}
+            aria-controls={`task-desc-${task.id}`}
             data-testid='activity-task-expand'
             onClick={() => setExpanded((v) => !v)}
             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setExpanded((v) => !v)}

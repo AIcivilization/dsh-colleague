@@ -1,13 +1,13 @@
 /**
- * quality gate gate single unitTest
+ * Quality gates — unit tests
  *
- * Testcover cover：
- * - validateTaskResult：Legal/Illegalconclusion resultValidation
- * - validateQualityResult：Legal/Illegalquality conclusion conclusionValidation
- * - hasPassedQualityGate：gate gatePassedjudge break
- * - needsRevision：fixneedrequest judge break
- * - canFinalize：teamfinalize check check
- * - validateDocsInput：text documenttaskinputValidation
+ * Covers:
+ * - validateTaskResult: valid/invalid result validation
+ * - validateQualityResult: valid/invalid quality result validation
+ * - hasPassedQualityGate: gate pass/fail checks
+ * - needsRevision: revision needed checks
+ * - canFinalize: team finalization checks
+ * - validateDocsInput: docs task input validation
  */
 
 import { describe, it, expect } from 'vitest';
@@ -57,43 +57,43 @@ function makeTaskResult(overrides: Partial<TaskResult> = {}): TaskResult {
 }
 
 describe('validateTaskResult', () => {
-  it('Legalconclusion resultPassedValidation', () => {
+  it('valid result passes validation', () => {
     const result = validateTaskResult(makeTaskResult());
     expect(result.valid).toBe(true);
     expect(result.result).toBeDefined();
     expect(result.result!.status).toBe('completed');
   });
 
-  it('Non-objectinputRejected', () => {
+  it('non-object input is rejected', () => {
     expect(validateTaskResult(null).valid).toBe(false);
     expect(validateTaskResult('string').valid).toBe(false);
     expect(validateTaskResult(42).valid).toBe(false);
   });
 
-  it('Missing status fieldRejected', () => {
+  it('missing status field is rejected', () => {
     const result = validateTaskResult({ summary: 'Description', artifacts: [], issues: [] });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('status'))).toBe(true);
   });
 
-  it('Illegal status valueRejected', () => {
+  it('invalid status value is rejected', () => {
     const result = validateTaskResult({ status: 'unknown', summary: 'Description' });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('status'))).toBe(true);
   });
 
-  it('Missing summary Rejected', () => {
+  it('missing summary is rejected', () => {
     const result = validateTaskResult({ status: 'completed' });
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('summary'))).toBe(true);
   });
 
-  it('empty summary Rejected', () => {
+  it('empty summary is rejected', () => {
     const result = validateTaskResult({ status: 'completed', summary: '  ' });
     expect(result.valid).toBe(false);
   });
 
-  it('artifacts not data groupRejected', () => {
+  it('artifacts not an array is rejected', () => {
     const result = validateTaskResult({
       status: 'completed',
       summary: 'Description',
@@ -103,7 +103,7 @@ describe('validateTaskResult', () => {
     expect(result.errors.some((e) => e.includes('artifacts'))).toBe(true);
   });
 
-  it('issues ininvaliditem itemRejected', () => {
+  it('invalid issue item is rejected', () => {
     const result = validateTaskResult({
       status: 'completed',
       summary: 'Description',
@@ -116,7 +116,7 @@ describe('validateTaskResult', () => {
     expect(result.errors.some((e) => e.includes('Issue 1'))).toBe(true);
   });
 
-  it('blocked conclusion result include blockedReason', () => {
+  it('blocked result includes blockedReason', () => {
     const result = validateTaskResult({
       status: 'blocked',
       summary: 'Blocked',
@@ -128,17 +128,17 @@ describe('validateTaskResult', () => {
 });
 
 describe('validateQualityResult', () => {
-  it('Legalquality conclusion conclusionPassedValidation', () => {
+  it('valid quality result passes validation', () => {
     const result = validateQualityResult({
       status: 'approved',
-      summary: 'ReviewPassed',
+      summary: 'Review passed',
       issues: [],
     });
     expect(result.valid).toBe(true);
     expect(result.result!.status).toBe('approved');
   });
 
-  it('Illegal status Rejected', () => {
+  it('invalid status is rejected', () => {
     const result = validateQualityResult({
       status: 'unknown',
       summary: 'Description',
@@ -146,22 +146,22 @@ describe('validateQualityResult', () => {
     expect(result.valid).toBe(false);
   });
 
-  it('Missing summary Rejected', () => {
+  it('missing summary is rejected', () => {
     const result = validateQualityResult({ status: 'approved' });
     expect(result.valid).toBe(false);
   });
 
-  it('Non-objectinputRejected', () => {
+  it('non-object input is rejected', () => {
     expect(validateQualityResult(null).valid).toBe(false);
     expect(validateQualityResult(undefined).valid).toBe(false);
   });
 
-  it('changes_requested statusLegal', () => {
+  it('changes_requested status is valid', () => {
     const result = validateQualityResult({
       status: 'changes_requested',
       summary: 'Changes needed',
       issues: [
-        { severity: 'warning', description: 'namingIssue' },
+        { severity: 'warning', description: 'Naming issue' },
       ],
     });
     expect(result.valid).toBe(true);
@@ -169,56 +169,56 @@ describe('validateQualityResult', () => {
 });
 
 describe('hasPassedQualityGate', () => {
-  it('approved statusPassedgate gate', () => {
+  it('approved status passes gate', () => {
     const task = makeTask({ quality: makeQuality({ status: 'approved' }) });
     expect(hasPassedQualityGate(task)).toBe(true);
   });
 
-  it('test_passed statusPassedgate gate', () => {
+  it('test_passed status passes gate', () => {
     const task = makeTask({ quality: makeQuality({ status: 'test_passed' }) });
     expect(hasPassedQualityGate(task)).toBe(true);
   });
 
-  it('changes_requested notPassedgate gate', () => {
+  it('changes_requested does not pass gate', () => {
     const task = makeTask({ quality: makeQuality({ status: 'changes_requested' }) });
     expect(hasPassedQualityGate(task)).toBe(false);
   });
 
-  it('test_failed notPassedgate gate', () => {
+  it('test_failed does not pass gate', () => {
     const task = makeTask({ quality: makeQuality({ status: 'test_failed' }) });
     expect(hasPassedQualityGate(task)).toBe(false);
   });
 
-  it('no quality conclusion conclusionnotPassedgate gate', () => {
+  it('no quality result does not pass gate', () => {
     const task = makeTask({ quality: undefined });
     expect(hasPassedQualityGate(task)).toBe(false);
   });
 });
 
 describe('needsRevision', () => {
-  it('changes_requested Needfix', () => {
+  it('changes_requested needs revision', () => {
     const task = makeTask({ quality: makeQuality({ status: 'changes_requested' }) });
     expect(needsRevision(task)).toBe(true);
   });
 
-  it('test_failed Needfix', () => {
+  it('test_failed needs revision', () => {
     const task = makeTask({ quality: makeQuality({ status: 'test_failed' }) });
     expect(needsRevision(task)).toBe(true);
   });
 
-  it('approved notNeedfix', () => {
+  it('approved does not need revision', () => {
     const task = makeTask({ quality: makeQuality({ status: 'approved' }) });
     expect(needsRevision(task)).toBe(false);
   });
 
-  it('no quality conclusion conclusionnotNeedfix', () => {
+  it('no quality result does not need revision', () => {
     const task = makeTask({ quality: undefined });
     expect(needsRevision(task)).toBe(false);
   });
 });
 
 describe('canFinalize', () => {
-  it('all hastaskPassedthencanfinalize', () => {
+  it('all tasks passed — can finalize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -242,7 +242,7 @@ describe('canFinalize', () => {
     expect(result.blockers.length).toBe(0);
   });
 
-  it('coder tasknotPassedthencannotfinalize', () => {
+  it('coder task not passed — cannot finalize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -255,7 +255,7 @@ describe('canFinalize', () => {
     expect(result.blockers.length).toBe(1);
   });
 
-  it('coder taskPassedbut quality gatenotPassedthencannotfinalize', () => {
+  it('coder task passed but quality gate not passed — cannot finalize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -269,7 +269,7 @@ describe('canFinalize', () => {
     expect(result.blockers.some((b) => b.includes('quality gate'))).toBe(true);
   });
 
-  it('reviewer tasknotDonethencannotfinalize', () => {
+  it('reviewer task not done — cannot finalize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -288,7 +288,7 @@ describe('canFinalize', () => {
     expect(result.blockers.some((b) => b.includes('Review'))).toBe(true);
   });
 
-  it('tester tasknotDonethencannotfinalize', () => {
+  it('tester task not done — cannot finalize', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -307,7 +307,7 @@ describe('canFinalize', () => {
     expect(result.blockers.some((b) => b.includes('Test'))).toBe(true);
   });
 
-  it('cancelled taskbeskip', () => {
+  it('cancelled tasks are skipped', () => {
     const tasks: Task[] = [
       makeTask({
         id: 't1',
@@ -321,13 +321,13 @@ describe('canFinalize', () => {
 });
 
 describe('validateDocsInput', () => {
-  it('not docs taskRejected', () => {
+  it('non-docs task is rejected', () => {
     const docsTask = makeTask({ role: 'coder' });
     const result = validateDocsInput(docsTask, []);
     expect(result.valid).toBe(false);
   });
 
-  it('all has coder taskhasPassedwhen docs taskLegal', () => {
+  it('all coder tasks passed — docs task is valid', () => {
     const docsTask = makeTask({ id: 'docs-1', role: 'docs' });
     const allTasks: Task[] = [
       makeTask({
@@ -341,7 +341,7 @@ describe('validateDocsInput', () => {
     expect(result.valid).toBe(true);
   });
 
-  it('coder tasknotPassedwhen docs taskIllegal', () => {
+  it('coder task not passed — docs task is invalid', () => {
     const docsTask = makeTask({ id: 'docs-1', role: 'docs' });
     const allTasks: Task[] = [
       makeTask({
@@ -355,7 +355,7 @@ describe('validateDocsInput', () => {
     expect(result.errors.some((e) => e.includes('not passed quality gate'))).toBe(true);
   });
 
-  it('cancelled coder tasknotblocked docs', () => {
+  it('cancelled coder task does not block docs', () => {
     const docsTask = makeTask({ id: 'docs-1', role: 'docs' });
     const allTasks: Task[] = [
       makeTask({

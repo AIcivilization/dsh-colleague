@@ -1,5 +1,9 @@
 # Team config: Frontend Project Team
 # Define team members, roles, provider, and workspace
+#
+# Note: workspace path and maxConcurrentWriters are set via plugin config
+# (index.ts apply()), not from this file. They are kept here for documentation
+# reference only. memory.persistence is handled by TeamRuntime automatically.
 
 team:
   id: "frontend-team-01"
@@ -9,12 +13,14 @@ team:
 # Team member configuration
 # role must be one of: leader / coder / reviewer / tester / docs
 # provider specifies a registered DSH subagent provider name
+# Default: "dsh-sdk" (@deepseek-ai/dsh-subagent-dsh-sdk)
+# Legacy "dsh" is auto-aliased to "dsh-sdk" (will be removed in next major)
 members:
   - id: "leader-01"
     template: "./templates/orchestrator.yaml"
     name: "Lead"
     role: "leader"
-    provider: "dsh"
+    provider: "dsh-sdk"
     model: "deepseek"
     slot_id: 0
 
@@ -22,7 +28,7 @@ members:
     template: "./templates/coder.yaml"
     name: "Coder"
     role: "coder"
-    provider: "dsh"
+    provider: "dsh-sdk"
     model: "deepseek"
     slot_id: 1
 
@@ -30,7 +36,7 @@ members:
     template: "./templates/reviewer.yaml"
     name: "Reviewer"
     role: "reviewer"
-    provider: "dsh"
+    provider: "dsh-sdk"
     model: "deepseek"
     slot_id: 2
 
@@ -38,7 +44,7 @@ members:
     template: "./templates/tester.yaml"
     name: "Tester"
     role: "tester"
-    provider: "dsh"
+    provider: "dsh-sdk"
     model: "deepseek"
     slot_id: 3
 
@@ -46,29 +52,30 @@ members:
     template: "./templates/doc-writer.yaml"
     name: "Doc Writer"
     role: "docs"
-    provider: "dsh"
+    provider: "dsh-sdk"
     model: "deepseek"
     slot_id: 4
 
-# Workspace config
-workspace:
-  path: "./workspace/"
+# --- The following sections are informational only ---
+# They are NOT loaded by the plugin. Runtime behavior is controlled
+# via plugin config (index.ts apply) or hardcoded defaults.
+# Kept for documentation of intended design.
 
-# Concurrency config
-concurrency:
-  max_writers: 1  # Serial writes (first version)
+# Workspace: path is set via config.workspace in index.ts
+# workspace:
+#   path: "./workspace/"
 
-# Memory config
-memory:
-  enabled: true
-  persistence: true  # Persist team events, decisions, verified commands, and quality results
+# Concurrency: maxConcurrentWriters is set via config.maxConcurrentWriters
+# concurrency:
+#   max_writers: 1
 
-# Intervention controls
-intervention:
-  enabled: true
-  actions:
-    - pause
-    - resume
-    - revise
-    - takeover
-    - skip
+# Memory: enabled by default, persistence is automatic (events.jsonl)
+# memory:
+#   enabled: true
+#   persistence: true
+
+# Intervention: six actions (pause/resume/revise/takeover/skip/answer)
+# are hardcoded and always available. No config-driven toggle.
+# intervention:
+#   enabled: true
+#   actions: [pause, resume, revise, takeover, skip]

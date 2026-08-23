@@ -8,6 +8,7 @@ export default defineConfig({
   dts: true,
   splitting: true,
   clean: true,
+  sourcemap: false,
   external: [
     '@deepseek-ai/cordis',
     '@deepseek-ai/dsh-llm',

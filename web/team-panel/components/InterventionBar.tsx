@@ -38,6 +38,7 @@ interface InterventionBarProps {
   onTakeover: () => void;
   onSkip: () => void;
   paused: boolean;
+  busy?: boolean;
 }
 
 const InterventionBar: React.FC<InterventionBarProps> = ({
@@ -47,6 +48,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
   onTakeover,
   onSkip,
   paused,
+  busy = false,
 }) => {
   const [showReviseInput, setShowReviseInput] = useState(false);
   const [reviseMessage, setReviseMessage] = useState('');
@@ -64,12 +66,12 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
       <div className='cp-intervention-row'>
         {/* Pause/Resume */}
         {paused ? (
-          <button onClick={onResume} className='cp-intervention-btn cp-intervention-btn-resume'>
+          <button onClick={onResume} disabled={busy} className='cp-intervention-btn cp-intervention-btn-resume'>
             <IconPlay />
             {t('intervention.resume')}
           </button>
         ) : (
-          <button onClick={onPause} className='cp-intervention-btn cp-intervention-btn-pause'>
+          <button onClick={onPause} disabled={busy} className='cp-intervention-btn cp-intervention-btn-pause'>
             <IconPause />
             {t('intervention.pause')}
           </button>
@@ -78,6 +80,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
         {/* Revise */}
         <button
           onClick={() => setShowReviseInput(!showReviseInput)}
+          disabled={busy}
           className='cp-intervention-btn cp-intervention-btn-ghost cp-intervention-btn-ghost-revise'
         >
           <IconEdit />
@@ -87,6 +90,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
         {/* Takeover */}
         <button
           onClick={onTakeover}
+          disabled={busy}
           className='cp-intervention-btn cp-intervention-btn-ghost cp-intervention-btn-ghost-takeover'
         >
           <IconUser />
@@ -96,6 +100,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
         {/* Skip */}
         <button
           onClick={onSkip}
+          disabled={busy}
           className='cp-intervention-btn cp-intervention-btn-ghost cp-intervention-btn-ghost-skip'
         >
           <IconSkip />
@@ -114,6 +119,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
             value={reviseMessage}
             onChange={(e) => setReviseMessage(e.target.value)}
             placeholder={t('intervention.revisePlaceholder')}
+            aria-label={t('intervention.revisePlaceholder')}
             className='cp-intervention-input'
             autoFocus
             onKeyDown={(e) => {
@@ -121,7 +127,7 @@ const InterventionBar: React.FC<InterventionBarProps> = ({
               if (e.key === 'Escape') setShowReviseInput(false);
             }}
           />
-          <button onClick={handleRevise} className='cp-intervention-btn cp-intervention-btn-brand'>
+          <button onClick={handleRevise} disabled={busy || !reviseMessage.trim()} className='cp-intervention-btn cp-intervention-btn-brand'>
             {t('intervention.send')}
           </button>
           <button

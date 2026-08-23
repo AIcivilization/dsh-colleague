@@ -6,9 +6,10 @@
  *
  * Reviewer's changes_requested and Tester's failed must block final delivery.
  * Failed coder tasks block unless a subsequent fix task has passed.
+ * A fix task is detected via dependencies OR via title prefix "Fix " combined
+ * with a reference to the failed task's id (first 8 chars) in title/description.
  * Docs tasks only read artifacts that have passed quality gates.
  */
-
 import type {
   TaskResult,
   QualityResult,
@@ -211,11 +212,18 @@ export function canFinalize(tasks: Task[]): {
       for (const depId of t.dependencies) {
         fixedTaskIds.add(depId);
       }
-      // Also check title-based matching: "Fix ..." tasks fix the original
+      // Also check title-based matching: a "Fix ..." task fixes the original
+      // failed task only if its title or description references the failed
+      // task's id (first 8 chars) — prevents unrelated fix tasks from
+      // unblocking all failures
       if (t.title.toLowerCase().startsWith('fix ')) {
+        const fixText = `${t.title} ${t.description ?? ''}`.toLowerCase();
         for (const orig of tasks) {
           if (orig.role === 'coder' && orig.status === 'failed') {
-            fixedTaskIds.add(orig.id);
+            const idPrefix = orig.id.slice(0, 8).toLowerCase();
+            if (fixText.includes(idPrefix)) {
+              fixedTaskIds.add(orig.id);
+            }
           }
         }
       }

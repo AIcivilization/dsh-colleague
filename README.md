@@ -89,14 +89,14 @@ team:
 members:
   - id: "leader-01"
     role: "leader"
-    provider: "dsh"
+    provider: "dsh-sdk"
     model: "deepseek"
     template: "./templates/orchestrator.yaml"
     slot_id: 0
 
   - id: "coder-01"
     role: "coder"
-    provider: "dsh"
+    provider: "dsh-sdk"
     model: "deepseek"
     template: "./templates/coder.yaml"
     slot_id: 1
@@ -112,7 +112,7 @@ memory:
 
 ### Key Config Fields
 
-- **`provider`**: A registered DSH subagent provider name (e.g., `dsh`, `acp`, `codex`, `claude-code`)
+- **`provider`**: A registered DSH subagent provider name (e.g., `dsh-sdk`, `acp`, `codex`, `claude-code`)
 - **`model`**: Model identifier (e.g., `deepseek`)
 - **`role`**: Must be one of `leader` / `coder` / `reviewer` / `tester` / `docs`
 - **`max_writers`**: Max concurrent write tasks (first version: 1, serial writes)

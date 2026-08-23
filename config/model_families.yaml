@@ -1,3 +1,7 @@
+# status: design-doc — This file is a design draft and is NOT loaded by the plugin.
+# It documents the intended model family binding strategy for future versions.
+# Currently the loader does not reference this file; it is kept for design reference.
+
 # Model family binding config
 # Bind to model families; versions can be upgraded
 

@@ -1,17 +1,17 @@
 /**
- * configloaddevice single unitTest
+ * Config loader unit tests
  *
- * Testcover cover：
- * - Legal YAML configparsing
- * - missing team segment errordiagnostics
- * - missing members listerrordiagnostics
- * - membermissing id / name / role fielderrordiagnostics
- * - illegal roleerrordiagnostics
- * - Missing leader errordiagnostics
- * - duplicatenot coder roleerrordiagnostics
- * - templatetext componentload
- * - concurrencyconfigextraction
- * - record memoryconfigextraction
+ * Test coverage:
+ * - Legal YAML config parsing
+ * - Missing team section error diagnostics
+ * - Missing members list error diagnostics
+ * - Member missing id / name / role field error diagnostics
+ * - Invalid role error diagnostics
+ * - Missing leader error diagnostics
+ * - Duplicate non-coder role error diagnostics
+ * - Template file loading
+ * - Concurrency config extraction
+ * - Memory config extraction
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -45,7 +45,7 @@ describe('loadTeamConfig', () => {
     return path;
   }
 
-  describe('Legalconfig', () => {
+  describe('Legal config', () => {
     it('complete config parsing success', () => {
       const configPath = writeConfig(`
 team:
@@ -89,7 +89,7 @@ members:
       expect(config.teamId).toMatch(/^team-/);
     });
 
-    it('provider defaultfor dsh', () => {
+    it('provider defaults to dsh-sdk', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -101,10 +101,10 @@ members:
     slot_id: 0
 `);
       const config = loadTeamConfig(join(configDir, 'team.yaml'));
-      expect(config.members[0].provider).toBe('dsh');
+      expect(config.members[0].provider).toBe('dsh-sdk');
     });
 
-    it('slot_id defaultfor index', () => {
+    it('slot_id defaults to index', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -122,7 +122,7 @@ members:
       expect(config.members[1].slotId).toBe(1);
     });
 
-    it('permissiondefaultfor reject', () => {
+    it('permission defaults to reject', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -138,9 +138,9 @@ members:
     });
   });
 
-  describe('templateload', () => {
-    it('fromtemplatetext componentload skillPrompt', () => {
-      const templatePath = writeTemplate('leader.yaml', 'yourisLead，  split task');
+  describe('template loading', () => {
+    it('loads skillPrompt from template file', () => {
+      const templatePath = writeTemplate('leader.yaml', 'You are Lead, split tasks');
       const relativePath = './templates/leader.yaml';
       writeConfig(`
 team:
@@ -154,11 +154,11 @@ members:
     slot_id: 0
 `);
       const config = loadTeamConfig(join(configDir, 'team.yaml'));
-      expect(config.members[0].skillPrompt).toBe('yourisLead，  split task');
+      expect(config.members[0].skillPrompt).toBe('You are Lead, split tasks');
       expect(config.members[0].templatePath).toContain('leader.yaml');
     });
 
-    it('templateFile does not existthrowserror', () => {
+    it('template file does not exist throws error', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -176,8 +176,8 @@ members:
     });
   });
 
-  describe('errordiagnostics', () => {
-    it('File does not existthrows', () => {
+  describe('error diagnostics', () => {
+    it('file does not exist throws', () => {
       expect(() => loadTeamConfig('/nonexistent/team.yaml')).toThrow(
         'Team config file not found',
       );
@@ -191,7 +191,7 @@ members:
       );
     });
 
-    it('Missing team segmentthrows', () => {
+    it('missing team section throws', () => {
       writeConfig(`
 members:
   - id: "leader-01"
@@ -203,7 +203,7 @@ members:
       );
     });
 
-    it('Missing members listthrows', () => {
+    it('missing members list throws', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -213,7 +213,7 @@ team:
       );
     });
 
-    it('empty members listthrows', () => {
+    it('empty members list throws', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -225,7 +225,7 @@ members: []
       );
     });
 
-    it('memberMissing id throws', () => {
+    it('member missing id throws', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -239,7 +239,7 @@ members:
       );
     });
 
-    it('memberMissing name throws', () => {
+    it('member missing name throws', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -253,7 +253,7 @@ members:
       );
     });
 
-    it('memberMissing role throws', () => {
+    it('member missing role throws', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -267,7 +267,7 @@ members:
       );
     });
 
-    it('illegal rolethrows', () => {
+    it('invalid role throws', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -282,7 +282,7 @@ members:
       );
     });
 
-    it('Missing leader throws', () => {
+    it('missing leader throws', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -297,7 +297,7 @@ members:
       );
     });
 
-    it('duplicate reviewer rolethrows', () => {
+    it('duplicate reviewer role throws', () => {
       writeConfig(`
 team:
   name: "Test"
@@ -318,7 +318,7 @@ members:
       );
     });
 
-    it('multiple coder Legal', () => {
+    it('multiple coders are valid', () => {
       writeConfig(`
 team:
   name: "Test"

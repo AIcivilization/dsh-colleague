@@ -114,13 +114,13 @@ async function main() {
     console.log('    tasks:', snapshot.tasks.length, 'tasks');
     console.log('[5] Status correct\n');
 
-    // 6. Bind mock SubagentRuntime and start orchestrationion loop
+    // 6. Bind mock SubagentRuntime and start orchestration loop
     console.log('[6] Binding SubagentRuntime...');
     loopService.bindSubagentRuntime(createMockSubagentRuntime());
     console.log('[6] Binding success\n');
 
-    // 7. Start orchestrationion loop
-    console.log('[7] Starting orchestrationion loop...');
+    // 7. Start orchestration loop
+    console.log('[7] Starting orchestration loop...');
     console.log('    goal: Implement a login page\n');
     await loopService.start('Implement a login page');
 

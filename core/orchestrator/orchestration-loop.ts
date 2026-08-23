@@ -1,5 +1,5 @@
 /**
- * OrchestrationLoop — the orchestrationion loop (heart of the plugin)
+ * OrchestrationLoop — the orchestration loop (heart of the plugin)
  *
  * Reconstructed from the original leaderDecisionLoop pseudocode and rewritten
  * as a real implementation based on DSH SubagentRuntime.
@@ -49,8 +49,10 @@ export interface SubagentRuntimeLike {
     name: string,
     request: {
       prompt: ContentBlock[];
-      parent?: unknown;
-      signal?: AbortSignal;
+      /** Parent session reference — required by upstream DSH */
+      parent: unknown;
+      /** Abort signal — required by upstream DSH */
+      signal: AbortSignal;
       label?: string;
     },
   ): Promise<SubagentRunLike>;
@@ -145,6 +147,8 @@ export class OrchestrationLoop {
   private generation = 0;
   /** Disposed flag — ensures idempotent dispose */
   private disposed = false;
+  /** Start-in-flight flag — prevents TOCTOU race on concurrent /start calls */
+  private startInFlight = false;
 
   constructor(
     runtime: TeamRuntime,
@@ -177,6 +181,23 @@ export class OrchestrationLoop {
     return this.state === 'running';
   }
 
+  /** Check if a start() call is currently in-flight (TOCTOU guard) */
+  isStartInFlight(): boolean {
+    return this.startInFlight;
+  }
+
+  /** Set the start-in-flight flag */
+  setStartInFlight(v: boolean): void {
+    this.startInFlight = v;
+  }
+
+  /** Inject additional text into the current goal (for revise intervention) */
+  injectGoalSuffix(suffix: string): void {
+    if (this.currentGoal !== null) {
+      this.currentGoal += suffix;
+    }
+  }
+
   subscribe(listener: LoopListener): () => void {
     this.listeners.push(listener);
     return () => {
@@ -202,7 +223,7 @@ export class OrchestrationLoop {
   // ===== Public API =====
 
   /**
-   * Start the orchestrationion loop
+   * Start the orchestration loop
    * @param goal User goal
    */
   async start(goal: string): Promise<void> {
@@ -724,7 +745,8 @@ export class OrchestrationLoop {
 
     const run = await this.subagentRuntime.start(member.provider, {
       prompt: toContentBlocks(prompt),
-      parent: undefined,
+      // parent is required by upstream DSH — pass null as we don't have a parent session reference
+      parent: null,
       signal,
       label: member.name + ' (' + member.role + ')',
     });
